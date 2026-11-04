@@ -72,12 +72,18 @@ def dispatch(store, method, route, data):
             return store.list_mappings(company)
         if route == "files":
             return store.list_files(company)
+        if route == "file-preview":
+            return store.deletion_preview(company, _identifier(_required(data, "file_id"), "file_id"))
         if route == "documents":
             period = data.get("period_id")
             return store.list_documents(company, None if period in (None, "") else _identifier(period, "period_id"))
         if route == "audit":
             return store.list_audit(company)
     if method == "POST":
+        if route == "file-removal":
+            return store.delete_file(company, _identifier(_required(data, "file_id"), "file_id"),
+                                     _required(data, "reason"), confirmed=data.get("confirmed"),
+                                     preview_token=_required(data, "preview_token"))
         if route == "companies":
             return store.create_company(_required(data, "name"), _required(data, "prosoft_company_code"),
                                         _required(data, "prosoft_plan_code"), cnpj=data.get("cnpj", ""))
@@ -211,7 +217,7 @@ class LocalHandler(BaseHTTPRequestHandler):
                 filename, content_type = ASSETS[parts.path]
                 self._send(200, (WEB_ROOT / filename).read_bytes(), content_type)
                 return
-            routes = {"companies", "periods", "plans", "accounts", "mappings", "files", "documents", "audit"}
+            routes = {"companies", "periods", "plans", "accounts", "mappings", "files", "documents", "audit", "file-preview", "file-removal"}
             route = parts.path.removeprefix("/api/")
             if not parts.path.startswith("/api/") or route not in routes:
                 raise APIError("Página não encontrada.", 404)

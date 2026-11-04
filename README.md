@@ -10,7 +10,7 @@ Este projeto prepara o fluxo entre documentos fiscais, arquivo SPED para importa
 - Competência processada: setembro de 2026 (2026-09).
 - A referência parametriza as regras deste cenário; ela não altera a competência dos documentos processados.
 - O arquivo fiscal é preparado para importação no Prosoft. A instalação, o leiaute do importador e a seleção de registros ainda precisam ser confirmados.
-- O bloco C usa C100. C140/C141 entram somente conforme aplicabilidade do documento e contrato do importador, com no máximo um C140 por documento e C141 por parcela quando o C140 for informado.
+- A saída planejada inclui C100 e um perfil específico de integração Prosoft para C140/C141 relacionados a modelo 55. O perfil depende do layout e dos exemplos do importador; ainda não há gerador implementado nem compatibilidade validada. Esse requisito não representa uma EFD oficial para modelo 55.
 - A etapa contábil deve impedir reaplicação do mesmo lote e dos mesmos lançamentos. Importação com resultado incerto exige reconciliação antes de qualquer repetição.
 
 ## Segurança de dados
@@ -29,9 +29,11 @@ Cadastre uma empresa, defina os períodos de parâmetros e movimentos e importe 
 
 Recebimento XML suporta apenas NF-e 4.00 modelo 55, com cabeçalho e faturas/parcelas. Verifica chave/DV, campos de controle e competência de emissão, mas não assinatura, autorização, esquema XSD ou correção fiscal integral. Competência diferente da emissão exige revisão e não é atribuída automaticamente. SPED é armazenado com contagem de registros e estado pendente: ainda não há normalização/reconciliação XML × SPED.
 
-O programa não calcula CBS/IBS, não gera partidas ou arquivos de importação Prosoft e não transmite dados. Não existe autenticação multiusuário nem pronto uso em rede/produção. A remoção lógica de arquivo tem prévia e confirmação na API do núcleo; purga definitiva e restauração ainda não estão disponíveis na interface.
+O programa não calcula CBS/IBS, não gera partidas ou arquivos de importação Prosoft e não transmite dados. Não existe autenticação multiusuário nem pronto uso em rede/produção. Em Documentos, a remoção lógica apresenta o arquivo, documentos dependentes e consequências; exige motivo e confirmação, preserva o original e a auditoria e deixa os documentos vinculados pendentes. Uma prévia desatualizada é recusada. Purga definitiva e restauração permanecem indisponíveis.
 
-Fluxo, modelo, estados, aceite e limitações: [primeiro incremento](docs/incremento-persistente.md).
+Fatura com valores aritmeticamente divergentes, parcelas sem fatura ou soma das parcelas diferente do líquido ficam pendentes, preservando os valores recebidos. Essas conferências não calculam tributos nem presumem valores ausentes. O normalizador v2 aplica as novas conferências nas novas importações; documentos antigos não são reescritos ou liberados automaticamente.
+
+Fluxos A–E, navegação, entidades, permissões e dependências: [mapa funcional completo](docs/mapa-produto.md). Modelo e limites do primeiro incremento: [incremento persistente](docs/incremento-persistente.md).
 
 Execute a suíte sintética:
 

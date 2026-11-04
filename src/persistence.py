@@ -5,6 +5,7 @@ import hashlib
 import json
 import re
 import sqlite3
+from decimal import Decimal
 from datetime import date, datetime, timezone
 from pathlib import Path
 import xml.etree.ElementTree as ET
@@ -125,6 +126,17 @@ def parse_nfe(content):
                 billing_warnings.append("Número de parcela repetido")
             seen_installments.add(row["nDup"])
             billing["installments"].append(row)
+        if billing["installments"] and invoice is None:
+            billing_warnings.append("Parcelas sem fatura identificada; exige conferência")
+        if invoice is not None:
+            values = billing["invoice"]
+            if all(values[field] for field in ("vOrig", "vDesc", "vLiq")):
+                if Decimal(values["vOrig"]) - Decimal(values["vDesc"]) != Decimal(values["vLiq"]):
+                    billing_warnings.append("Valor original menos desconto diverge do líquido da fatura")
+            installments = billing["installments"]
+            if installments and values["vLiq"] and all(row["vDup"] for row in installments):
+                if sum((Decimal(row["vDup"]) for row in installments), Decimal("0")) != Decimal(values["vLiq"]):
+                    billing_warnings.append("Soma das parcelas diverge do líquido da fatura")
     normalized = ET.canonicalize(ET.tostring(info, encoding="unicode"), strip_text=True, rewrite_prefixes=True)
     return {"key": key, "model": model, "number": number, "series": series, "issued_at": emitted, "competence": emitted[:7], "issuer": issuer, "buyer": buyer, "total": _money(get("n:total/n:ICMSTot/n:vNF"), "Total NF-e"), "billing": billing, "billing_warnings": billing_warnings, "content_fingerprint": hashlib.sha256(normalized.encode()).hexdigest()}
 
@@ -351,7 +363,7 @@ class AccountingStore:
                     raise ValueError("Competência de emissão diverge dos movimentos; exige revisão manual, nenhum documento criado")
                 if company["cnpj"] and company["cnpj"] not in {payload["issuer"],payload["buyer"]}:
                     raise ValueError("Documento não identifica a empresa cadastrada")
-                metadata={"normalizer":"nfe-4.00-header-billing-v1","company_identity_verified":bool(company["cnpj"])}
+                metadata={"normalizer":"nfe-4.00-header-billing-v2","company_identity_verified":bool(company["cnpj"])}
                 if payload["billing_warnings"]:
                     status="pendente"
                     metadata["billing_warnings"]=payload["billing_warnings"]
@@ -398,7 +410,7 @@ class AccountingStore:
             file_id=cur.lastrowid
             if payload is not None:
                 old=self.db.execute("SELECT * FROM documents WHERE company_id=? AND business_key=?",(company_id,payload["key"])).fetchone()
-                conflict=bool(old and (old["payload"]!=_json(payload) or old["period_id"]!=period_id))
+                conflict=bool(old and (old["payload"]!=_json(payload) or old["period_id"]!=period["id"]))
                 if old:
                     document_id=old["id"]
                 else:
@@ -450,15 +462,22 @@ class AccountingStore:
 
     def deletion_preview(self,company_id,file_id):
         row=self._file(company_id,file_id)
-        docs=[r[0] for r in self.db.execute("SELECT document_id FROM document_sources WHERE file_id=?",(file_id,))]
-        return {"file_id":file_id,"filename":row["filename"],"document_ids":docs,"operation":"remocao_logica","consequence":"Preserva original e auditoria; documentos vinculados ficam pendentes. Purga definitiva indisponível."}
+        docs=[r[0] for r in self.db.execute("SELECT document_id FROM document_sources WHERE file_id=? ORDER BY document_id",(file_id,))]
+        preview={"file_id":row["id"],"filename":row["filename"],"document_ids":docs,"status":row["status"],"operation":"remocao_logica","consequence":"Preserva original e auditoria; documentos vinculados ficam pendentes. Purga definitiva indisponível."}
+        preview["preview_token"]=hashlib.sha256(_json(preview).encode()).hexdigest()
+        return preview
 
-    def delete_file(self,company_id,file_id,reason,confirmed=False):
-        preview=self.deletion_preview(company_id,file_id)
+    def delete_file(self,company_id,file_id,reason,confirmed=False,preview_token=None):
         reason=_text(reason,"motivo",1000)
         if confirmed is not True:
             raise ValueError("Confirme a prévia de dependências para remoção lógica")
         with self.db:
+            self.db.execute("BEGIN IMMEDIATE")
+            preview=self.deletion_preview(company_id,file_id)
+            if preview["status"]=="excluido":
+                raise ValueError("Arquivo já removido logicamente")
+            if preview_token is not None and preview_token!=preview["preview_token"]:
+                raise ValueError("Prévia desatualizada; confira novamente as dependências")
             self.db.execute("UPDATE files SET status='excluido' WHERE id=? AND company_id=?",(file_id,company_id))
             for document_id in preview["document_ids"]:
                 self.db.execute("UPDATE documents SET status='pendente' WHERE id=? AND company_id=?",(document_id,company_id))

@@ -146,6 +146,36 @@ class LocalApplicationTests(unittest.TestCase):
         self.assertEqual(len(self.api("companies")), 1)
         self.assertEqual(self.request("/api/companies", headers={"X-Local-Token": old_token})[0], 403)
 
+    def test_browser_text_ids_keep_equivalent_xml_as_two_sources_without_conflict(self):
+        from test_persistence import fake_xml, ISSUER
+        from xml.etree import ElementTree as ET
+        company=self.api("companies",{"name":"Empresa fictícia HTTP","prosoft_company_code":"TEST","prosoft_plan_code":"TEST","cnpj":ISSUER})
+        cid=str(company["id"])
+        period=self.api("periods",{"company_id":cid,"reference_competence":"2026-08","processing_competence":"2026-09"})
+        original=fake_xml()
+        for index,content in enumerate((original,ET.tostring(ET.fromstring(original)))):
+            imported=self.api("files",{"company_id":cid,"period_id":str(period["id"]),"filename":f"ficticio-{index}.xml","kind":"XML","content_base64":base64.b64encode(content).decode()})
+            self.assertEqual(imported["status"],"validado")
+        docs=self.api(f"documents?company_id={cid}")
+        self.assertEqual(len(docs),1)
+        self.assertEqual([s["conflict"] for s in docs[0]["sources"]],[0,0])
+
+    def test_logical_removal_requires_current_preview_reason_confirmation_and_company(self):
+        company,other=self.company(),self.company()
+        cid=company["id"]
+        period=self.api("periods",{"company_id":cid,"reference_competence":"2026-08","processing_competence":"2026-09"})
+        imported=self.api("files",{"company_id":cid,"period_id":period["id"],"filename":"ficticio.txt","kind":"SPED","content_base64":base64.b64encode(b"|0000|TESTE|\n").decode()})
+        preview=self.api(f"file-preview?company_id={cid}&file_id={imported['id']}")
+        data={"company_id":cid,"file_id":imported["id"],"reason":"Remoção fictícia","confirmed":True,"preview_token":preview["preview_token"]}
+        for change in ({"preview_token":""},{"preview_token":"stale"},{"reason":""},{"confirmed":False},{"confirmed":"true"},{"company_id":other["id"]}):
+            self.assertEqual(self.request("/api/file-removal","POST",{**data,**change})[0],400)
+        self.assertEqual(self.request(f"/api/file-preview?company_id={other['id']}&file_id={imported['id']}")[0],400)
+        self.assertEqual(self.api(f"files?company_id={cid}")[0]["status"],"pendente")
+        self.api("file-removal",data)
+        self.assertEqual(self.api(f"files?company_id={cid}")[0]["status"],"excluido")
+        self.assertEqual(self.api(f"audit?company_id={cid}")[0]["action"],"arquivo_removido_logicamente")
+        self.assertEqual(self.request("/api/file-removal","POST",data)[0],400)
+
 
 if __name__ == "__main__":
     unittest.main()

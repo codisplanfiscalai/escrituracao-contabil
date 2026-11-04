@@ -162,6 +162,53 @@ class StoreTests(unittest.TestCase):
         self.assertNotEqual(first_doc["id"], second_doc["id"])
         self.assertEqual(first_doc["business_key"], second_doc["business_key"])
 
+    def test_textual_period_identifier_does_not_create_false_document_conflict(self):
+        content=fake_xml()
+        self.import_xml(content)
+        equivalent=ET.tostring(ET.fromstring(content))
+        result=self.store.import_file(str(self.company_id),str(self.period["id"]),"outra-origem-ficticia.xml",equivalent,"XML")
+        self.assertEqual(result["status"],"validado")
+        self.assertFalse(result["duplicate"])
+        docs=self.store.list_documents(self.company_id)
+        self.assertEqual(len(docs),1)
+        self.assertEqual(len(docs[0]["sources"]),2)
+        self.assertTrue(all(source["conflict"]==0 for source in docs[0]["sources"]))
+
+    def test_billing_arithmetic_divergences_are_pending_and_original_is_preserved(self):
+        for number,path,value in ((21,"cobr/fat/vDesc","1.00"),(22,"cobr/dup/vDup","40.11")):
+            with self.subTest(path=path):
+                content=edit_xml(fake_xml(number=number),path,value)
+                result=self.import_xml(content)
+                self.assertEqual(result["status"],"pendente")
+                self.assertTrue(result["metadata"]["billing_warnings"])
+                original=self.store.db.execute("SELECT original FROM files WHERE id=?",(result["id"],)).fetchone()[0]
+                self.assertEqual(bytes(original),content)
+                self.assertEqual(parse_nfe(content)["billing"]["invoice"]["vLiq"],"100.30")
+
+    def test_installments_without_invoice_are_pending_without_inventing_title(self):
+        content=edit_xml(fake_xml(),"cobr/fat",remove=True)
+        result=self.import_xml(content)
+        self.assertEqual(result["status"],"pendente")
+        payload=self.store.list_documents(self.company_id)[0]["payload"]
+        self.assertIsNone(payload["billing"]["invoice"])
+        self.assertEqual(len(payload["billing"]["installments"]),2)
+
+    def test_stale_deletion_preview_and_repeated_removal_have_no_side_effect(self):
+        imported=self.import_xml()
+        preview=self.store.deletion_preview(self.company_id,imported["id"])
+        with self.store.db:
+            self.store.db.execute("UPDATE files SET status='pendente' WHERE id=?",(imported["id"],))
+        before=self.count("audit")
+        with self.assertRaisesRegex(ValueError,"desatualizada"):
+            self.store.delete_file(self.company_id,imported["id"],"Motivo fictício",True,preview["preview_token"])
+        self.assertEqual(self.count("audit"),before)
+        self.assertEqual(self.store.list_files(self.company_id)[0]["status"],"pendente")
+        current=self.store.deletion_preview(self.company_id,imported["id"])
+        self.store.delete_file(self.company_id,imported["id"],"Motivo fictício",True,current["preview_token"])
+        with self.assertRaisesRegex(ValueError,"já removido"):
+            self.store.delete_file(self.company_id,imported["id"],"Motivo fictício",True,current["preview_token"])
+        self.assertEqual(self.count("audit"),before+1)
+
     def test_period_reference_does_not_move_document_competence(self):
         result = self.import_xml()
         self.assertEqual(result["status"], "validado")

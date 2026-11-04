@@ -6,6 +6,8 @@ O objetivo desta etapa é preparar um arquivo SPED para **importação no Prosof
 
 ## Registros do cenário
 
+O requisito revisado inclui C140/C141 vinculados a NF-e modelo 55 exclusivamente como perfil de compatibilidade Prosoft separado. A especificação e os exemplos desse perfil não foram recebidos. Nenhuma saída está implementada ou validada. Não aplicar a descrição oficial de modelo 01 como justificativa para declarar modelo 55 uma EFD oficial. A documentação efetiva do importador e o guia vigente precisam ser conferidos antes da geração. Consulte [mapa funcional](mapa-produto.md).
+
 - **C100:** registro de documento fiscal dentro da abrangência confirmada do importador.
 - **C140:** dados da fatura comercial quando aplicável e aceito pelo importador.
 - **C141:** uma ocorrência para cada parcela vinculada a C140, se o registro e os dados forem aplicáveis.
