@@ -74,6 +74,7 @@ class ReconciliationMixin:
         return entity_id, False
 
     def _index_xml(self, company, period, file_id, payload):
+        self.observe_document_participants(company, file_id, payload)
         warnings = list(payload["billing_warnings"])
         if not company["cnpj"]:
             warnings.append("CNPJ da empresa ausente; identidade não conferida")
@@ -122,8 +123,6 @@ class ReconciliationMixin:
             if profile == XML_PROFILE and file_row["kind"] == "XML":
                 from .persistence import parse_nfe
                 payload = payload if payload is not None else parse_nfe(bytes(file_row["original"]))
-                if payload["competence"] != period["processing_competence"]:
-                    raise ValueError("Competência de emissão diverge dos movimentos; nenhum documento criado")
                 if company["cnpj"] and company["cnpj"] not in {payload["issuer"], payload["buyer"]}:
                     raise ValueError("Documento não identifica a empresa cadastrada")
                 self._index_xml(company, period, file_row["id"], payload)
@@ -136,6 +135,9 @@ class ReconciliationMixin:
                     if row["normalized"]:
                         document_id = self._ensure_document(company["id"], period, file_row["id"], row["normalized"], "pendente")
                         documents[row["line"]] = document_id
+                        party = row["normalized"].get("issuer")
+                        if party and party != company["cnpj"]:
+                            self._record_participant(company["id"], party, "", "fornecedor" if row["normalized"].get("operation") == "entrada" else "emitente", f"arquivo:{file_row['id']}/linha:{row['line']}/CHV_NFE")
                     elif row["parent_line"] is not None:
                         document_id = documents.get(row["parent_line"])
                     self._observe(file_row["id"], profile, f"linha:{row['line']}", "documento" if row["normalized"] else "registro",
@@ -159,12 +161,16 @@ class ReconciliationMixin:
             self.db.execute("BEGIN IMMEDIATE")
             company = self._company(company_id)
             file_row = self._owned("files", company_id, file_id)
-            if file_row["status"] in {"excluido", "rejeitado"}:
-                raise ValueError("Arquivo excluído ou rejeitado não pode ser analisado")
+            if file_row["status"] == "excluido":
+                raise ValueError("Arquivo excluído não pode ser analisado")
             if (file_row["kind"]=="XML" and profile!=XML_PROFILE) or (file_row["kind"]=="SPED" and profile!=SPED_PROFILE):
                 raise ValueError("Perfil não corresponde ao tipo de arquivo")
             period = self._owned("periods", company_id, file_row["period_id"])
             result = self._index_source(company, period, file_row, profile)
+            if file_row["status"] == "rejeitado" and not result["metadata"].get("error"):
+                valid = self.db.execute("SELECT 1 FROM source_observations WHERE file_id=? AND profile=? AND document_id IS NOT NULL", (file_row["id"], profile)).fetchone()
+                if valid:
+                    self.db.execute("UPDATE files SET status='pendente',metadata=? WHERE id=?", (_dump({"previous_validation": json.loads(file_row["metadata"]), "reassessment": result["metadata"]}), file_row["id"]))
             self._audit(company_id, "arquivo_analisado", {"file_id": file_row["id"], "profile": profile, "duplicate": result["duplicate"]})
         return result
 

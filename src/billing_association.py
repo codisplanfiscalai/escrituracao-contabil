@@ -5,7 +5,7 @@ from datetime import date
 from decimal import Decimal, localcontext
 
 from .accounting_store import digest, dump, identifier
-from .reconciliation import XML_PROFILE
+from .reconciliation import XML_PROFILE, XML_PROFILES
 
 BILLING_ASSOCIATION_SCHEMA = """
 CREATE TABLE IF NOT EXISTS billing_associations (
@@ -139,7 +139,7 @@ class BillingAssociationMixin:
 
     def _validate_billing_proposal(self, base, file_id, targets, installment_links):
         rows = [row for row in base["observations"] if row["file_id"] == file_id]
-        _require(rows and all(row["source_kind"] == "XML" and row["profile"] == XML_PROFILE and row["file_status"] not in {"excluido", "rejeitado"} and row["period_id"] == base["period_id"] for row in rows), "fonte XML ativa do mesmo período é obrigatória")
+        _require(rows and all(row["source_kind"] == "XML" and row["profile"] in XML_PROFILES and row["file_status"] not in {"excluido", "rejeitado"} and row["period_id"] == base["period_id"] for row in rows), "fonte XML ativa do mesmo período é obrigatória")
         headers = [row for row in rows if row["entity_kind"] == "documento"]
         invoices = [row for row in rows if row["entity_kind"] == "fatura"]
         parts = [row for row in rows if row["entity_kind"] == "parcela"]
@@ -174,7 +174,7 @@ class BillingAssociationMixin:
         _require(changed_identifier, "nenhum identificador divergente para associar")
         # Require active native evidence for the canonical values; no fabricated
         # identity can become its own supporting evidence through this decision.
-        active = [row for row in base["observations"] if row["source_kind"] == "XML" and row["profile"] == XML_PROFILE and row["file_status"] not in {"excluido", "rejeitado"} and row["period_id"] == base["period_id"] and not row["issues"]]
+        active = [row for row in base["observations"] if row["source_kind"] == "XML" and row["profile"] in XML_PROFILES and row["file_status"] not in {"excluido", "rejeitado"} and row["period_id"] == base["period_id"] and not row["issues"]]
         _require(any(row["entity_kind"] == "fatura" and row["invoice_id"] == invoice["id"] and row["normalized"] == invoice["payload"] for row in active), "fatura canônica sem evidência XML ativa íntegra no contexto")
         for target in targets["installments"]:
             _require(any(row["entity_kind"] == "parcela" and row["installment_id"] == target["id"] and row["invoice_id"] == invoice["id"] and row["normalized"] == target["payload"] for row in active), "parcela canônica sem evidência XML ativa íntegra no contexto")

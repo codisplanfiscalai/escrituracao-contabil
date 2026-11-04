@@ -6,13 +6,15 @@ from datetime import datetime
 from decimal import Decimal
 import re
 
-XML_PROFILE = "nfe-4.00-header-billing-v3"
-SPED_PROFILE = "efd-icms-ipi-020-c100-v1"
+LEGACY_XML_PROFILE = "nfe-4.00-header-billing-v3"
+XML_PROFILE = "nfe-nfce-4.00-header-billing-v4"
+XML_PROFILES = {LEGACY_XML_PROFILE, XML_PROFILE}
+SPED_PROFILE = "efd-icms-ipi-020-c100-v2"
 
 
 def document_fields(payload):
     """Comparable facts only; absence is never interpreted as zero or agreement."""
-    result = {key: payload[key] for key in ("key", "model", "total", "issuer", "buyer", "content_fingerprint") if key in payload}
+    result = {key: payload[key] for key in ("key", "model", "total", "issuer", "buyer", "content_fingerprint", "entry_date", "operation", "situation") if key in payload}
     for key in ("number", "series"):
         if payload.get(key) is not None:
             result[key] = str(int(payload[key]))
@@ -125,8 +127,8 @@ def parse_sped(content, company_cnpj, processing_competence):
                 raise ValueError("C100: abertura C001 com movimentos ausente")
             if len(fields) != 29:
                 raise ValueError("C100: quantidade de campos incompatível com o perfil")
-            if fields[4] != "55" or fields[5] != "00":
-                raise ValueError("COD_MOD/COD_SIT: somente NF-e 55 regular 00 neste recorte")
+            if fields[4] not in {"55", "65"} or fields[5] not in {"00", "01", "06", "07"}:
+                raise ValueError("COD_MOD/COD_SIT: situação não normalizada neste perfil parcial 55/65; fonte preservada")
             if fields[1] not in {"0", "1"} or fields[2] not in {"0", "1"}:
                 raise ValueError("IND_OPER/IND_EMIT: indicador inválido")
             key, series, number = fields[8], fields[6], fields[7]
@@ -135,16 +137,15 @@ def parse_sped(content, company_cnpj, processing_competence):
             if not re.fullmatch(r"[0-9]{3}", series) or not re.fullmatch(r"[0-9]{1,9}", number) or int(number) == 0:
                 raise ValueError("SER/NUM_DOC: identificação inválida")
             emitted = _date(fields[9], "DT_DOC")
-            if emitted[:7] != processing_competence:
-                raise ValueError("DT_DOC: competência de emissão diverge; nenhum transporte automático de movimentos")
+            entry_date = _date(fields[10], "DT_E_S") if fields[10] else ""
             dv = 11 - sum(int(d) * (2 + i % 8) for i, d in enumerate(reversed(key[:43]))) % 11
             dv = 0 if dv >= 10 else dv
-            if int(key[-1]) != dv or key[20:22] != "55" or key[22:25] != series or key[25:34] != number.zfill(9) or key[2:6] != emitted[2:4] + emitted[5:7]:
+            if int(key[-1]) != dv or key[20:22] != fields[4] or key[22:25] != series or key[25:34] != number.zfill(9) or key[2:6] != emitted[2:4] + emitted[5:7]:
                 raise ValueError("CHV_NFE: incoerência com campos ou dígito verificador")
             if fields[2] == "0" and key[6:20] != company_cnpj:
                 raise ValueError("IND_EMIT/CHV_NFE: emissão própria não identifica a empresa")
-            row["normalized"] = {"key": key, "model": "55", "series": series, "number": number,
-                                 "issued_date": emitted, "total": _amount(fields[11]), "issuer": key[6:20]}
+            row["normalized"] = {"key": key, "model": fields[4], "series": series, "number": number,
+                                 "issued_date": emitted, "entry_date": entry_date, "operation": "entrada" if fields[1] == "0" else "saida", "situation": fields[5], "total": _amount(fields[11]), "issuer": key[6:20]}
         except ValueError as exc:
             row["issues"].append(str(exc))
     key_counts = Counter(row["normalized"].get("key") for row in selected if row["normalized"])

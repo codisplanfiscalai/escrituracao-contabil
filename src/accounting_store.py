@@ -69,11 +69,24 @@ class AccountingMixin:
         if decisions:
             snapshot["billing_associations"] = decisions
             fingerprint = digest(snapshot)
+        fiscal = self.fiscal_document_state(company_id, document_id)
+        if fiscal:
+            snapshot['fiscal_revision'] = fiscal
+            fingerprint = digest(snapshot)
         return snapshot, fingerprint
 
     def _source_blockers(self, snapshot, period_id):
         active = [row for row in snapshot["observations"] if row["file_status"] != "excluido"]
         blockers = []
+        fiscal = snapshot.get('fiscal_revision')
+        if fiscal:
+            if fiscal['state'] != 'revisado':
+                blockers.append('Ficha fiscal requer revisão da versão vigente')
+            if fiscal['period_id'] != period_id:
+                blockers.append('Ficha fiscal está em outra competência/contexto; confira o destino contábil')
+            base = {k: v for k, v in snapshot.items() if k not in {'fiscal_revision', 'billing_associations'}}
+            if digest(base) != fiscal['source_hash']:
+                blockers.append('Fontes da ficha fiscal alteradas; revise nova versão')
         if snapshot["period_id"] != period_id or any(row["period_id"] != period_id for row in active):
             blockers.append("Contextos de período diferentes; associação de contexto não implementada")
         if not any(row["entity_kind"] == "documento" for row in active):
@@ -192,6 +205,14 @@ class AccountingMixin:
                 value = amount(entry.get("amount"))
                 group = _text(entry.get("group"), "grupo", 100)
                 memo = _text(entry.get("memo"), "histórico", 1000)
+                fiscal = review['snapshot'].get('fiscal_revision')
+                if fiscal:
+                    chosen = next(row for row in review['snapshot']['observations'] if row['id'] == observation_id)['normalized']
+                    compared = {'total': 'total', 'model': 'model', 'key': 'key', 'issued_date': 'issued_date', 'issuer': 'issuer', 'buyer': 'buyer'}
+                    if any(str(fiscal['data'].get(field, '')) != str(chosen.get(source, '')) for field, source in compared.items() if source in chosen) or any(int(fiscal['data'][field]) != int(chosen[field]) for field in ('number','series') if field in chosen):
+                        raise ValueError('Ficha fiscal editada diverge da fonte contábil: este motor ainda exige partidas da origem revisada; não ignora a edição')
+                    if fiscal['data']['posting_date'] != posting_date:
+                        raise ValueError('Data contábil deve corresponder à data de escrituração da ficha revisada')
                 mapping = self._mapping_snapshot(company_id, plan["id"], entry.get("mapping_id"), period["processing_competence"])
                 lines.append({"line": len(lines)+1, "document_id": document_id, "observation_id": observation_id,
                               "review_id": review["id"], "group": group, "date": posting_date, "side": side,

@@ -18,8 +18,8 @@ from ..persistence import AccountingStore
 ROOT = Path(__file__).resolve().parents[2]
 PORTAL = ROOT / 'src' / 'portal'
 COOKIE = 'escritura_session'
-WRITE_ROUTES = {'periods','plans','mappings','files','file-analysis','file-removal','billing-association-preview','billing-associations','document-reviews','accounting-batches'}
-REVIEW_ROUTES = {'accounting-review','accounting-close','accounting-evidence'}
+WRITE_ROUTES = {'participants','fiscal-workspaces','fiscal-entries','periods','plans','mappings','files','file-analysis','file-removal','billing-association-preview','billing-associations','document-reviews','accounting-batches'}
+REVIEW_ROUTES = {'participant-review','fiscal-review','fiscal-period','accounting-review','accounting-close','accounting-evidence'}
 CLIENT_GET = {'companies','periods','documents','files','accounting-evidence','accounting-evidence-file'}
 CLIENT_POST = {'files'}
 

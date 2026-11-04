@@ -67,6 +67,16 @@ def dispatch(store, method, route, data):
     if route != "companies":
         company = _identifier(_required(data, "company_id"), "company_id")
     if method == "GET":
+        if route == "participants":
+            return store.list_participants(company)
+        if route == "fiscal-workspaces":
+            return store.list_fiscal_workspaces(company, _required(data,"period_id"))
+        if route == "fiscal-entries":
+            return store.list_fiscal_entries(company, data.get("period_id") or None)
+        if route == "fiscal-seed":
+            return store.fiscal_seed(company, _required(data,"period_id"), _required(data,"document_id"))
+        if route == "fiscal-period":
+            return store.fiscal_period_status(company, _required(data,"period_id"))
         if route == "billing-associations":
             return store.list_billing_associations(company, data.get("document_id") or None)
         if route == "accounting-evidence":
@@ -101,6 +111,18 @@ def dispatch(store, method, route, data):
         if route == "audit":
             return store.list_audit(company)
     if method == "POST":
+        if route == "participants":
+            return store.save_participant(company, _required(data,"identity"), _required(data,"name"), _required(data,"role"), _required(data,"reason"))
+        if route == "participant-review":
+            return store.review_participant(company, _required(data,"participant_id"), _required(data,"version"), _required(data,"observation_id"), _required(data,"reason"))
+        if route == "fiscal-workspaces":
+            return store.save_fiscal_workspace(company, _required(data,"period_id"), _required(data,"title"), data.get("data",{}), _required(data,"request_key"), data.get("workspace_id"), data.get("version",0), data.get("closed",False))
+        if route == "fiscal-entries":
+            return store.save_fiscal_entry(company, _required(data,"period_id"), _required(data,"data"), _required(data,"reason"), _required(data,"request_key"), data.get("expected_version",0), data.get("entry_id") or None, data.get("document_id") or None, data.get("expected_source_hash"), data.get("as_proposal",False))
+        if route == "fiscal-review":
+            return store.review_fiscal_entry(company, _required(data,"entry_id"), _required(data,"snapshot_hash"), _required(data,"reason"), data.get("acknowledged",False))
+        if route == "fiscal-period":
+            return store.change_fiscal_period(company, _required(data,"period_id"), _required(data,"target"), _required(data,"token"), _required(data,"reason"), data.get("confirmed",False), data.get("reference",''))
         if route in {"billing-association-preview", "billing-associations"}:
             args = [company, _required(data, "document_id"), _required(data, "period_id"),
                     _required(data, "file_id"), _required(data, "invoice_id"), _required(data, "installment_links")]

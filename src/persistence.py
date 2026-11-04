@@ -16,6 +16,8 @@ from .reconciliation_store import ReconciliationMixin, RECONCILIATION_SCHEMA
 from .accounting_store import AccountingMixin, ACCOUNTING_SCHEMA
 from .evidence_export import EvidenceExportMixin, EVIDENCE_SCHEMA
 from .billing_association import BillingAssociationMixin, BILLING_ASSOCIATION_SCHEMA
+from .fiscal_ledger import FiscalLedgerMixin, FISCAL_SCHEMA
+from .fiscal_workspace import FiscalWorkspaceMixin, WORKSPACE_SCHEMA
 
 MAX_FILE_BYTES = 10 * 1024 * 1024
 NS = {"n": "http://www.portalfiscal.inf.br/nfe"}
@@ -78,8 +80,8 @@ def parse_nfe(content):
     if not re.fullmatch(r"\d{44}", key):
         raise ValueError("Chave NF-e ausente ou inválida")
     model = get("n:ide/n:mod")
-    if model != "55":
-        raise ValueError("Somente modelo 55 é normalizado neste incremento")
+    if model not in {"55", "65"}:
+        raise ValueError("Perfil de cabeçalho suporta NF-e 55 e NFC-e 65")
     emitted = get("n:ide/n:dhEmi")
     if not re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:[+-]\d{2}:\d{2}|Z)", emitted):
         raise ValueError("Data/hora de emissão exige T, segundos e fuso explícito")
@@ -90,7 +92,7 @@ def parse_nfe(content):
         raise ValueError("Data de emissão inválida") from exc
     issuer = get("n:emit/n:CNPJ")
     buyer = get("n:dest/n:CNPJ", False) or get("n:dest/n:CPF", False)
-    if not re.fullmatch(r"\d{14}", issuer) or not re.fullmatch(r"\d{11}|\d{14}", buyer):
+    if not re.fullmatch(r"\d{14}", issuer) or (buyer and not re.fullmatch(r"\d{11}|\d{14}", buyer)) or (not buyer and model == "55"):
         raise ValueError("Identificação do emitente/destinatário ausente ou inválida")
     series = get("n:ide/n:serie")
     number = get("n:ide/n:nNF")
@@ -147,7 +149,7 @@ def parse_nfe(content):
                 if sum((Decimal(row["vDup"]) for row in installments), Decimal("0")) != Decimal(values["vLiq"]):
                     billing_warnings.append("Soma das parcelas diverge do líquido da fatura")
     normalized = ET.canonicalize(ET.tostring(info, encoding="unicode"), strip_text=True, rewrite_prefixes=True)
-    return {"key": key, "model": model, "number": number, "series": series, "issued_at": emitted, "competence": emitted[:7], "issuer": issuer, "buyer": buyer, "total": _money(get("n:total/n:ICMSTot/n:vNF"), "Total NF-e"), "billing": billing, "billing_warnings": billing_warnings, "content_fingerprint": hashlib.sha256(normalized.encode()).hexdigest()}
+    return {"key": key, "model": model, "number": number, "series": series, "issued_at": emitted, "competence": emitted[:7], "issuer": issuer, "buyer": buyer, "issuer_name": get("n:emit/n:xNome", False), "buyer_name": get("n:dest/n:xNome", False), "total": _money(get("n:total/n:ICMSTot/n:vNF"), "Total NF-e"), "billing": billing, "billing_warnings": billing_warnings, "content_fingerprint": hashlib.sha256(normalized.encode()).hexdigest()}
 
 
 SCHEMA = """
@@ -193,7 +195,7 @@ CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL);
 """
 
 
-class AccountingStore(BillingAssociationMixin, EvidenceExportMixin, AccountingMixin, ReconciliationMixin):
+class AccountingStore(FiscalWorkspaceMixin, FiscalLedgerMixin, BillingAssociationMixin, EvidenceExportMixin, AccountingMixin, ReconciliationMixin):
     def __init__(self, db_path, actor="operador-local"):
         self.actor = _text(actor, "usuário", 100)
         path = Path(db_path).expanduser()
@@ -205,15 +207,15 @@ class AccountingStore(BillingAssociationMixin, EvidenceExportMixin, AccountingMi
         self.db.execute("PRAGMA busy_timeout=15000")
         version_table = self.db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='schema_version'").fetchone()
         version = self.db.execute("SELECT version FROM schema_version").fetchone() if version_table else None
-        if version and version[0] not in {1, 2, 3, 4, 5}:
+        if version and version[0] not in {1, 2, 3, 4, 5, 6}:
             self.close()
             raise ValueError("Versão do banco não suportada; nenhuma migração automática realizada")
         try:
-            self.db.executescript("BEGIN IMMEDIATE;\n" + SCHEMA + RECONCILIATION_SCHEMA + ACCOUNTING_SCHEMA + EVIDENCE_SCHEMA + BILLING_ASSOCIATION_SCHEMA)
+            self.db.executescript("BEGIN IMMEDIATE;\n" + SCHEMA + RECONCILIATION_SCHEMA + ACCOUNTING_SCHEMA + EVIDENCE_SCHEMA + BILLING_ASSOCIATION_SCHEMA + FISCAL_SCHEMA + WORKSPACE_SCHEMA)
             if not version:
-                self.db.execute("INSERT INTO schema_version VALUES (5)")
-            elif version[0] in {1, 2, 3, 4}:
-                self.db.execute("UPDATE schema_version SET version=5")
+                self.db.execute("INSERT INTO schema_version VALUES (6)")
+            elif version[0] in {1, 2, 3, 4, 5}:
+                self.db.execute("UPDATE schema_version SET version=6")
             self.db.commit()
         except Exception:
             self.db.rollback()
@@ -377,11 +379,13 @@ class AccountingStore(BillingAssociationMixin, EvidenceExportMixin, AccountingMi
         try:
             if kind=="XML":
                 payload=parse_nfe(content)
-                if payload["competence"]!=period["processing_competence"]:
-                    raise ValueError("Competência de emissão diverge dos movimentos; exige revisão manual, nenhum documento criado")
                 if company["cnpj"] and company["cnpj"] not in {payload["issuer"],payload["buyer"]}:
                     raise ValueError("Documento não identifica a empresa cadastrada")
-                metadata={"normalizer":XML_PROFILE,"company_identity_verified":bool(company["cnpj"])}
+                metadata={"normalizer":XML_PROFILE,"company_identity_verified":bool(company["cnpj"]), "warnings": []}
+                if payload["competence"] != period["processing_competence"]:
+                    metadata["warnings"].append("Emissão fora da competência de escrituração; conferir entrada/saída e enquadramento.")
+                if not payload["buyer"]:
+                    metadata["warnings"].append("NFC-e sem destinatário identificado na fonte; conferir as condições aplicáveis.")
                 if payload["billing_warnings"]:
                     status="pendente"
                     metadata["billing_warnings"]=payload["billing_warnings"]
@@ -484,7 +488,10 @@ class AccountingStore(BillingAssociationMixin, EvidenceExportMixin, AccountingMi
         preview["invoice_ids"]=[r[0] for r in self.db.execute("SELECT i.id FROM invoices i JOIN document_sources s ON s.document_id=i.document_id WHERE s.file_id=? ORDER BY i.id",(file_id,))]
         preview["installment_ids"]=[r[0] for r in self.db.execute("SELECT p.id FROM installments p JOIN invoices i ON i.id=p.invoice_id JOIN document_sources s ON s.document_id=i.document_id WHERE s.file_id=? ORDER BY p.id",(file_id,))]
         preview["closed_batch_ids"]=[r[0] for r in self.db.execute("SELECT DISTINCT b.id FROM accounting_batches b JOIN accounting_batch_documents d ON d.batch_id=b.id JOIN document_sources s ON s.document_id=d.document_id WHERE s.file_id=? AND b.status='fechado' ORDER BY b.id",(file_id,))]
-        preview["removal_blocked"]=bool(preview["closed_batch_ids"])
+        fiscal = [e for e in self.list_fiscal_entries(company_id) if e['document_id'] in docs]
+        preview['fiscal_entry_ids'] = [e['id'] for e in fiscal]
+        preview['protected_fiscal_entry_ids'] = [e['id'] for e in fiscal if e['current'] and self._fiscal_guard(company_id,e['current']['period_id'],e['document_id'])]
+        preview["removal_blocked"]=bool(preview["closed_batch_ids"] or preview['protected_fiscal_entry_ids'])
         preview["preview_token"]=hashlib.sha256(_json(preview).encode()).hexdigest()
         return preview
 
@@ -500,7 +507,7 @@ class AccountingStore(BillingAssociationMixin, EvidenceExportMixin, AccountingMi
             if preview_token is not None and preview_token!=preview["preview_token"]:
                 raise ValueError("Prévia desatualizada; confira novamente as dependências")
             if preview["removal_blocked"]:
-                raise ValueError("Fonte vinculada a lote fechado; remoção bloqueada até fluxo de estorno/ajuste")
+                raise ValueError("Fonte vinculada a lote fechado ou período fiscal protegido; remoção bloqueada até fluxo de estorno/ajuste")
             self.db.execute("UPDATE files SET status='excluido' WHERE id=? AND company_id=?",(file_id,company_id))
             for document_id in preview["document_ids"]:
                 self.db.execute("UPDATE documents SET status='pendente' WHERE id=? AND company_id=?",(document_id,company_id))

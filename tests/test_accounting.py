@@ -264,5 +264,28 @@ class AccountingTests(unittest.TestCase):
             self.assertEqual(db.execute('SELECT version FROM schema_version').fetchone()[0],2)
             self.assertIsNone(db.execute("SELECT name FROM sqlite_master WHERE name='temporary_migration'").fetchone())
         with AccountingStore(legacy) as store:
-            self.assertEqual(store.db.execute('SELECT version FROM schema_version').fetchone()[0],5)
+            self.assertEqual(store.db.execute('SELECT version FROM schema_version').fetchone()[0],6)
             self.assertEqual(store.list_companies()[0]['created_at'],'instante-ficticio')
+
+    def test_fiscal_revision_invalidates_open_accounting_and_preserves_closed(self):
+        self.decision();batch=self.batch()
+        seed=self.s.fiscal_seed(self.c,self.p,self.doc)
+        row=self.s.save_fiscal_entry(self.c,self.p,{**seed['data'],'posting_date':'2026-09-15'},'Escrituração fictícia','fiscal-test',document_id=self.doc,expected_source_hash=seed['source_hash'])
+        with self.assertRaises(ValueError):self.close(batch)
+        self.s.review_fiscal_entry(self.c,row['entry_id'],row['snapshot_hash'],'Conferido',True)
+        self.decision()
+        correction=self.batch('corrigido',previous=batch['id']);closed=self.close(correction)
+        old_snapshot=closed['snapshot']
+        seed=self.s.fiscal_seed(self.c,self.p,self.doc)
+        with self.assertRaisesRegex(ValueError,'fechados'):
+            self.s.save_fiscal_entry(self.c,self.p,{**seed['data'],'posting_date':'2026-09-15','total':'200.00'},'Correção','fiscal-edit',1,row['entry_id'],self.doc,seed['source_hash'])
+        proposed=self.s.save_fiscal_entry(self.c,self.p,{**seed['data'],'posting_date':'2026-09-15','total':'200.00'},'Correção','fiscal-proposal',1,row['entry_id'],self.doc,seed['source_hash'],True)
+        self.assertEqual(proposed['state'],'retificacao_pendente')
+        self.assertEqual(self.s._batch(self.c,closed['id'])['snapshot'],old_snapshot)
+
+    def test_fiscal_total_edit_is_not_silently_ignored_by_accounting(self):
+        seed=self.s.fiscal_seed(self.c,self.p,self.doc)
+        row=self.s.save_fiscal_entry(self.c,self.p,{**seed['data'],'posting_date':'2026-09-15','total':'200.00'},'Correção fictícia','fiscal-total',document_id=self.doc,expected_source_hash=seed['source_hash'])
+        self.s.review_fiscal_entry(self.c,row['entry_id'],row['snapshot_hash'],'Conferido',True)
+        self.decision()
+        with self.assertRaisesRegex(ValueError,'diverge'):self.batch()
