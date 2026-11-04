@@ -49,3 +49,15 @@ Nenhum resultado local equivale a validação fiscal oficial ou pronto uso em pr
 - Primeiro Windows run 41868426157 falhou em x86/x64 antes do build: WinError32 na limpeza de dois testes com conexões SQLite abertas. Correção aplicada aos cinco usos diretos nos testes e ao smoke usando closing, preservando transação e liberação de handles. Necessário conferir o próximo run antes de afirmar artefatos prontos; evidência remota mais recente será registrada no PR.
 - Infraestrutura local: actionlint/YAML dos quatro workflows; instalação hash-locked; PyInstaller Linux com smoke do executável congelado; Docker test/final e smoke sem rede, read-only, não root e sem capabilities. Verificador de ZIP rejeitou checksum, SHA fonte e PE incorretos, entradas extras e traversal. Build Windows não é cross-compilado neste Linux; jobs Windows devem verificar cada PE e executar EXE real.
 - Nenhum release, pacote GHCR, deployment de produção, credencial ou acesso persistente foi criado. Gates de ambientes GitHub ainda precisam de configuração administrativa; release/GHCR/homologação manual novos dependem da branch padrão. Assinatura Windows, instalador, matriz de SOs, integração real e homologação Prosoft continuam pendentes. A imagem atual é isolada e não oferece UI ao navegador do host.
+
+
+## Identidade Escritura e evidências de fechamento (04/11/2026)
+
+- Nome provisório Escritura, paleta solicitada, SVGs recebidos na mensagem, favicon e PNG/ICO reproduzíveis. Transferência do ZIP da Library falhou; alternativa SVG explicitamente autorizada.
+- Perfil próprio `accounting-evidence-v1`: JSON/CSV/manifesto persistidos, hashes, lote fechado, idempotência, isolamento e auditoria. Esquema 4 transacional; nenhuma saída Prosoft/EFD ou regra fiscal inferida.
+- Suíte local de 125 testes da aplicação e 6 testes das ferramentas de distribuição aprovada; inclui 15 novos casos de evidência, 2 HTTP e casos negativos de ícones/visibilidade GHCR. `compileall`, `node --check`, `git diff --check` aprovados.
+- Chromium real em 1440 px/390 px: identidade, sete áreas, foco/atalho teclado, MIME de SVG/PNG/ICO, sem overflow de página e sem erro JavaScript. Fluxo fechado fictício gerou/baixou os 3 arquivos, confirmou SHA-256/tamanho, três eventos de disponibilização e persistência após reload. Nenhum dado real usado.
+- Ícones verificados por dimensão/CRC e hashes; o teste de recursos PE nos novos EXEs pertence à CI da revisão publicada, ainda a consultar.
+- Arquivos contábeis anteriores localizados na Library; bytes ZIP/XLSX não materializados por falha de rede do helper. Ver `docs/insumos-localizados.md`; não declarar leiautes validados.
+- Contêiner: alvo de testes executou 125 testes e smoke; imagem final executou smoke sem rede, sem capacidades e com filesystem somente leitura. Node fixado regenerou/verificou os ícones; actionlint aprovou workflows. Nenhuma publicação GHCR, release ou deployment executada.
+- Resultados finais de jobs/artefatos são registrados no PR e no handoff da revisão, distinguindo execução local/CI/Prosoft.

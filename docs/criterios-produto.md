@@ -24,6 +24,6 @@ O servidor atual é monousuário e loopback, com SQLite privado. Binários e con
 
 ## Insumos que continuam necessários
 
-Layout e exemplos reais Prosoft Fiscal/Contábil; formatos reais de planos; regras contábeis aprovadas; casos de teste autorizados; papéis e revisões de produção; política de retenção; destino de implantação; política de assinatura de executáveis e publicação de pacotes. Não inventar regras fiscais, prazos legais, credenciais, dados de referência ou resultados de homologação.
+Recuperação e conferência dos layouts/exemplos Prosoft e planos já localizados na Library (ver [inventário](insumos-localizados.md)); regras contábeis aprovadas; casos de teste autorizados; papéis e revisões de produção; política de retenção; destino de implantação; política de assinatura de executáveis e publicação de pacotes. Não inventar regras fiscais, prazos legais, credenciais, dados de referência ou resultados de homologação.
 
 Cada relatório de etapa deve separar implementação, testes locais, CI, inspeção dos artefatos, validação contra especificação, teste real Prosoft e ferramenta oficial. Falha ou ausência de execução deve ser informada com o alvo e o resultado observado. CBS/IBS permanecem fora da apuração deste produto.

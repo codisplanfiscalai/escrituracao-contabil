@@ -238,7 +238,7 @@ class ReconciliationTests(unittest.TestCase):
             db.execute("INSERT INTO documents VALUES(1,1,1,?,?,'validado','instante-ficticio')",(fictitious_key(),payload))
             db.execute("INSERT INTO document_sources VALUES(1,1,0)")
         with AccountingStore(legacy) as store:
-            self.assertEqual(store.db.execute("SELECT version FROM schema_version").fetchone()[0],3)
+            self.assertEqual(store.db.execute("SELECT version FROM schema_version").fetchone()[0],4)
             self.assertEqual(store.db.execute("SELECT payload FROM documents").fetchone()[0],payload)
             self.assertEqual(bytes(store.db.execute("SELECT original FROM files").fetchone()[0]),original)
             self.assertEqual(store.list_observations(1),[])

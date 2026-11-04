@@ -61,6 +61,46 @@ manifestos permitem rastrear entradas e saídas; **não garantem build idêntico
 bit a bit**. Imagens dos runners hospedados e metadados de ZIP/PE podem variar.
 Assinatura exigiria processo e credencial próprios, não provisionados aqui.
 
+## Identidade Escritura e ícones reproduzíveis
+
+`src/web/assets/icon.svg` e `symbol.svg` são os originais fornecidos. O gerador
+não redesenha nem altera esses SVGs. Ele produz `icon-{size}.png` nos tamanhos
+16, 24, 32, 48, 64, 128, 256 e 512, `symbol-512.png` e `icon.ico` com sete imagens
+RGBA de 16 a 256 pixels. O ICO usa PNGs internos, suportados no Windows moderno;
+a matriz efetivamente testada continua sendo a dos runners indicados acima.
+
+O rasterizador é `@resvg/resvg-wasm@2.6.2`, com integridade SHA-512 no
+`packaging/icon-tools/package-lock.json`, sem dependências transitivas. Node.js
+24.22.2 e seu npm 11.19.1 estão fixados. WASM evita depender de Cairo, fontes ou
+bibliotecas gráficas do sistema; os originais são geométricos e não usam fontes
+nem recursos externos. Essas ferramentas são exclusivas de build.
+
+```bash
+npm ci --prefix packaging/icon-tools --ignore-scripts --no-audit --no-fund
+node packaging/icon-tools/generate.mjs
+node packaging/icon-tools/generate.mjs --check
+python packaging/verify_icons.py
+```
+
+`--check` renderiza novamente e exige igualdade byte a byte com os arquivos
+versionados. `icons-manifest.json` registra hashes dos SVGs, PNGs, ICO, WASM,
+gerador e lockfile; arquivos de texto usam LF canônico para não depender de
+`autocrlf`. Não contém timestamps. Esse escopo de reprodução se limita aos ícones;
+o executável inteiro ainda não tem garantia de identidade bit a bit.
+
+Cada build Windows confere dimensões, CRCs PNG e hashes; usa `--icon icon.ico`
+e compara os sete recursos `RT_ICON`/`RT_GROUP_ICON` do EXE com o ICO fornecido.
+Os assets HTTP são empacotados por nomes explícitos, assim como no contêiner.
+O smoke solicita também SVGs, todos os PNGs de ícone e `/favicon.ico`.
+Após os dois uploads, outro job baixa os artefatos no próprio Actions e verifica
+novamente os ZIPs completos, manifesto, SHA fonte, PE Machine, ICO e hashes dos
+assets. Assim a verificação da distribuição não depende do acesso de download
+do executor local. Os logs distinguem essa verificação dos checks durante build.
+
+Fontes: [resvg WASM](https://github.com/yisibl/resvg-js/tree/main/wasm),
+[Node.js 24.22.2](https://nodejs.org/dist/v24.22.2/),
+[PyInstaller — opções de ícone](https://pyinstaller.org/en/stable/usage.html).
+
 ## Imagem OCI e GHCR
 
 O `Dockerfile` usa `python:3.13.17-slim-bookworm` fixado também no digest do índice
@@ -98,6 +138,16 @@ registra o digest. A tag contém o commit por convenção; consumir sempre o dig
 é a garantia contra substituição de tags. Não há tag `latest` ou push automático
 de PR. Pacote novo deve permanecer privado conforme a política do repositório;
 nenhuma visibilidade é alterada pelo workflow.
+
+O job manual consulta a visibilidade do pacote antes do push e exige `private`
+quando ele existe. Um HTTP 404 permite tentar a criação com o padrão privado do
+GitHub; 401/403 e demais falhas interrompem a operação. Depois do push, uma nova
+consulta exige explicitamente `private`. O workflow nunca muda visibilidade nem
+cria credenciais. O job também exige que o repositório seja privado. Uma falha
+na conferência posterior **não desfaz o push já realizado**; inspecione o pacote
+existente antes de qualquer repetição. A execução depende de o workflow estar na branch padrão, dos
+gates configurados e de `GITHUB_TOKEN` ter acesso ao pacote; preparar o YAML em
+uma branch de proposta não satisfaz esses pré-requisitos nem publica a imagem.
 
 ## Release e deployment com aprovação
 

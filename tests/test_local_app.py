@@ -1,5 +1,6 @@
 """Synthetic loopback HTTP coverage; no real fiscal or company information."""
 import base64
+import hashlib
 import http.client
 import json
 from pathlib import Path
@@ -86,6 +87,22 @@ class LocalApplicationTests(unittest.TestCase):
         status, headers, _ = self.request("/api/companies", headers={"X-Local-Token": "bad"})
         self.assertEqual(status, 403)
         self.assertNotIn("Access-Control-Allow-Origin", headers)
+
+    def test_identity_assets_are_local_and_allowlisted(self):
+        for path, media, signature in (
+            ("/assets/symbol.svg", "image/svg+xml", b"<svg"),
+            ("/assets/icon.svg", "image/svg+xml", b"<svg"),
+            ("/favicon.ico", "image/x-icon", b"\x00\x00\x01\x00"),
+            ("/assets/icon-256.png", "image/png", b"\x89PNG\r\n\x1a\n"),
+        ):
+            status, headers, content = self.request(path)
+            self.assertEqual(status, 200, path)
+            self.assertEqual(headers["Content-Type"], media)
+            self.assertTrue(content.startswith(signature), path)
+            self.assertEqual(headers["Cross-Origin-Resource-Policy"], "same-origin")
+        for path in ("/assets/../persistence.py", "/assets/icon-999.png", "/assets/", "/assets/manifest.json"):
+            self.assertEqual(self.request(path)[0], 404)
+        self.assertEqual(self.request("/favicon.ico", headers={"Origin":"https://foreign.invalid"})[0],403)
 
     def test_invalid_bodies_and_limits(self):
         for raw in (b"[]", b"{", b'{"value": NaN}', b"\xff"):
@@ -267,6 +284,36 @@ class LocalApplicationTests(unittest.TestCase):
         self.assertEqual(self.api(f'accounting-batches?company_id={other}'),[])
         self.assertEqual(self.api(f'document-reviews?company_id={other}'),[])
         self.assertEqual(self.request('/api/accounting-review','POST',{**transition,'snapshot_hash':''})[0],400)
+
+    def test_closed_accounting_evidence_download_and_isolation(self):
+        cid, review, batch_data = self.accounting_fixture()
+        self.api('document-reviews', review)
+        batch = self.api('accounting-batches', batch_data)
+        transition = {'company_id':cid, 'batch_id':batch['id'],
+                      'snapshot_hash':batch['snapshot_hash'], 'reason':'Evidência fictícia'}
+        self.assertEqual(self.request('/api/accounting-evidence','POST',transition)[0],400)
+        self.api('accounting-review', transition)
+        self.api('accounting-close', transition)
+        export = self.api('accounting-evidence', transition)
+        self.assertEqual(export['profile'], 'accounting-evidence-v1')
+        self.assertEqual(self.api('accounting-evidence',transition)['id'], export['id'])
+        self.assertEqual(len(self.api(f'accounting-evidence?company_id={cid}')),1)
+        for artifact in export['artifacts']:
+            url = f"/api/accounting-evidence-file?company_id={cid}&export_id={export['id']}&name={artifact['name']}"
+            status, headers, content = self.request(url)
+            self.assertEqual(status,200)
+            self.assertEqual(headers['Content-Type'], artifact['media_type'])
+            self.assertIn('attachment;', headers['Content-Disposition'])
+            self.assertEqual(hashlib.sha256(content).hexdigest(), artifact['sha256'])
+            self.assertEqual(len(content), artifact['size'])
+            self.assertEqual(self.request(url,headers={'X-Local-Token':None})[0],403)
+        other = self.company()['id']
+        self.assertEqual(self.api(f'accounting-evidence?company_id={other}'),[])
+        for owner, name in ((other,'evidence.json'), (cid,'../persistence.py'), (cid,'evidence.json%0d%0aInjected')):
+            self.assertEqual(self.request(f"/api/accounting-evidence-file?company_id={owner}&export_id={export['id']}&name={name}")[0],400)
+        self.assertEqual(self.request('/api/accounting-evidence','POST',{**transition,'company_id':other})[0],400)
+        self.stop_server(); self.start_server()
+        self.assertEqual(self.api(f'accounting-evidence?company_id={cid}')[0]['manifest_sha256'],export['manifest_sha256'])
 
 
 if __name__ == "__main__":

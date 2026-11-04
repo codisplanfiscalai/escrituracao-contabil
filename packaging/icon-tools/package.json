@@ -1,0 +1,12 @@
+{
+  "name": "escritura-icon-build",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Deterministic Escritura SVG to PNG and Windows ICO build tools",
+  "type": "module",
+  "packageManager": "npm@11.19.1",
+  "engines": { "node": "24.22.2", "npm": "11.19.1" },
+  "dependencies": {
+    "@resvg/resvg-wasm": "2.6.2"
+  }
+}

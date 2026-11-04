@@ -6,6 +6,8 @@ from pathlib import Path, PurePosixPath
 import struct
 import zipfile
 
+from verify_icons import read_ico
+
 
 def verify(directory, source_sha):
     manifests = sorted(directory.glob("*.manifest.json"))
@@ -44,8 +46,22 @@ def verify(directory, source_sha):
             assert executable[offset:offset + 4] == b"PE\0\0", "Invalid PE signature"
             machine = struct.unpack_from("<H", executable, offset + 4)[0]
             assert machine == {"x86": 0x14C, "x64": 0x8664}[manifest["architecture"]], "Wrong PE architecture"
+            identity = manifest["identity"]
+            assert identity["name"] == "Escritura" and identity["embedded_pe_icons"] == "verified"
+            assets = "EscrituracaoContabil/_internal/src/web/assets/"
+            icon = zipped.read(assets + "icon.ico")
+            assert hashlib.sha256(icon).hexdigest() == identity["icon_sha256"]
+            icon_manifest = zipped.read(assets + "icons-manifest.json")
+            assert hashlib.sha256(icon_manifest).hexdigest() == identity["icons_manifest_sha256"]
+            icon_manifest = json.loads(icon_manifest)
+            for name, digest in icon_manifest["outputs"].items():
+                assert hashlib.sha256(zipped.read(assets + name)).hexdigest() == digest
+            for name, digest in icon_manifest["sources"].items():
+                assert hashlib.sha256(zipped.read(assets + name).replace(b"\r\n", b"\n")).hexdigest() == digest
+            for size, data in read_ico(icon).items():
+                assert data == zipped.read(assets + f"icon-{size}.png")
     assert architectures == {"x86", "x64"}, "Both native architectures are required"
-    print(f"PASS: two complete ZIP manifests, SHA-256 checksums and source {source_sha}")
+    print(f"PASS: two complete ZIP manifests, SHA-256 checksums, Escritura identity and source {source_sha}")
 
 
 if __name__ == "__main__":

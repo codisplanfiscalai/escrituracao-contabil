@@ -11,6 +11,8 @@ import struct
 import subprocess
 import sys
 
+from verify_icons import verify_assets, verify_pe
+
 ROOT = Path(__file__).resolve().parents[1]
 
 
@@ -26,12 +28,19 @@ def main():
     out = ROOT / "dist" / args.arch
     if out.exists():
         parser.error(f"Output already exists; remove only the previous build directory: {out}")
+    assets = ROOT / "src" / "web" / "assets"
+    icon_images = verify_assets(assets)
+    asset_names = ["symbol.svg", "icon.svg", "icon.ico", "symbol-512.png", "icons-manifest.json",
+                   *(f"icon-{size}.png" for size in (16, 24, 32, 48, 64, 128, 256, 512))]
+    asset_args = [arg for name in asset_names for arg in ("--add-data", f"{assets / name}:src/web/assets")]
     subprocess.run([
         sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean", "--onedir", "--console",
         "--name", "EscrituracaoContabil", "--noupx", "--paths", str(ROOT),
+        "--icon", str(assets / "icon.ico"),
         "--add-data", f"{ROOT / 'src' / 'web' / 'index.html'}:src/web",
         "--add-data", f"{ROOT / 'src' / 'web' / 'app.js'}:src/web",
         "--add-data", f"{ROOT / 'src' / 'web' / 'style.css'}:src/web",
+        *asset_args,
         "--collect-submodules", "src",
         "--distpath", str(out), "--workpath", str(ROOT / "build" / args.arch),
         "--specpath", str(ROOT / "build" / args.arch), str(ROOT / "packaging" / "launcher.py"),
@@ -44,6 +53,8 @@ def main():
         file.seek(offset)
         assert file.read(4) == b"PE\0\0"
         assert struct.unpack("<H", file.read(2))[0] == {"x86": 0x14C, "x64": 0x8664}[args.arch]
+    verify_pe(exe, icon_images)
+    print("Verified Escritura PE icon resources: 16, 24, 32, 48, 64, 128, 256 px")
     subprocess.run([sys.executable, str(ROOT / "packaging" / "smoke_test.py"), "--executable", str(exe)], check=True)
     shutil.copy2(ROOT / "docs" / "distribuicao.md", bundle / "DISTRIBUICAO.md")
     files = []
@@ -54,6 +65,9 @@ def main():
     source_sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
     manifest = {"name": name, "version": version, "architecture": args.arch, "source_sha": source_sha,
                 "python": platform.python_version(), "pyinstaller": importlib.metadata.version("pyinstaller"),
+                "identity": {"name": "Escritura", "icon_sha256": hashlib.sha256((assets / "icon.ico").read_bytes()).hexdigest(),
+                             "icons_manifest_sha256": hashlib.sha256((assets / "icons-manifest.json").read_bytes()).hexdigest(),
+                             "embedded_pe_icons": "verified"},
                 "status": "prototype-not-homologated", "smoke_test": "passed", "files": files}
     (bundle / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     artifacts = ROOT / "artifacts"

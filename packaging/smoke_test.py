@@ -82,7 +82,8 @@ def run(command):
                 match = re.search(rb'<meta name="local-token" content="([^"]+)"', html)
                 assert match and b"__LOCAL_TOKEN__" not in html, "Missing injected session token"
                 token = match.group(1).decode("ascii")
-                for asset in ("/app.js", "/style.css"):
+                for asset in ("/app.js", "/style.css", "/assets/symbol.svg", "/assets/icon.svg", "/favicon.ico",
+                              *(f"/assets/icon-{size}.png" for size in (16, 24, 32, 48, 64, 128, 256, 512))):
                     code, content = request(port, asset)
                     assert code == 200 and content, asset
                 assert request(port, "/api/companies")[0] == 403

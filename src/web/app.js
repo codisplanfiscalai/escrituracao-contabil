@@ -2,7 +2,7 @@
 const $ = (selector) => document.querySelector(selector);
 const token = $('meta[name="local-token"]').content;
 let companies = [], current = emptyContext();
-function emptyContext(){return {periods:[],plans:[],mappings:[],files:[],documents:[],audit:[],reconciliation:[],observations:[],batches:[],reviews:[]};}
+function emptyContext(){return {periods:[],plans:[],mappings:[],files:[],documents:[],audit:[],reconciliation:[],observations:[],batches:[],reviews:[],exports:[]};}
 let generation = 0;
 let busy = 0;
 let removalPreview = null;
@@ -60,9 +60,9 @@ async function loadAccounts(){
 async function loadContext(){
   const version=++generation,company=companyId();
   if(!company){current=emptyContext();fillSelect($('#period'),[],'Todos os períodos',()=> '');fillSelect($('#mapping-plan'),[],'Selecione um plano',()=> '');render();await loadAccounts();return;}
-  const responses=await Promise.all(['periods','plans','mappings','files','audit','accounting-batches','document-reviews'].map(key=>api(key,{company_id:company})));
+  const responses=await Promise.all(['periods','plans','mappings','files','audit','accounting-batches','document-reviews','accounting-evidence'].map(key=>api(key,{company_id:company})));
   if(version!==generation || company!==companyId())return;
-  ['periods','plans','mappings','files','audit','batches','reviews'].forEach((key,i)=>current[key]=responses[i]);
+  ['periods','plans','mappings','files','audit','batches','reviews','exports'].forEach((key,i)=>current[key]=responses[i]);
   fillSelect($('#period'),current.periods,'Todos os períodos',p=>`Base ${p.reference_competence} · Movimentos ${p.processing_competence}`);
   fillSelect($('#mapping-plan'),current.plans,'Selecione um plano',p=>`${p.label} · v${p.version} · #${p.id}`);
   if(!$('#mapping-plan').value && current.plans.length)$('#mapping-plan').value=String(current.plans[0].id);
@@ -172,7 +172,31 @@ function renderAccounting(){
       const button=element('button',batch.status==='previa'?'Marcar prévia como revisada':'Fechar lote localmente');button.type='submit';form.append(button);card.append(form);
       localAction(form,async()=>{if(!checked.checked)throw new Error('Confira o snapshot.');await api(batch.status==='previa'?'accounting-review':'accounting-close',{company_id:companyId(),batch_id:batch.id,snapshot_hash:batch.snapshot_hash,reason:reason.value},'POST');});
     }
+    if(batch.status==='fechado')renderEvidence(card,batch);
     area.append(card);
+  });
+}
+function renderEvidence(card,batch){
+  card.append(element('h4','Evidências para conferência'));
+  card.append(element('p','Pacote próprio JSON/CSV do fechamento histórico. Não é arquivo de importação Prosoft nem escrituração fiscal oficial.'));
+  const form=element('form');form.dataset.needsCompany='';
+  const reason=labeledControl(form,'Motivo da geração de evidências','textarea','reason');reason.rows=2;reason.maxLength=2000;
+  const submit=element('button','Preparar evidências do fechamento');submit.type='submit';form.append(submit);card.append(form);
+  localAction(form,()=>api('accounting-evidence',{company_id:companyId(),batch_id:batch.id,snapshot_hash:batch.snapshot_hash,reason:reason.value},'POST'));
+  current.exports.filter(item=>item.batch_id===batch.id).forEach(item=>{
+    card.append(element('p',`Evidência #${item.id} · ${item.profile} · SHA-256 do manifesto: ${item.manifest_sha256}`));
+    const actions=element('div');actions.className='download-actions';
+    item.artifacts.forEach(artifact=>{const button=element('button',`Baixar ${artifact.name}`);button.type='button';button.className='secondary';
+      button.addEventListener('click',async()=>{if(busy)return;const company=companyId();setBusy(1);button.disabled=true;try{
+        const query=new URLSearchParams({company_id:company,export_id:item.id,name:artifact.name});
+        const response=await fetch('/api/accounting-evidence-file?'+query,{cache:'no-store',headers:{'X-Local-Token':token}});
+        if(!response.ok){const error=await response.json();throw new Error(error.error||'Falha ao baixar evidência.');}
+        const bytes=await response.arrayBuffer();const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),v=>v.toString(16).padStart(2,'0')).join('');
+        if(hash!==artifact.sha256||bytes.byteLength!==artifact.size)throw new Error('Evidência recebida não confere com o hash e tamanho registrados.');
+        const url=URL.createObjectURL(new Blob([bytes],{type:artifact.media_type})),link=element('a');link.href=url;link.download=`escritura-lote-${batch.id}-${artifact.name}`;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
+        await loadContext();notice('Evidência conferida por SHA-256 e enviada ao download. A leitura ficou registrada no histórico.');
+      }catch(error){notice(error.message,true);}finally{button.disabled=false;setBusy(-1);}});actions.append(button);
+    });card.append(actions);
   });
 }
 bindForm('#accounting-form',async form=>{

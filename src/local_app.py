@@ -22,7 +22,12 @@ MAX_BODY = 15 * 1024 * 1024
 WEB_ROOT = Path(__file__).resolve().parent / "web"
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 ASSETS = {"/app.js": ("app.js", "text/javascript; charset=utf-8"),
-          "/style.css": ("style.css", "text/css; charset=utf-8")}
+          "/style.css": ("style.css", "text/css; charset=utf-8"),
+          "/assets/symbol.svg": ("assets/symbol.svg", "image/svg+xml"),
+          "/assets/icon.svg": ("assets/icon.svg", "image/svg+xml"),
+          "/favicon.ico": ("assets/icon.ico", "image/x-icon")}
+ASSETS.update({f"/assets/icon-{size}.png": (f"assets/icon-{size}.png", "image/png")
+               for size in (16, 24, 32, 48, 64, 128, 256, 512)})
 
 
 class APIError(Exception):
@@ -60,6 +65,10 @@ def dispatch(store, method, route, data):
     if route != "companies":
         company = _identifier(_required(data, "company_id"), "company_id")
     if method == "GET":
+        if route == "accounting-evidence":
+            return store.list_evidence_exports(company, data.get("batch_id") or None)
+        if route == "accounting-evidence-file":
+            return store.read_evidence_artifact(company, _required(data, "export_id"), _required(data, "name"))
         if route == "document-reviews":
             return store.list_document_reviews(company, data.get("document_id") or None)
         if route == "accounting-batches":
@@ -88,6 +97,9 @@ def dispatch(store, method, route, data):
         if route == "audit":
             return store.list_audit(company)
     if method == "POST":
+        if route == "accounting-evidence":
+            return store.create_evidence_export(company, _required(data, "batch_id"),
+                                                _required(data, "snapshot_hash"), _required(data, "reason"))
         if route == "document-reviews":
             return store.save_document_review(company, _required(data, "document_id"), _required(data, "period_id"),
                                                _required(data, "chosen_observation_id"), _required(data, "expected_fingerprint"),
@@ -96,7 +108,7 @@ def dispatch(store, method, route, data):
             return store.create_accounting_batch(company, _required(data, "period_id"), _required(data, "plan_id"),
                                                  _required(data, "request_key"), _required(data, "entries"),
                                                  _required(data, "reason"), data.get("previous_batch_id") or None)
-        if route in {"accounting-review", "accounting-close"}:
+        if route in {"accounting-review", "accounting-close", "accounting-evidence", "accounting-evidence-file"}:
             method_call = store.review_accounting_batch if route == "accounting-review" else store.close_accounting_batch
             return method_call(company, _required(data, "batch_id"), _required(data, "snapshot_hash"), _required(data, "reason"))
         if route == "file-analysis":
@@ -151,7 +163,7 @@ class LocalServer(ThreadingHTTPServer):
 
 
 class LocalHandler(BaseHTTPRequestHandler):
-    server_version = "ProsoftLocal/0.1"
+    server_version = "EscrituraLocal/0.2"
     sys_version = ""
     protocol_version = "HTTP/1.0"
 
@@ -163,12 +175,14 @@ class LocalHandler(BaseHTTPRequestHandler):
         # Requests may contain private company identifiers; do not log their URLs.
         pass
 
-    def _send(self, status, content, content_type="application/json; charset=utf-8"):
+    def _send(self, status, content, content_type="application/json; charset=utf-8", attachment=None):
         if not isinstance(content, bytes):
             content = json.dumps(content, ensure_ascii=False, allow_nan=False).encode("utf-8")
         self.send_response(status)
         self.send_header("Content-Type", content_type)
         self.send_header("Content-Length", str(len(content)))
+        if attachment is not None:
+            self.send_header("Content-Disposition", f'attachment; filename="{attachment}"')
         self.send_header("Cache-Control", "no-store, max-age=0")
         self.send_header("Pragma", "no-cache")
         self.send_header("X-Content-Type-Options", "nosniff")
@@ -238,7 +252,7 @@ class LocalHandler(BaseHTTPRequestHandler):
                 filename, content_type = ASSETS[parts.path]
                 self._send(200, (WEB_ROOT / filename).read_bytes(), content_type)
                 return
-            routes = {"companies", "periods", "plans", "accounts", "mappings", "files", "documents", "audit", "file-preview", "file-removal", "file-analysis", "reconciliation", "observations", "document-reviews", "accounting-batches", "accounting-review", "accounting-close"}
+            routes = {"companies", "periods", "plans", "accounts", "mappings", "files", "documents", "audit", "file-preview", "file-removal", "file-analysis", "reconciliation", "observations", "document-reviews", "accounting-batches", "accounting-review", "accounting-close", "accounting-evidence", "accounting-evidence-file"}
             route = parts.path.removeprefix("/api/")
             if not parts.path.startswith("/api/") or route not in routes:
                 raise APIError("Página não encontrada.", 404)
@@ -253,7 +267,11 @@ class LocalHandler(BaseHTTPRequestHandler):
                 data = {key: values[0] for key, values in parsed.items()}
             with open_store(self.server.database) as store:
                 result = dispatch(store, self.command, route, data)
-            self._send(200 if self.command == "GET" else 201, {"data": result})
+            if route == "accounting-evidence-file" and self.command == "GET":
+                # Core accepts only its fixed artifact names, never a client path.
+                self._send(200, result["content"], result["media_type"], attachment=result["name"])
+            else:
+                self._send(200 if self.command == "GET" else 201, {"data": result})
         except APIError as exc:
             self._send(exc.status, {"error": str(exc)})
         except (ValueError, TypeError) as exc:
@@ -274,7 +292,7 @@ class LocalHandler(BaseHTTPRequestHandler):
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description="Protótipo contábil local e monousuário. Nunca exponha em rede.")
+    parser = argparse.ArgumentParser(description="Escritura: aplicação contábil local e monousuário. Nunca exponha em rede.")
     parser.add_argument("--database", default=str(Path.home() / ".local" / "share" / "prosoft-local" / "accounting.sqlite3"), help="SQLite privado fora da pasta do projeto")
     parser.add_argument("--port", type=int, default=8765)
     args = parser.parse_args(argv)

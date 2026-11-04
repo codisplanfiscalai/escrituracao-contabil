@@ -1,6 +1,6 @@
-# Integração fiscal e contábil Prosoft
+# Escritura — organização fiscal e contábil
 
-**Status:** produto em desenvolvimento, com aplicação local persistente, cadastro multiempresa, planos e mapeamentos versionados, documentos e cobrança NF-e 4.00, conciliação parcial XML × SPED, revisão persistente e motor de partidas explícitas. Nenhum dado real foi incluído ou enviado. Integração e homologação Prosoft permanecem pendentes.
+**Status:** produto em desenvolvimento, com aplicação local persistente, cadastro multiempresa, planos e mapeamentos versionados, documentos e cobrança NF-e 4.00, conciliação parcial XML × SPED, revisão persistente e motor de partidas explícitas, evidências de fechamento e identidade visual Escritura. Nenhum dado real foi incluído ou enviado. Integração e homologação Prosoft permanecem pendentes.
 
 Este projeto prepara o fluxo entre documentos fiscais, arquivo SPED para importação no Prosoft e lançamentos contábeis com proteção contra duplicidade. Ele não transmite obrigações ao Fisco, não executa o PVA e não grava diretamente no banco de dados do Prosoft.
 
@@ -39,13 +39,17 @@ Na Conciliação, registre a fonte escolhida, o motivo e a conferência explíci
 
 Cada prévia reserva um único evento documental por empresa/documento, guarda snapshot imutável e exige revisão antes do fechamento local. Repetições são idempotentes e auditadas; correções criam versões vinculadas. Fechado não é sobrescrito nem recontabilizado: estornos, pagamentos/recebimentos e eventos adicionais ainda não estão implementados. Fechamento local não significa escrituração importada ou homologada no Prosoft. Fluxo e limites: [revisão e motor](docs/revisao-e-motor.md).
 
-Fatura com valores aritmeticamente divergentes, parcelas sem fatura ou soma das parcelas diferente do líquido ficam pendentes, preservando os valores recebidos. Essas conferências não calculam tributos nem presumem valores ausentes. O normalizador v3 registra também entidades e observações nas novas importações. O esquema 3 adiciona tabelas em transação, sem reescrever originais ou documentos antigos. A indexação de arquivos antigos exige a ação explícita de análise; dados antigos não são liberados automaticamente. Guarde backup privado do SQLite antes de atualizar o programa.
+Em um lote fechado, use “Preparar evidências do fechamento” e informe o motivo. Os downloads `evidence.json`, `postings.csv` e `manifest.json` preservam o snapshot histórico; a aplicação confere hashes e registra cada disponibilização no histórico. Repetir reutiliza os mesmos arquivos. Esse perfil próprio não é importação Prosoft nem EFD. [Contrato de evidências](docs/evidencias-contabeis.md).
+
+Fatura com valores aritmeticamente divergentes, parcelas sem fatura ou soma das parcelas diferente do líquido ficam pendentes, preservando os valores recebidos. Essas conferências não calculam tributos nem presumem valores ausentes. O normalizador v3 registra também entidades e observações nas novas importações. O esquema 4 adiciona tabelas em transação, sem reescrever originais ou documentos antigos. A indexação de arquivos antigos exige a ação explícita de análise; dados antigos não são liberados automaticamente. Guarde backup privado do SQLite antes de atualizar o programa.
 
 Fluxos A–E, navegação, entidades, permissões e dependências: [mapa funcional completo](docs/mapa-produto.md). Modelo e limites do primeiro incremento: [incremento persistente](docs/incremento-persistente.md).
 
 Escopo de leitura, origem dos perfis, migração e aceite da conciliação: [conciliação documental](docs/conciliacao-documental.md).
 
 Distribuição Windows x86/x64, dependências fixadas, manifestos/checksums, imagem Docker e workflows de release/GHCR/homologação: [instalação e distribuição](docs/distribuicao.md). Os builds precisam de execução e verificação dos artefatos no Actions; definir o workflow não comprova que os binários estão prontos. Os fluxos manuais não publicam nem implantam por este PR. [Critérios para conclusão do produto](docs/criterios-produto.md) distinguem funcionalidades, distribuição e homologação real.
+
+Identidade, favicon e ícone Windows: [identidade visual](docs/identidade-visual.md). Os [insumos já localizados na Library](docs/insumos-localizados.md) incluem plano e pacotes Prosoft; sua transferência ainda não permitiu validar novos leiautes. Não é necessário pedir novamente esses arquivos como se não tivessem sido enviados.
 
 Execute a suíte sintética:
 
