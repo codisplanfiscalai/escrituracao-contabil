@@ -37,6 +37,9 @@ def main():
     asset_names = ["symbol.svg", "icon.svg", "icon.ico", "symbol-512.png", "icons-manifest.json",
                    *(f"icon-{size}.png" for size in (16, 24, 32, 48, 64, 128, 256, 512))]
     asset_args = [arg for name in asset_names for arg in ("--add-data", f"{assets / name}:src/web/assets")]
+    build_metadata = ROOT / "build" / args.arch / "distribution.json"
+    build_metadata.parent.mkdir(parents=True, exist_ok=True)
+    build_metadata.write_text(json.dumps({"version": version}), encoding="utf-8")
     subprocess.run([
         sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean", "--onedir", "--windowed",
         "--name", "EscrituracaoContabil", "--noupx", "--paths", str(ROOT),
@@ -48,6 +51,7 @@ def main():
         "--add-data", f"{ROOT / 'src' / 'web' / 'style.css'}:src/web",
         *asset_args,
         "--add-data", f"{ROOT / 'src' / 'portal'}:src/portal",
+        "--add-data", f"{build_metadata}:src",
         "--collect-submodules", "src",
         "--collect-submodules", "uvicorn",
         "--collect-submodules", "cryptography",
@@ -69,6 +73,8 @@ def main():
     print("Verified Escritura PE icon resources: 16, 24, 32, 48, 64, 128, 256 px")
     subprocess.run([sys.executable, str(ROOT / "packaging" / "smoke_test.py"), "--executable", str(exe)], check=True)
     shutil.copy2(ROOT / "docs" / "distribuicao.md", bundle / "DISTRIBUICAO.md")
+    shutil.copytree(ROOT / "docs", bundle / "docs")
+    shutil.copy2(ROOT / "docs" / "portal-corporativo.md", bundle / "portal-corporativo.md")
     files = []
     for file in sorted(bundle.rglob("*")):
         if file.is_file():

@@ -40,7 +40,7 @@ def main():
                 existing = api(f'repos/{repo}/branches/{branch}/protection')
                 if existing:
                     print(f'{branch}: proteção existente preservada; revise no GitHub.'); continue
-                api(f'repos/{repo}/branches/{branch}/protection', 'PUT', {'required_status_checks': {'strict': True, 'contexts': ['Branch policy', 'Tests Python 3.10', 'Tests Python 3.12', 'Tests Python 3.13', 'Build gate']}, 'enforce_admins': True, 'required_pull_request_reviews': {'dismiss_stale_reviews': True, 'require_code_owner_reviews': False, 'required_approving_review_count': 0}, 'restrictions': None, 'required_linear_history': False, 'allow_force_pushes': False, 'allow_deletions': False, 'required_conversation_resolution': True})
+                api(f'repos/{repo}/branches/{branch}/protection', 'PUT', {'required_status_checks': {'strict': True, 'contexts': ['Branch policy', 'Tests Python 3.10', 'Tests Python 3.12', 'Tests Python 3.13', 'Workflow lint', 'Portal browser', 'Build gate']}, 'enforce_admins': True, 'required_pull_request_reviews': {'dismiss_stale_reviews': True, 'require_code_owner_reviews': False, 'required_approving_review_count': 0}, 'restrictions': None, 'required_linear_history': False, 'allow_force_pushes': False, 'allow_deletions': False, 'required_conversation_resolution': True})
         return
     clean()
     if args.command == 'start':

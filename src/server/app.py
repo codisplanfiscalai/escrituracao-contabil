@@ -33,6 +33,10 @@ def create_app(directory, public_url='http://127.0.0.1:8765', database=None, set
     if parsed.scheme=='http' and parsed.hostname not in ('localhost','127.0.0.1','::1'):
         raise ValueError('O acesso de rede exige HTTPS.')
     public_url=public_url.rstrip('/')
+    metadata=ROOT/'src'/'distribution.json'
+    version=os.environ.get('ESCRITURA_VERSION')
+    if not version:
+        version=json.loads(metadata.read_text(encoding='utf-8'))['version'] if metadata.exists() else (ROOT/'VERSION').read_text(encoding='utf-8').strip()
     identity=Identity(directory,public_url,setup_file,key_file)
     accounting=Path(database).resolve() if database else identity.directory/'accounting.sqlite3'
     accounting.parent.mkdir(parents=True,exist_ok=True)
@@ -130,7 +134,7 @@ def create_app(directory, public_url='http://127.0.0.1:8765', database=None, set
         return {'status':'ready'}
     @app.get('/api/v1/status')
     def status():
-        return answer({'configured':identity.configured(),'product':'Escritura','version':os.environ.get('ESCRITURA_VERSION','0.3.0'),
+        return answer({'configured':identity.configured(),'product':'Escritura','version':version,
                        'display_name':identity.settings().get('general',{}).get('display_name') or 'Escritura'})
     @app.post('/api/v1/setup')
     async def setup(request:Request):return answer(identity.setup(await data(request),peer(request)))
