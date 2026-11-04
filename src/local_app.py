@@ -17,6 +17,7 @@ from pathlib import Path
 import secrets
 import sqlite3
 from urllib.parse import parse_qs, urlsplit
+from .accounting_api import ACCOUNTING_ROUTES, dispatch_accounting
 
 MAX_BODY = 15 * 1024 * 1024
 WEB_ROOT = Path(__file__).resolve().parent / "web"
@@ -63,6 +64,8 @@ def _identifier(value, name):
 
 def dispatch(store, method, route, data):
     """Small explicit API; no method names or paths are chosen by the client."""
+    if route in ACCOUNTING_ROUTES:
+        return dispatch_accounting(store, method, route, data)
     company = None
     if route != "companies":
         company = _identifier(_required(data, "company_id"), "company_id")
@@ -287,6 +290,7 @@ class LocalHandler(BaseHTTPRequestHandler):
                 return
             routes = {"billing-association-preview", "billing-associations", "companies", "periods", "plans", "accounts", "mappings", "files", "documents", "audit", "file-preview", "file-removal", "file-analysis", "reconciliation", "observations", "document-reviews", "accounting-batches", "accounting-review", "accounting-close", "accounting-evidence", "accounting-evidence-file"}
             route = parts.path.removeprefix("/api/")
+            routes.update(ACCOUNTING_ROUTES)
             if not parts.path.startswith("/api/") or route not in routes:
                 raise APIError("Página não encontrada.", 404)
             if self.command == "POST":
@@ -300,7 +304,7 @@ class LocalHandler(BaseHTTPRequestHandler):
                 data = {key: values[0] for key, values in parsed.items()}
             with open_store(self.server.database) as store:
                 result = dispatch(store, self.command, route, data)
-            if route == "accounting-evidence-file" and self.command == "GET":
+            if route in {"accounting-evidence-file", "accounting-book-file"} and self.command == "GET":
                 # Core accepts only its fixed artifact names, never a client path.
                 self._send(200, result["content"], result["media_type"], attachment=result["name"])
             else:

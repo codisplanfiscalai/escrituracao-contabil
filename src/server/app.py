@@ -14,6 +14,7 @@ from starlette.staticfiles import StaticFiles
 from .identity import Identity, IdentityError, PERMISSIONS, digest
 from ..local_app import dispatch, APIError, MAX_BODY, WEB_ROOT
 from ..persistence import AccountingStore
+from ..accounting_api import ACCOUNTING_WRITE, ACCOUNTING_REVIEW
 
 ROOT = Path(__file__).resolve().parents[2]
 PORTAL = ROOT / 'src' / 'portal'
@@ -22,6 +23,8 @@ WRITE_ROUTES = {'participants','fiscal-workspaces','fiscal-entries','periods','p
 REVIEW_ROUTES = {'participant-review','fiscal-review','fiscal-period','accounting-review','accounting-close','accounting-evidence'}
 CLIENT_GET = {'companies','periods','documents','files','accounting-evidence','accounting-evidence-file'}
 CLIENT_POST = {'files'}
+WRITE_ROUTES.update(ACCOUNTING_WRITE)
+REVIEW_ROUTES.update(ACCOUNTING_REVIEW)
 
 
 def create_app(directory, public_url='http://127.0.0.1:8765', database=None, setup_file=None, key_file=None, worker=True):
@@ -232,7 +235,7 @@ def create_app(directory, public_url='http://127.0.0.1:8765', database=None, set
         store=AccountingStore(accounting,actor=user['id'])
         try:result=dispatch(store,request.method,route,body)
         finally:store.close()
-        if route=='accounting-evidence-file' and request.method=='GET':
+        if route in {'accounting-evidence-file','accounting-book-file'} and request.method=='GET':
             return Response(result['content'],media_type=result['media_type'],
                             headers={'Content-Disposition':f'attachment; filename="{result["name"]}"'})
         return answer(result)
