@@ -157,7 +157,7 @@ def main(argv=None):
         except (ValueError, OSError): pass
     database = args.database or config.get('database') or str(home / 'accounting.sqlite3')
     port = args.port or config.get('port', 8765)
-    identity = hashlib.sha256(str(Path(database).resolve()).encode()).hexdigest()[:24]
+    identity = hashlib.sha256(str(home.resolve()).encode()).hexdigest()[:24]
     kernel = ctypes.WinDLL('kernel32', use_last_error=True)
     kernel.CreateMutexW.argtypes = [ctypes.c_void_p, w.BOOL, w.LPCWSTR]
     kernel.CreateMutexW.restype = w.HANDLE

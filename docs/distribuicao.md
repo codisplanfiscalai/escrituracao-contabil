@@ -6,7 +6,7 @@ O fluxo atual está descrito em [Desenvolvimento, versões e distribuição](flu
 
 Extraia todo o ZIP x86 ou x64 e abra `EscrituracaoContabil.exe`. Mantenha `_internal` ao lado do executável. A interface nativa permite iniciar, interromper e reiniciar o serviço local, abrir o portal, configurar caminho do banco e porta, consultar status e histórico operacional. Não abre console e não depende de comandos para operação normal.
 
-O ícone na área de notificação oferece os mesmos controles. Fechar a janela ou pressionar ESC recolhe a administração, mantendo o serviço ativo. Use **Sair do Escritura** para encerrar serviço e aplicativo. Se a área de notificação não estiver disponível, a janela fica minimizada na barra de tarefas. A instância única por arquivo de dados impede dois administradores locais sobre o mesmo banco.
+O ícone na área de notificação oferece os mesmos controles. Fechar a janela ou pressionar ESC recolhe a administração, mantendo o serviço ativo. Use **Sair do Escritura** para encerrar serviço e aplicativo. Se a área de notificação não estiver disponível, a janela fica minimizada na barra de tarefas. A instância única por perfil do Windows evita abrir dois administradores locais simultaneamente.
 
 Dados padrão: `%LOCALAPPDATA%\EscrituracaoContabil\accounting.sqlite3`. A configuração gráfica fica em desktop.json na mesma pasta. Trocar o caminho não copia nem migra o banco. Interrompa o serviço antes de salvar a configuração e faça backup antes de atualizar. O histórico exibido na janela é operacional e temporário; a auditoria fiscal/contábil persistente continua no banco.
 

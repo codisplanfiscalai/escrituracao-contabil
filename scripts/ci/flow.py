@@ -60,6 +60,7 @@ def main():
         match = re.search(r'^version = "([^"]+)"$', main_version, re.M)
         if not match: raise ValueError('Versão de main não encontrada.')
         target = bump(match[1], args.bump)
+        if read_version() not in (match[1], target): raise ValueError('A versão atual não corresponde ao incremento solicitado. Escolha o bump correto sem rebaixar VERSION.')
         print(json.dumps({'version': target, 'base': 'main', 'head': 'develop', 'apply': args.apply}))
         if not args.apply: return
         if read_version() != target:
