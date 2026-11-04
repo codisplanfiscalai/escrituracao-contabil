@@ -5,6 +5,8 @@
 !src/web/
 !src/web/index.html
 !src/web/app.js
+!src/web/posting_math.js
+!src/web/posting_editor.js
 !src/web/style.css
 !src/web/assets/
 !src/web/assets/symbol.svg

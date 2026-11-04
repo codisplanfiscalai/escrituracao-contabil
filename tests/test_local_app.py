@@ -293,6 +293,8 @@ class LocalApplicationTests(unittest.TestCase):
                       'snapshot_hash':batch['snapshot_hash'], 'reason':'Evidência fictícia'}
         self.assertEqual(self.request('/api/accounting-evidence','POST',transition)[0],400)
         self.api('accounting-review', transition)
+        self.assertEqual(self.request('/api/accounting-evidence-file', 'POST', transition)[0],404)
+        self.assertEqual(self.api(f'accounting-batches?company_id={cid}')[0]['status'],'revisado')
         self.api('accounting-close', transition)
         export = self.api('accounting-evidence', transition)
         self.assertEqual(export['profile'], 'accounting-evidence-v1')
@@ -314,6 +316,39 @@ class LocalApplicationTests(unittest.TestCase):
         self.assertEqual(self.request('/api/accounting-evidence','POST',{**transition,'company_id':other})[0],400)
         self.stop_server(); self.start_server()
         self.assertEqual(self.api(f'accounting-evidence?company_id={cid}')[0]['manifest_sha256'],export['manifest_sha256'])
+
+    def test_billing_association_preview_confirmation_and_document_review(self):
+        from test_persistence import fake_xml, edit_xml
+        cid, review, batch_data = self.accounting_fixture()
+        self.api('document-reviews',review)
+        content=edit_xml(fake_xml(),'cobr/fat/nFat','OUTRO-TITULO-FICTICIO')
+        file=self.api('files',{'company_id':cid,'period_id':batch_data['period_id'],
+                    'filename':'ficticio-associacao.xml','kind':'XML','content_base64':base64.b64encode(content).decode()})
+        doc=self.api(f'reconciliation?company_id={cid}')[0]
+        self.assertFalse(doc['readiness_for_accounting'])
+        invoice=doc['invoices'][0]
+        observations=[s for s in doc['sources'] if s['file_id']==file['id'] and s['entity_kind']=='parcela']
+        proposal={'company_id':cid,'document_id':doc['document_id'],'period_id':doc['period_id'],
+                  'file_id':file['id'],'invoice_id':invoice['id'],
+                  'installment_links':[{'observation_id':s['id'],'installment_id':p['id']} for s,p in zip(observations,invoice['installments'])]}
+        preview=self.api('billing-association-preview',proposal)
+        save={**proposal,'expected_fingerprint':preview['expected_fingerprint'],'reason':'Conferência fictícia','confirmed':True}
+        for change in ({'confirmed':False},{'confirmed':'true'},{'reason':''},{'expected_fingerprint':'stale'}):
+            self.assertEqual(self.request('/api/billing-associations','POST',{**save,**change})[0],400)
+        other=self.company()['id']
+        self.assertEqual(self.request('/api/billing-association-preview','POST',{**proposal,'company_id':other})[0],400)
+        self.assertEqual(self.request('/api/billing-associations','POST',save,headers={'X-Local-Token':None})[0],403)
+        self.assertTrue(self.api('billing-associations',save)['valid'])
+        self.assertEqual(self.request('/api/billing-associations','POST',save)[0],400)
+        self.assertEqual(self.api(f'billing-associations?company_id={other}'),[])
+        self.assertEqual(len(self.api(f'billing-associations?company_id={cid}')),1)
+        resolved=self.api(f'reconciliation?company_id={cid}')[0]
+        self.assertFalse(resolved['review']['valid'])
+        self.assertTrue(any(s.get('billing_resolution') for s in resolved['sources']))
+        self.assertTrue(self.api('document-reviews',{**review,'expected_fingerprint':resolved['source_fingerprint']})['readiness_for_accounting'])
+        self.assertEqual(self.api('accounting-batches',batch_data)['status'],'previa')
+        self.stop_server();self.start_server()
+        self.assertTrue(self.api(f'billing-associations?company_id={cid}')[0]['valid'])
 
 
 if __name__ == "__main__":

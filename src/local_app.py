@@ -22,6 +22,8 @@ MAX_BODY = 15 * 1024 * 1024
 WEB_ROOT = Path(__file__).resolve().parent / "web"
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 ASSETS = {"/app.js": ("app.js", "text/javascript; charset=utf-8"),
+          "/posting_math.js": ("posting_math.js", "text/javascript; charset=utf-8"),
+          "/posting_editor.js": ("posting_editor.js", "text/javascript; charset=utf-8"),
           "/style.css": ("style.css", "text/css; charset=utf-8"),
           "/assets/symbol.svg": ("assets/symbol.svg", "image/svg+xml"),
           "/assets/icon.svg": ("assets/icon.svg", "image/svg+xml"),
@@ -65,6 +67,8 @@ def dispatch(store, method, route, data):
     if route != "companies":
         company = _identifier(_required(data, "company_id"), "company_id")
     if method == "GET":
+        if route == "billing-associations":
+            return store.list_billing_associations(company, data.get("document_id") or None)
         if route == "accounting-evidence":
             return store.list_evidence_exports(company, data.get("batch_id") or None)
         if route == "accounting-evidence-file":
@@ -97,6 +101,13 @@ def dispatch(store, method, route, data):
         if route == "audit":
             return store.list_audit(company)
     if method == "POST":
+        if route in {"billing-association-preview", "billing-associations"}:
+            args = [company, _required(data, "document_id"), _required(data, "period_id"),
+                    _required(data, "file_id"), _required(data, "invoice_id"), _required(data, "installment_links")]
+            if route == "billing-association-preview":
+                return store.preview_billing_association(*args)
+            return store.save_billing_association(*args, _required(data, "expected_fingerprint"),
+                                                  _required(data, "reason"), data.get("confirmed", False))
         if route == "accounting-evidence":
             return store.create_evidence_export(company, _required(data, "batch_id"),
                                                 _required(data, "snapshot_hash"), _required(data, "reason"))
@@ -108,7 +119,7 @@ def dispatch(store, method, route, data):
             return store.create_accounting_batch(company, _required(data, "period_id"), _required(data, "plan_id"),
                                                  _required(data, "request_key"), _required(data, "entries"),
                                                  _required(data, "reason"), data.get("previous_batch_id") or None)
-        if route in {"accounting-review", "accounting-close", "accounting-evidence", "accounting-evidence-file"}:
+        if route in {"accounting-review", "accounting-close"}:
             method_call = store.review_accounting_batch if route == "accounting-review" else store.close_accounting_batch
             return method_call(company, _required(data, "batch_id"), _required(data, "snapshot_hash"), _required(data, "reason"))
         if route == "file-analysis":
@@ -252,7 +263,7 @@ class LocalHandler(BaseHTTPRequestHandler):
                 filename, content_type = ASSETS[parts.path]
                 self._send(200, (WEB_ROOT / filename).read_bytes(), content_type)
                 return
-            routes = {"companies", "periods", "plans", "accounts", "mappings", "files", "documents", "audit", "file-preview", "file-removal", "file-analysis", "reconciliation", "observations", "document-reviews", "accounting-batches", "accounting-review", "accounting-close", "accounting-evidence", "accounting-evidence-file"}
+            routes = {"billing-association-preview", "billing-associations", "companies", "periods", "plans", "accounts", "mappings", "files", "documents", "audit", "file-preview", "file-removal", "file-analysis", "reconciliation", "observations", "document-reviews", "accounting-batches", "accounting-review", "accounting-close", "accounting-evidence", "accounting-evidence-file"}
             route = parts.path.removeprefix("/api/")
             if not parts.path.startswith("/api/") or route not in routes:
                 raise APIError("Página não encontrada.", 404)

@@ -47,6 +47,7 @@ function render(){
   fillSelect($('#accounting-plan'),current.plans,'Selecione um plano',p=>`${p.label} · v${p.version} · #${p.id}`);
   fillSelect($('#accounting-previous'),current.batches.filter(b=>b.status!=='substituido'),'Novo lote',b=>`#${b.id} · v${b.version} · ${b.status}`);
   table('#review-history',current.reviews);
+  PostingEditor.refresh();
   setBusy(0);
 }
 async function loadCompanies(selected){companies=await api('companies');fillSelect($('#company'),companies,'Selecione uma empresa',c=>c.name,selected===undefined?companyId():String(selected));await loadContext();}
@@ -58,6 +59,12 @@ async function loadAccounts(){
   table('#accounts-list',rows);const list=$('#account-codes');list.replaceChildren();rows.forEach(a=>{const item=document.createElement('option');item.value=a.code;item.textContent=a.description;list.append(item);});
 }
 async function loadContext(){
+  setBusy(1);const requestedGeneration=generation+1;
+  try{return await loadContextData();}
+  catch(error){if(generation===requestedGeneration){current=emptyContext();render();table('#accounts-list',[]);$('#account-codes').replaceChildren();fillSelect($('#mapping-plan'),[],'Recarregue os dados',()=>'');}throw error;}
+  finally{setBusy(-1);}
+}
+async function loadContextData(){
   const version=++generation,company=companyId();
   if(!company){current=emptyContext();fillSelect($('#period'),[],'Todos os períodos',()=> '');fillSelect($('#mapping-plan'),[],'Selecione um plano',()=> '');render();await loadAccounts();return;}
   const responses=await Promise.all(['periods','plans','mappings','files','audit','accounting-batches','document-reviews','accounting-evidence'].map(key=>api(key,{company_id:company})));
@@ -83,18 +90,53 @@ function renderReconciliation(){
     const sourceArea=element('div');sourceArea.className='table-area';card.append(sourceArea);
     table(sourceArea,doc.sources.filter(source=>source.entity_kind==='documento').map(source=>({'Observação':source.id,'Arquivo':`#${source.file_id} · ${source.filename}`,'Formato':source.source_kind,'Localização':source.locator,'Período da fonte':source.period_id,'Situação da fonte':source.file_status,'Campos conferidos':Object.fromEntries(Object.entries(source.normalized).filter(([key])=>!['key','content_fingerprint'].includes(key)).map(([key,value])=>[fieldLabels[key]||key,value])),'Pendências':source.issues})));
     if(doc.differences.length){card.append(element('h4','Diferenças que exigem conferência'));const diffArea=element('div');diffArea.className='table-area';card.append(diffArea);table(diffArea,doc.differences.flatMap(diff=>diff.values.map(value=>({'Entidade':diff.entity||'documento','Campo':fieldLabels[diff.field]||diff.field,'Arquivo':'#'+value.file_id,'Localização':value.locator,'Valor na origem':value.value}))));}
-    if(doc.issues.length){const issue=element('p',doc.issues.map(row=>`${row.file_id?'Arquivo #'+row.file_id+' · ':''}${row.locator||''}: ${row.messages.join('; ')}`).join('\n'));issue.className='error-text';card.append(issue);}
+    if(doc.issues.length){doc.issues.forEach(row=>{const remaining=row.unresolved_messages||row.messages;const issue=element('p',`${row.file_id?'Arquivo #'+row.file_id+' · ':''}${row.locator||''}: ${remaining.length?remaining.join('; '):'Identidade associada por decisão explícita.'}${row.resolved_messages?.length?' Histórico preservado: '+row.resolved_messages.join('; '):''}`);issue.className=remaining.length?'error-text':'muted';card.append(issue);});}
     card.append(element('h4',`Faturas identificadas: ${doc.invoices.length}`));
     doc.invoices.forEach(invoice=>{
       card.append(element('p',`Fatura #${invoice.id} · ${invoice.reference} · ${invoice.status}`));
       const details=element('details'),summary=element('summary','Valores e fontes da fatura'),pre=element('pre',JSON.stringify({valores:invoice.payload,origens:invoice.sources.map(s=>({arquivo:s.file_id,local:s.locator,valores:s.normalized,situacao:s.file_status}))},null,2));details.append(summary,pre);card.append(details);
       const parts=element('div');parts.className='table-area';card.append(parts);table(parts,invoice.installments.map(part=>({'Parcela':`#${part.id} · ${part.reference}`,'Vencimento':part.payload.dVenc,'Valor recebido':part.payload.vDup,'Situação':part.status,'Origens':part.sources.map(s=>({arquivo:s.file_id,local:s.locator,valores:s.normalized,situacao:s.file_status}))})));
     });
+    renderBillingAssociation(card,doc);
     renderDocumentReview(card,doc);
     area.append(card);
   });
   const pending=current.observations.filter(row=>row.issues.length && (row.entity_kind==='registro'||!row.document_id||(row.entity_kind==='fatura'&&!row.invoice_id)||(row.entity_kind==='parcela'&&!row.installment_id)));
-  table('#observation-list',pending.map(row=>({'Arquivo':`#${row.file_id} · ${row.filename}`,'Localização':row.locator,'Situação da fonte':row.file_status,'Pendências':row.issues,'Conteúdo de origem':row.raw})));
+  table('#observation-list',pending.map(row=>({'Arquivo':`#${row.file_id} · ${row.filename}`,'Localização':row.locator,'Situação da fonte':row.file_status,'Pendências originais':row.issues,'Decisão de identidade':current.reconciliation.flatMap(d=>d.sources).find(s=>s.id===row.id)?.billing_resolution||'Sem associação válida','Conteúdo de origem':row.raw})));
+}
+function renderBillingAssociation(card,doc){
+  const sources=doc.sources.filter(s=>s.source_kind==='XML'&&s.file_status!=='excluido');
+  const candidates=[...new Set(sources.filter(s=>(s.entity_kind==='fatura'&&!s.invoice_id)||(s.entity_kind==='parcela'&&!s.installment_id)).map(s=>s.file_id))];
+  const history=doc.billing_associations||[];
+  if(history.length){const details=element('details'),summary=element('summary','Histórico de associações de cobrança'),area=element('div');area.className='table-area';table(area,history.map(h=>({'Decisão':h.id,'Arquivo':h.file_id,'Versão':h.version,'Vigente':h.current&&h.valid,'Motivo':h.reason,'Ator':h.actor,'Bloqueios':h.blockers,'Correspondências':h.snapshot.proposal})));details.append(summary,area);card.append(details);}
+  if(!candidates.length||!doc.invoices.length)return;
+  const section=element('section');section.className='billing-association';section.append(element('h4','Conferir referências de cobrança'),element('p','Associe referências diferentes somente quando valores e vencimentos coincidirem. Os registros originais permanecem preservados. Dados ausentes, valores divergentes e parcelas repetidas continuam bloqueados.'));
+  const form=element('form');form.dataset.needsCompany='';form.className='billing-proposal';
+  const file=labeledControl(form,'Arquivo com referência pendente','select','file_id');option(file,'','Selecione o arquivo');candidates.forEach(id=>{const source=sources.find(s=>s.file_id===id);option(file,id,`#${id} · ${source.filename}`);});
+  const invoice=labeledControl(form,'Fatura canônica do documento','select','invoice_id');option(invoice,'','Selecione explicitamente a fatura');doc.invoices.forEach(i=>option(invoice,i.id,`#${i.id} · ${i.reference} · líquido ${i.payload.vLiq||'ausente'}`));
+  const linksArea=element('div');form.append(linksArea);const previewButton=element('button','Conferir correspondências');previewButton.type='submit';form.append(previewButton);section.append(form);
+  const confirm=element('form');confirm.dataset.needsCompany='';confirm.className='billing-confirm';confirm.hidden=true;const comparison=element('div');comparison.className='table-area';confirm.append(comparison);
+  const reason=labeledControl(confirm,'Justificativa da associação','textarea','reason');reason.maxLength=2000;reason.rows=2;const checked=confirmedControl(confirm,'Conferi a relação 1:1 e confirmo a associação sem alterar os valores originais.');
+  const save=element('button','Registrar associação de cobrança');save.type='submit';confirm.append(save);section.append(confirm);card.append(section);
+  let proposal=null,preview=null,links=[];
+  function invalidate(){preview=null;proposal=null;confirm.hidden=true;checked.checked=false;}
+  function choose(){
+    invalidate();links=[];linksArea.replaceChildren();const target=doc.invoices.find(i=>String(i.id)===invoice.value);
+    const sourceInvoice=sources.find(s=>String(s.file_id)===file.value&&s.entity_kind==='fatura');
+    if(sourceInvoice)linksArea.append(element('p',`Origem: fatura ${sourceInvoice.normalized.nFat||'sem identificador'} · original ${sourceInvoice.normalized.vOrig||'ausente'} · desconto ${sourceInvoice.normalized.vDesc||'ausente'} · líquido ${sourceInvoice.normalized.vLiq||'ausente'}`));
+    if(!target||!file.value)return;
+    sources.filter(s=>String(s.file_id)===file.value&&s.entity_kind==='parcela').forEach(source=>{
+      const control=labeledControl(linksArea,`Origem ${source.normalized.nDup||'sem identificador'} · ${source.normalized.dVenc||'sem vencimento'} · ${source.normalized.vDup||'sem valor'} → parcela canônica`,'select','installment_'+source.id);option(control,'','Selecione explicitamente');
+      target.installments.forEach(part=>option(control,part.id,`#${part.id} · ${part.reference} · ${part.payload.dVenc||'ausente'} · ${part.payload.vDup||'ausente'}`));control.addEventListener('change',invalidate);links.push({source,control});
+    });
+  }
+  file.addEventListener('change',choose);invoice.addEventListener('change',choose);
+  form.addEventListener('submit',async event=>{event.preventDefault();if(busy)return;invalidate();setBusy(1);try{
+    proposal={company_id:companyId(),document_id:doc.document_id,period_id:doc.period_id,file_id:file.value,invoice_id:invoice.value,installment_links:links.map(({source,control})=>({observation_id:source.id,installment_id:control.value}))};
+    preview=await api('billing-association-preview',proposal,'POST');
+    table(comparison,[{'Entidade':'Fatura','Origem':preview.invoice.source.normalized,'Destino':preview.invoice.target.payload},...preview.installments.map(p=>({'Entidade':'Parcela','Origem':p.source.normalized,'Destino':p.target.payload}))]);confirm.hidden=false;notice('Correspondência conferida. Revise a prévia, informe o motivo e confirme.');
+  }catch(error){invalidate();notice(error.message,true);}finally{setBusy(-1);}});
+  localAction(confirm,async()=>{if(!preview||!proposal||proposal.company_id!==companyId()||!checked.checked)throw new Error('Gere e confira novamente a prévia de associação.');await api('billing-associations',{...proposal,expected_fingerprint:preview.expected_fingerprint,reason:reason.value,confirmed:true},'POST');});
 }
 function selectAnalysisProfile(){const file=current.files.find(row=>String(row.id)===$('#analysis-file').value);$('#analysis-profile').value=file?(file.kind==='XML'?'nfe-4.00-header-billing-v3':'efd-icms-ipi-020-c100-v1'):'';}
 function formObject(form){return Object.fromEntries(new FormData(form));}
@@ -201,9 +243,10 @@ function renderEvidence(card,batch){
 }
 bindForm('#accounting-form',async form=>{
   if(!companyId()||!periodId())throw new Error('Selecione empresa e período de trabalho.');
-  const data=formObject(form);try{data.entries=JSON.parse(data.entries);}catch{throw new Error('Partidas: JSON inválido.');}
+  const data=formObject(form);data.entries=PostingEditor.read();
   data.previous_batch_id=data.previous_batch_id||null;
   const batch=await api('accounting-batches',{...data,company_id:companyId(),period_id:periodId()},'POST');
   await loadContext();return {message:`Prévia #${batch.id} registrada. Examine o snapshot para revisar e fechar localmente.`};
 });
+PostingEditor.init({context:()=>({company:companyId(),period:periodId(),plan:$('#accounting-plan').value,periods:current.periods,mappings:current.mappings,documents:current.reconciliation}),onError:notice});
 loadCompanies().catch(error=>notice(error.message,true));

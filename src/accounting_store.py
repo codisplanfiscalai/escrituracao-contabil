@@ -54,7 +54,7 @@ def amount(value):
 
 
 class AccountingMixin:
-    def _source_snapshot(self, company_id, document_id):
+    def _base_source_snapshot(self, company_id, document_id):
         document = self._owned("documents", company_id, document_id)
         observations = [row for row in self.list_observations(company_id) if row["document_id"] == document["id"]]
         files = [dict(row) for row in self.db.execute(
@@ -62,6 +62,14 @@ class AccountingMixin:
         snapshot = {"document_id": document["id"], "business_key": document["business_key"],
                     "period_id": document["period_id"], "files": files, "observations": observations}
         return snapshot, digest(snapshot)
+
+    def _source_snapshot(self, company_id, document_id):
+        snapshot, fingerprint = self._base_source_snapshot(company_id, document_id)
+        decisions = self._billing_snapshot_decisions(company_id, snapshot["document_id"], snapshot)
+        if decisions:
+            snapshot["billing_associations"] = decisions
+            fingerprint = digest(snapshot)
+        return snapshot, fingerprint
 
     def _source_blockers(self, snapshot, period_id):
         active = [row for row in snapshot["observations"] if row["file_status"] != "excluido"]
@@ -75,10 +83,13 @@ class AccountingMixin:
             blockers.append("Fonte vinculada ainda não analisada")
         allowed = {"Fatura com valores divergentes; primeira representação preservada",
                    "Parcela com valores divergentes; primeira representação preservada"}
+        from .billing_association import billing_resolution_map
+        resolutions = billing_resolution_map(snapshot)
         for row in active:
-            if (row["entity_kind"] == "fatura" and row["invoice_id"] is None) or (row["entity_kind"] == "parcela" and row["installment_id"] is None):
+            resolution = resolutions.get(row["id"])
+            if not resolution and ((row["entity_kind"] == "fatura" and row["invoice_id"] is None) or (row["entity_kind"] == "parcela" and row["installment_id"] is None)):
                 blockers.append("Cobrança sem identidade inequívoca; seleção de fonte não resolve possível duplicidade")
-            blockers.extend(message for message in row["issues"] if message not in allowed)
+            blockers.extend(message for message in row["issues"] if message not in allowed and (not resolution or message not in resolution["resolved_issues"]))
         return list(dict.fromkeys(blockers))
 
     def _review_status(self, company_id, document_id, period_id):
