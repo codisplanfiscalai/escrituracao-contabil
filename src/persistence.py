@@ -18,6 +18,8 @@ from .evidence_export import EvidenceExportMixin, EVIDENCE_SCHEMA
 from .billing_association import BillingAssociationMixin, BILLING_ASSOCIATION_SCHEMA
 from .fiscal_ledger import FiscalLedgerMixin, FISCAL_SCHEMA
 from .fiscal_workspace import FiscalWorkspaceMixin, WORKSPACE_SCHEMA
+from .manual_accounting import ManualAccountingMixin, MANUAL_SCHEMA
+from .accounting_books import AccountingBooksMixin, BOOKS_SCHEMA
 
 MAX_FILE_BYTES = 10 * 1024 * 1024
 NS = {"n": "http://www.portalfiscal.inf.br/nfe"}
@@ -195,7 +197,7 @@ CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL);
 """
 
 
-class AccountingStore(FiscalWorkspaceMixin, FiscalLedgerMixin, BillingAssociationMixin, EvidenceExportMixin, AccountingMixin, ReconciliationMixin):
+class AccountingStore(AccountingBooksMixin, ManualAccountingMixin, FiscalWorkspaceMixin, FiscalLedgerMixin, BillingAssociationMixin, EvidenceExportMixin, AccountingMixin, ReconciliationMixin):
     def __init__(self, db_path, actor="operador-local"):
         self.actor = _text(actor, "usuário", 100)
         path = Path(db_path).expanduser()
@@ -207,15 +209,15 @@ class AccountingStore(FiscalWorkspaceMixin, FiscalLedgerMixin, BillingAssociatio
         self.db.execute("PRAGMA busy_timeout=15000")
         version_table = self.db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='schema_version'").fetchone()
         version = self.db.execute("SELECT version FROM schema_version").fetchone() if version_table else None
-        if version and version[0] not in {1, 2, 3, 4, 5, 6}:
+        if version and version[0] not in {1, 2, 3, 4, 5, 6, 7}:
             self.close()
             raise ValueError("Versão do banco não suportada; nenhuma migração automática realizada")
         try:
-            self.db.executescript("BEGIN IMMEDIATE;\n" + SCHEMA + RECONCILIATION_SCHEMA + ACCOUNTING_SCHEMA + EVIDENCE_SCHEMA + BILLING_ASSOCIATION_SCHEMA + FISCAL_SCHEMA + WORKSPACE_SCHEMA)
+            self.db.executescript("BEGIN IMMEDIATE;\n" + SCHEMA + RECONCILIATION_SCHEMA + ACCOUNTING_SCHEMA + EVIDENCE_SCHEMA + BILLING_ASSOCIATION_SCHEMA + FISCAL_SCHEMA + WORKSPACE_SCHEMA + MANUAL_SCHEMA + BOOKS_SCHEMA)
             if not version:
-                self.db.execute("INSERT INTO schema_version VALUES (6)")
-            elif version[0] in {1, 2, 3, 4, 5}:
-                self.db.execute("UPDATE schema_version SET version=6")
+                self.db.execute("INSERT INTO schema_version VALUES (7)")
+            elif version[0] in {1, 2, 3, 4, 5, 6}:
+                self.db.execute("UPDATE schema_version SET version=7")
             self.db.commit()
         except Exception:
             self.db.rollback()
