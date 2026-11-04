@@ -62,12 +62,12 @@ async function loadAccounts(){
 async function loadContext(){
   setBusy(1);const requestedGeneration=generation+1;
   try{return await loadContextData();}
-  catch(error){if(generation===requestedGeneration){current=emptyContext();render();table('#accounts-list',[]);$('#account-codes').replaceChildren();fillSelect($('#mapping-plan'),[],'Recarregue os dados',()=>'');}throw error;}
+  catch(error){if(generation===requestedGeneration){current=emptyContext();render();IntegratedWorkspace.clearView();table('#accounts-list',[]);$('#account-codes').replaceChildren();fillSelect($('#mapping-plan'),[],'Recarregue os dados',()=>'');}throw error;}
   finally{setBusy(-1);}
 }
 async function loadContextData(){
   const version=++generation,company=companyId();
-  if(!company){FiscalEditor.clear();current=emptyContext();fillSelect($('#period'),[],'Todos os períodos',()=> '');fillSelect($('#mapping-plan'),[],'Selecione um plano',()=> '');render();await loadAccounts();return;}
+  if(!company){FiscalEditor.clear();current=emptyContext();fillSelect($('#period'),[],'Todos os períodos',()=> '');fillSelect($('#mapping-plan'),[],'Selecione um plano',()=> '');render();await loadAccounts();await IntegratedWorkspace.load();return;}
   const responses=await Promise.all(['periods','plans','mappings','files','audit','accounting-batches','document-reviews','accounting-evidence'].map(key=>api(key,{company_id:company})));
   if(version!==generation || company!==companyId())return;
   ['periods','plans','mappings','files','audit','batches','reviews','exports'].forEach((key,i)=>current[key]=responses[i]);
@@ -76,7 +76,7 @@ async function loadContextData(){
   if(!$('#mapping-plan').value && current.plans.length)$('#mapping-plan').value=String(current.plans[0].id);
   const results=await Promise.all(['documents','reconciliation','observations'].map(route=>api(route,{company_id:company,period_id:periodId()})));
   if(version!==generation)return;
-  ['documents','reconciliation','observations'].forEach((key,index)=>current[key]=results[index]);render();await loadAccounts();await FiscalEditor.load();
+  ['documents','reconciliation','observations'].forEach((key,index)=>current[key]=results[index]);render();await loadAccounts();await FiscalEditor.load();await IntegratedWorkspace.load();
 }
 function element(tag,text){const node=document.createElement(tag);if(text!==undefined)node.textContent=text;return node;}
 function renderReconciliation(){
@@ -349,8 +349,9 @@ const FiscalEditor=(()=>{
   }
   return {init,load,clear};
 })();
+IntegratedWorkspace.init();
 FiscalEditor.init();
-window.EscrituraWorkspace={navigate:selectPanel,flush:async()=>{PostingEditor.save();await window.EscrituraFiscalFlush();}};
+window.EscrituraWorkspace={navigate:selectPanel,flush:async()=>{PostingEditor.save();IntegratedWorkspace.save();await window.EscrituraFiscalFlush();}};
 
 PostingEditor.init({context:()=>({company:companyId(),period:periodId(),plan:$('#accounting-plan').value,periods:current.periods,mappings:current.mappings,documents:current.reconciliation}),onError:notice});
 loadCompanies().catch(error=>notice(error.message,true));

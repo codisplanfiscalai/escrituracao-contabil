@@ -57,7 +57,7 @@ def main():
                 memo = frame.locator('[data-field=memo]').first
                 reason.fill('Rascunho Alfa setembro'); memo.fill('Histórico preservado')
                 frame.locator('[data-field=amount]').first.fill('100,30')
-                key = frame.locator('[name=request_key]').input_value()
+                key = frame.locator('#accounting-form [name=request_key]').input_value()
                 frame.get_by_role('button', name='Adicionar partida', exact=True).click()
                 expect(frame.locator('.posting-line')).to_have_count(3)
                 for activity in ['Documentos', 'Conciliação', 'Lançamento fiscal', 'Configurações', 'Escrituração']:
@@ -79,7 +79,7 @@ def main():
                 scope(company, first)
                 expect(reason).to_have_value('Rascunho Alfa setembro'); expect(memo).to_have_value('Histórico preservado')
                 expect(frame.locator('.posting-line')).to_have_count(3)
-                expect(frame.locator('[name=request_key]')).to_have_value(key)
+                expect(frame.locator('#accounting-form [name=request_key]')).to_have_value(key)
                 frame.locator('#refresh').click(); idle(); expect(reason).to_have_value('Rascunho Alfa setembro')
                 frame.locator('#period').select_option(str(second)); idle()
                 expect(frame.locator('#posting-mode')).to_have_value('json')
@@ -91,7 +91,7 @@ def main():
                 expect(reason).to_have_value('Rascunho aguardando competência')
                 page.reload(); page.get_by_role('link', name='Escrituração', exact=True).click()
                 scope(company, first); expect(reason).to_have_value('Rascunho Alfa setembro')
-                expect(memo).to_have_value('Histórico preservado'); expect(frame.locator('[name=request_key]')).to_have_value(key)
+                expect(memo).to_have_value('Histórico preservado'); expect(frame.locator('#accounting-form [name=request_key]')).to_have_value(key)
                 page.get_by_role('link', name='Lançamento fiscal', exact=True).first.click()
                 frame.locator('#fiscal-new').click()
                 fiscal = frame.locator('#fiscal-form')

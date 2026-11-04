@@ -103,3 +103,13 @@ no portal, e são removidos ao sair explicitamente da conta. Não substituem uma
 prévia gravada no servidor e não são compartilhados entre dispositivos. Caso
 o navegador bloqueie a recuperação, o editor informa que o rascunho permanece
 somente em memória. As guias fiscais continuam versionadas no banco.
+
+## Integração operacional
+
+`python qa/integrated_flow.py` executa o percurso real de cadastro, XML, fiscal,
+contabilização documental/manual, livros, download por hash e financeiro no portal
+autenticado e no HTTP local, sempre com base sintética temporária. A conexão das
+telas usa as mesmas APIs dos aplicativos distribuídos. Inclui edição e estorno
+manual, baixas parciais/integrais, estorno e cancelamento de título e responsividade.
+Veja `docs/integracao-operacional.md` para limites e permissões; não se trata de
+homologação Prosoft/SPED ou de apuração CBS/IBS.

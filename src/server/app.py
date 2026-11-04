@@ -14,6 +14,7 @@ from starlette.staticfiles import StaticFiles
 from .identity import Identity, IdentityError, PERMISSIONS, digest
 from ..local_app import dispatch, APIError, MAX_BODY, WEB_ROOT
 from ..persistence import AccountingStore
+from ..finance import FINANCE_WRITE, FINANCE_REVIEW
 from ..accounting_api import ACCOUNTING_WRITE, ACCOUNTING_REVIEW
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -23,8 +24,8 @@ WRITE_ROUTES = {'participants','fiscal-workspaces','fiscal-entries','periods','p
 REVIEW_ROUTES = {'participant-review','fiscal-review','fiscal-period','accounting-review','accounting-close','accounting-evidence'}
 CLIENT_GET = {'companies','periods','documents','files','accounting-evidence','accounting-evidence-file'}
 CLIENT_POST = {'files'}
-WRITE_ROUTES.update(ACCOUNTING_WRITE)
-REVIEW_ROUTES.update(ACCOUNTING_REVIEW)
+WRITE_ROUTES.update(ACCOUNTING_WRITE | FINANCE_WRITE)
+REVIEW_ROUTES.update(ACCOUNTING_REVIEW | FINANCE_REVIEW)
 
 
 def create_app(directory, public_url='http://127.0.0.1:8765', database=None, setup_file=None, key_file=None, worker=True):
@@ -235,7 +236,7 @@ def create_app(directory, public_url='http://127.0.0.1:8765', database=None, set
         store=AccountingStore(accounting,actor=user['id'])
         try:result=dispatch(store,request.method,route,body)
         finally:store.close()
-        if route in {'accounting-evidence-file','accounting-book-file'} and request.method=='GET':
+        if route in {'accounting-evidence-file','accounting-book-file','finance-file'} and request.method=='GET':
             return Response(result['content'],media_type=result['media_type'],
                             headers={'Content-Disposition':f'attachment; filename="{result["name"]}"'})
         return answer(result)
@@ -267,7 +268,7 @@ def create_app(directory, public_url='http://127.0.0.1:8765', database=None, set
     def static_handler(name):
         def serve():return Response((WEB_ROOT/name).read_bytes(),media_type='text/css' if name.endswith('.css') else 'text/javascript')
         return serve
-    for filename in ('app.js','posting_editor.js','posting_math.js','style.css'):
+    for filename in ('integrated_workspace.js','app.js','posting_editor.js','posting_math.js','style.css'):
         app.add_api_route('/'+filename,static_handler(filename),methods=['GET'])
     app.mount('/assets',StaticFiles(directory=WEB_ROOT/'assets'),name='identity-assets')
     app.mount('/portal',StaticFiles(directory=PORTAL),name='portal-assets')
