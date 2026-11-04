@@ -268,10 +268,10 @@ var _Vue=Vue; var EscrituraRender=function render(_ctx, _cache) {
                       class: "work-frame panel"
                     }, [(_openBlock(), _createElementBlock("iframe", {
                       key: page,
-                      src: '/workspace#'+page,
+                      src: "/workspace",
                       title: "Área de escrituração",
                       onLoad: selectWorkspace
-                    }, null, 40, ["src", "onLoad"]))]))
+                    }, null, 40, ["onLoad"]))]))
                   : (page==='companies')
                     ? (_openBlock(), _createElementBlock("section", { key: 4 }, [_createElementVNode("div", { class: "panel padded" }, [_createElementVNode("h2", null, "Nova empresa"), _createElementVNode("form", {
                         onSubmit: _withModifiers(saveCompany, ["prevent"]),

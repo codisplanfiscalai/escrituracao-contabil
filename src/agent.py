@@ -1,5 +1,6 @@
 """Agente de operação isolado: somente contêineres rotulados desta instalação."""
 import argparse
+from contextlib import contextmanager
 import hashlib
 import hmac
 import http.client
@@ -14,6 +15,13 @@ from urllib.parse import quote, urlencode, urlsplit
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
 from .server.identity import private_file, IdentityError
+
+@contextmanager
+def operation_database(path):
+    connection=sqlite3.connect(path,timeout=20)
+    try:
+        with connection:yield connection
+    finally:connection.close()
 
 class UnixConnection(http.client.HTTPConnection):
     def __init__(self,path):super().__init__('localhost',timeout=15);self.path=path
@@ -62,7 +70,7 @@ def create_agent(directory,docker=None,installation='escritura',token_file=None)
     if len(token)<32:raise ValueError('A credencial do agente precisa conter pelo menos 32 caracteres.')
     docker=docker or DockerServices(os.getenv('ESCRITURA_DOCKER_SOCKET','/var/run/docker.sock'),installation)
     path=directory/'operations.sqlite3'
-    with sqlite3.connect(path) as db:db.execute('CREATE TABLE IF NOT EXISTS operations(key TEXT PRIMARY KEY,target TEXT NOT NULL,action TEXT NOT NULL,status TEXT NOT NULL,result TEXT NOT NULL,created REAL NOT NULL)')
+    with operation_database(path) as db:db.execute('CREATE TABLE IF NOT EXISTS operations(key TEXT PRIMARY KEY,target TEXT NOT NULL,action TEXT NOT NULL,status TEXT NOT NULL,result TEXT NOT NULL,created REAL NOT NULL)')
     app=FastAPI(docs_url=None,redoc_url=None,openapi_url=None)
     app.state.token=token
     @app.middleware('http')
@@ -82,7 +90,7 @@ def create_agent(directory,docker=None,installation='escritura',token_file=None)
         if not re.fullmatch(r'[a-f0-9-]{36}',key):raise IdentityError('Identificador de operação obrigatório.')
         docker.require(ident)
         if action not in ('start','stop','restart'):raise IdentityError('Comando não permitido.')
-        with sqlite3.connect(path,timeout=20) as db:
+        with operation_database(path) as db:
             db.execute('BEGIN IMMEDIATE')
             row=db.execute('SELECT target,action,status,result FROM operations WHERE key=?',(key,)).fetchone()
             if row:
@@ -91,7 +99,7 @@ def create_agent(directory,docker=None,installation='escritura',token_file=None)
                 return {'data':json.loads(row[3])}
             db.execute('INSERT INTO operations VALUES(?,?,?,?,?,?)',(key,ident,action,'pending','',time.time()))
         result=docker.command(ident,action)
-        with sqlite3.connect(path) as db:db.execute("UPDATE operations SET status='done',result=? WHERE key=?",(json.dumps(result),key))
+        with operation_database(path) as db:db.execute("UPDATE operations SET status='done',result=? WHERE key=?",(json.dumps(result),key))
         return {'data':result}
     return app
 

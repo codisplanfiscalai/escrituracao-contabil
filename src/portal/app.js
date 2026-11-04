@@ -18,7 +18,7 @@ const menu=[
 ];
 const app=createApp({
  render:EscrituraRender,
- data:()=>({ready:false,busy:false,configured:true,user:null,csrf:'',version:'',page:'dashboard',menuOpen:false,menuSearch:'',error:'',notice:'',authMode:'login',auth:{name:'',email:'',password:'',token:'',code:''},challenge:'',resetToken:'',dashboard:{metrics:{},companies:[]},users:[],roles:[],permissions:{},sessions:[],audit:[],mail:[],dialog:'',userForm:{},roleForm:{},companyForm:{name:'',cnpj:'',prosoft_company_code:'',prosoft_plan_code:''},settings:{general:{},smtp:{mode:'starttls',port:587}},menuOrder:menu.map(m=>m.id),allMenu:menu,workspacePages:['setup','chart','imports','reconciliation','accounting'],clientCompany:'',clientPeriod:'',clientData:{files:[],documents:[],periods:[]},uploadKind:'XML',uploadFile:null,mfa:{password:'',code:'',token:'',secret:''},recoveryCodes:[],pageGeneration:0,clientGeneration:0}),
+ data:()=>({ready:false,busy:false,configured:true,user:null,csrf:'',version:'',page:'dashboard',menuOpen:false,menuSearch:'',error:'',notice:'',authMode:'login',auth:{name:'',email:'',password:'',token:'',code:''},challenge:'',resetToken:'',dashboard:{metrics:{},companies:[]},users:[],roles:[],permissions:{},sessions:[],audit:[],mail:[],dialog:'',userForm:{},roleForm:{},companyForm:{name:'',cnpj:'',prosoft_company_code:'',prosoft_plan_code:''},settings:{general:{},smtp:{mode:'starttls',port:587}},menuOrder:menu.map(m=>m.id),allMenu:menu,workspacePages:['setup','chart','imports','reconciliation','accounting'],clientCompany:'',workspacePeriod:'',clientPeriod:'',clientData:{files:[],documents:[],periods:[]},uploadKind:'XML',uploadFile:null,mfa:{password:'',code:'',token:'',secret:''},recoveryCodes:[],pageGeneration:0,clientGeneration:0}),
  computed:{
   initials(){return this.user?.name.split(' ').filter(Boolean).slice(0,2).map(s=>s[0].toUpperCase()).join('')||'E';},
   pageTitle(){return menu.find(m=>m.id===this.page)?.label||'Visão geral';},
@@ -48,7 +48,28 @@ const app=createApp({
    }catch(e){if(generation===this.pageGeneration)this.error=e.message;}
   },
   openCompany(company){this.clientCompany=String(company.id);location.hash=this.can('workspace.read')?'#/imports':'#/client';},
-  selectWorkspace(event){const frame=event.target;const page=this.page;let attempts=0;const select=()=>{if(page!==this.page||!frame.isConnected)return;const doc=frame.contentDocument;if(!doc)return;const button=doc.querySelector('[data-panel="'+page+'"]');button?.click();const company=doc.querySelector('#company');if(this.clientCompany&&company){if([...company.options].some(o=>o.value===this.clientCompany)){company.value=this.clientCompany;company.dispatchEvent(new Event('change',{bubbles:true}));}else if(++attempts<20)setTimeout(select,150);}};select();},
+  selectWorkspace(event){
+   const frame=event.target, page=this.page, doc=frame.contentDocument;
+   if(!doc)return;
+   doc.querySelector('[data-panel="'+page+'"]')?.click();
+   const company=doc.querySelector('#company'),period=doc.querySelector('#period');
+   const wantedCompany=this.clientCompany,wantedPeriod=this.workspacePeriod;
+   let attempts=0,companyRestored=false;
+   company?.addEventListener('change',()=>{this.clientCompany=company.value;this.workspacePeriod='';});
+   period?.addEventListener('change',()=>{this.workspacePeriod=period.value;});
+   const restore=()=>{
+    if(page!==this.page||!frame.isConnected||++attempts>100)return;
+    if(!wantedCompany||!company)return;
+    if(!companyRestored){
+     if(![...company.options].some(o=>o.value===wantedCompany)){setTimeout(restore,100);return;}
+     company.value=wantedCompany;company.dispatchEvent(new Event('change',{bubbles:true}));companyRestored=true;
+    }
+    if(wantedPeriod&&period){
+     if(![...period.options].some(o=>o.value===wantedPeriod)){setTimeout(restore,100);return;}
+     period.value=wantedPeriod;period.dispatchEvent(new Event('change',{bubbles:true}));
+    }
+   };restore();
+  },
   async saveCompany(){await this.run(async()=>{await this.api('/api/companies',this.companyForm);this.companyForm={name:'',cnpj:'',prosoft_company_code:'',prosoft_plan_code:''};await this.loadPage();this.notice='Empresa cadastrada.';});},
   editUser(user){this.error='';this.userForm=user?{...this.structuredCopy(user),active:!!user.active,password:''}:{name:'',email:'',password:'',role:'client',companies:[],active:true};this.dialog='user';},
   closeDialog(){this.dialog='';this.error='';this.mfa={password:'',code:'',secret:'',token:''};this.recoveryCodes=[];},
