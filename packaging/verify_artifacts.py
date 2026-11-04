@@ -10,7 +10,8 @@ from verify_icons import read_ico
 
 
 def verify(directory, source_sha):
-    manifests = sorted(directory.glob("*.manifest.json"))
+    manifests = sorted(file for file in directory.glob("*.manifest.json")
+                       if file.name != "container.manifest.json")
     assert len(manifests) == 2, "Expected exactly two architecture manifests"
     architectures = set()
     for file in manifests:
