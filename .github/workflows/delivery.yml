@@ -1,0 +1,86 @@
+name: Delivery pipeline
+on:
+  workflow_call:
+    inputs:
+      channel:
+        type: string
+        required: true
+permissions:
+  contents: read
+jobs:
+  metadata:
+    if: >-
+      (inputs.channel == 'develop' && github.ref == 'refs/heads/develop') ||
+      (inputs.channel == 'stable' && github.ref == 'refs/heads/main')
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      sha: ${{ steps.version.outputs.source_sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - id: version
+        env:
+          CHANNEL: ${{ inputs.channel }}
+        run: python scripts/ci/version.py resolve --channel "$CHANNEL"
+  tests:
+    needs: metadata
+    uses: ./.github/workflows/tests.yml
+    with:
+      source_sha: ${{ needs.metadata.outputs.sha }}
+  windows:
+    needs: metadata
+    uses: ./.github/workflows/windows-build.yml
+    with:
+      source_sha: ${{ needs.metadata.outputs.sha }}
+      version: ${{ needs.metadata.outputs.version }}
+  container:
+    needs: metadata
+    uses: ./.github/workflows/container.yml
+    with:
+      source_sha: ${{ needs.metadata.outputs.sha }}
+      version: ${{ needs.metadata.outputs.version }}
+  publish:
+    name: Publish tested release
+    needs: [metadata, tests, windows, container]
+    if: github.event.repository.private == true
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    concurrency:
+      group: escritura-registry-and-releases
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ needs.metadata.outputs.sha }}
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
+        with:
+          pattern: windows-*
+          path: release-assets
+          merge-multiple: true
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131
+        with:
+          name: container
+          path: release-assets
+      - name: Authenticate and publish verified bytes
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REGISTRY_USER: ${{ github.actor }}
+          OWNER_TYPE: ${{ github.event.repository.owner.type }}
+          BUILD_VERSION: ${{ needs.metadata.outputs.version }}
+          SOURCE_SHA: ${{ needs.metadata.outputs.sha }}
+          CHANNEL: ${{ inputs.channel }}
+        run: |
+          set -euo pipefail
+          trap 'docker logout ghcr.io >/dev/null 2>&1' EXIT
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io --username "$REGISTRY_USER" --password-stdin
+          python scripts/ci/release.py --assets release-assets --version "$BUILD_VERSION" --sha "$SOURCE_SHA" --channel "$CHANNEL" --owner-type "$OWNER_TYPE"

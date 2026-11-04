@@ -30,3 +30,8 @@ build/
 dist/
 artifacts/
 .venv-build/
+packaging/icon-tools/node_modules/
+release-assets/
+verified-distributions/
+.mypy_cache/
+.ruff_cache/

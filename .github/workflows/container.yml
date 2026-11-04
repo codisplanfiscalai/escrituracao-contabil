@@ -1,64 +1,32 @@
-name: Container build and optional GHCR publication
+name: Container build
 on:
-  push:
-    branches: [main, 'feat/**']
-  pull_request:
-  workflow_dispatch:
+  workflow_call:
     inputs:
-      publish:
-        description: Publish the tested default-branch revision to GHCR after environment review
-        type: boolean
-        default: false
+      source_sha:
+        type: string
+        required: true
+      version:
+        type: string
+        required: true
 permissions:
   contents: read
 jobs:
-  build:
+  container:
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
+          ref: ${{ inputs.source_sha }}
           persist-credentials: false
-      - name: Build and run synthetic tests inside pinned image
-        run: docker build --target test --tag escrituracao-test .
-      - name: Build minimal runtime
-        run: docker build --target final --tag escrituracao-local .
-      - name: Smoke test with no network access, read-only image and private temporary data
-        run: docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges --tmpfs /tmp:rw,nosuid,nodev,mode=1777 --tmpfs /data:rw,nosuid,nodev,uid=10001,gid=10001,mode=0700 --entrypoint python escrituracao-local packaging/smoke_test.py
-  publish:
-    needs: build
-    if: github.event_name == 'workflow_dispatch' && inputs.publish && github.ref == 'refs/heads/main' && github.event.repository.private == true
-    environment: package-review
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      - name: Test, build and export the exact tested image
+        env:
+          BUILD_VERSION: ${{ inputs.version }}
+        run: python scripts/build.py container --version "$BUILD_VERSION"
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
-          ref: ${{ github.sha }}
-          persist-credentials: false
-      - name: Build the same source and test before registry authentication
-        env:
-          REPOSITORY: ${{ github.repository }}
-        run: |
-          set -euo pipefail
-          image="ghcr.io/${REPOSITORY,,}:sha-$GITHUB_SHA"
-          docker build --target test --tag escrituracao-test .
-          docker build --target final --label "org.opencontainers.image.revision=$GITHUB_SHA" --tag "$image" .
-          docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges --tmpfs /tmp:rw,nosuid,nodev,mode=1777 --entrypoint python "$image" packaging/smoke_test.py
-          echo "IMAGE=$image" >> "$GITHUB_ENV"
-      - name: Authenticate with ephemeral workflow token and push immutable revision tag
-        env:
-          GH_TOKEN: ${{ github.token }}
-          REGISTRY_USER: ${{ github.actor }}
-          REPOSITORY_OWNER_TYPE: ${{ github.event.repository.owner.type }}
-        run: |
-          set -euo pipefail
-          trap 'docker logout ghcr.io >/dev/null 2>&1' EXIT
-          python3 packaging/check_ghcr_visibility.py --allow-missing
-          printf '%s' "$GH_TOKEN" | docker login ghcr.io --username "$REGISTRY_USER" --password-stdin
-          docker push "$IMAGE"
-          python3 packaging/check_ghcr_visibility.py
-          docker inspect --format '{{index .RepoDigests 0}}' "$IMAGE" >> "$GITHUB_STEP_SUMMARY"
+          name: container
+          path: artifacts/container.*
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0

@@ -17,6 +17,10 @@ def main():
         # Keep private SQLite outside the whole installed application directory.
         local_app.PROJECT_ROOT = Path(sys.executable).resolve().parent
     args = sys.argv[1:]
+    if os.name == "nt":
+        from windows_app import main as desktop_main
+        desktop_main(args)
+        return
     if os.name == "nt" and not any(arg == "--database" or arg.startswith("--database=") for arg in args):
         root = Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local"))
         args = ["--database", str(root / "EscrituracaoContabil" / "accounting.sqlite3"), *args]

@@ -1,0 +1,44 @@
+name: Build verification
+on:
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  metadata:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      sha: ${{ steps.version.outputs.source_sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - id: version
+        run: python scripts/ci/version.py resolve --channel develop
+  windows:
+    needs: metadata
+    uses: ./.github/workflows/windows-build.yml
+    with:
+      source_sha: ${{ needs.metadata.outputs.sha }}
+      version: ${{ needs.metadata.outputs.version }}
+  container:
+    needs: metadata
+    uses: ./.github/workflows/container.yml
+    with:
+      source_sha: ${{ needs.metadata.outputs.sha }}
+      version: ${{ needs.metadata.outputs.version }}
+  gate:
+    name: Build gate
+    if: always()
+    needs: [metadata, windows, container]
+    runs-on: ubuntu-24.04
+    steps:
+      - env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          python - <<'PY'
+          import json, os
+          assert all(job['result']=='success' for job in json.loads(os.environ['RESULTS']).values()), 'Build incompleto ou reprovado'
+          PY

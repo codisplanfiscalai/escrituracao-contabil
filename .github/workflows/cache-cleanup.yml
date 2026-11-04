@@ -1,0 +1,42 @@
+name: Cache maintenance
+on:
+  schedule:
+    - cron: '23 6 * * 0'
+  workflow_dispatch:
+    inputs:
+      apply:
+        description: Remover somente caches elegíveis (false = simulação)
+        type: boolean
+        default: false
+  pull_request_target:
+    branches: [main, develop]
+    types: [closed]
+permissions:
+  contents: read
+  actions: write
+jobs:
+  cache:
+    if: github.event_name != 'workflow_dispatch' || github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          # Apenas código da base confiável; nunca código da PR encerrada.
+          ref: ${{ github.event.pull_request.base.sha || github.sha }}
+          persist-credentials: false
+      - name: Plan or remove scoped caches
+        env:
+          GH_TOKEN: ${{ github.token }}
+          EVENT: ${{ github.event_name }}
+          APPLY: ${{ inputs.apply }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          args=(cache --days 14)
+          if [[ "$EVENT" == 'pull_request_target' ]]; then
+            args+=(--pr-number "$PR_NUMBER" --apply)
+          elif [[ "$EVENT" == 'schedule' || "$APPLY" == 'true' ]]; then
+            args+=(--apply)
+          fi
+          python scripts/ci/cleanup.py "${args[@]}"
