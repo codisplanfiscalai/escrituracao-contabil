@@ -1,0 +1,37 @@
+name: Manual ephemeral homologation deployment
+on:
+  workflow_dispatch:
+    inputs:
+      digest:
+        description: SHA-256 digest of an already approved GHCR image (sha256 plus 64 hex digits)
+        type: string
+        required: true
+permissions:
+  contents: read
+jobs:
+  homologation:
+    if: github.ref == 'refs/heads/main'
+    environment: homologation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      packages: read
+    steps:
+      - name: Pull approved digest, run locally in isolated namespace, discard synthetic data
+        env:
+          IMAGE_DIGEST: ${{ inputs.digest }}
+          REPOSITORY: ${{ github.repository }}
+          REGISTRY_USER: ${{ github.actor }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          [[ "$IMAGE_DIGEST" =~ ^sha256:[a-f0-9]{64}$ ]]
+          image="ghcr.io/${REPOSITORY,,}@$IMAGE_DIGEST"
+          trap 'docker logout ghcr.io >/dev/null 2>&1' EXIT
+          printf '%s' "$GH_TOKEN" | docker login ghcr.io --username "$REGISTRY_USER" --password-stdin
+          docker pull "$image"
+          docker logout ghcr.io >/dev/null
+          unset GH_TOKEN
+          docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges --tmpfs /tmp:rw,nosuid,nodev,mode=1777 --tmpfs /data:rw,nosuid,nodev,uid=10001,gid=10001,mode=0700 --entrypoint python "$image" packaging/smoke_test.py
+          printf 'Homologação técnica efêmera concluída: `%s`\nDados fictícios descartados; nenhuma homologação fiscal ou implantação em produção.\n' "$image" >> "$GITHUB_STEP_SUMMARY"
