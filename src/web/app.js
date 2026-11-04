@@ -2,10 +2,11 @@
 const $ = (selector) => document.querySelector(selector);
 const token = $('meta[name="local-token"]').content;
 let companies = [], current = emptyContext();
-function emptyContext(){return {periods:[],plans:[],mappings:[],files:[],documents:[],audit:[],reconciliation:[],observations:[],batches:[],reviews:[],exports:[]};}
+function emptyContext(){return {periods:[],plans:[],mappings:[],files:[],documents:[],audit:[],reconciliation:[],observations:[],batches:[],reviews:[],exports:[],imports:[],products:[],participants:[]};}
 let generation = 0;
 let busy = 0;
 let removalPreview = null;
+let uploadAttempt = null;
 const labels = {id:'ID',company_id:'Empresa',period_id:'Período',name:'Nome',prosoft_company_code:'Código Prosoft',prosoft_plan_code:'Plano Prosoft',cnpj:'CNPJ',reference_competence:'Referência',processing_competence:'Processamento',label:'Versão',created_at:'Criado em',updated_at:'Atualizado em',code:'Código',description:'Descrição',parent_code:'Conta superior',kind:'Tipo',nature:'Natureza',source_account:'Origem',target_code:'Destino',valid_from:'Início',valid_to:'Fim',state:'Estado',reason:'Motivo',filename:'Arquivo',sha256:'SHA-256',status:'Situação',actor:'Responsável',action:'Operação',details:'Detalhes',plan_id:'Plano',attributes:'Atributos'};
 function notice(message, error=false) { const node=$('#status'); node.textContent=message; node.classList.toggle('error',error); node.hidden=false; }
 function companyId() { return $('#company').value; }
@@ -42,6 +43,9 @@ function render(){
   ['periods','plans','files','documents'].forEach(key=>$('#metric-'+key).textContent=current[key].length);
   const company=companies.find(c=>String(c.id)===companyId());
   $('#scope-info').textContent=company?`${company.name} · Empresa Prosoft ${company.prosoft_company_code} · Plano Prosoft ${company.prosoft_plan_code}`:'Cadastre ou selecione uma empresa para começar.';
+  renderImportBatches();
+  renderProducts();
+  table('#participants-import-list',current.participants);
   renderReconciliation();
   renderAccounting();
   fillSelect($('#accounting-plan'),current.plans,'Selecione um plano',p=>`${p.label} · v${p.version} · #${p.id}`);
@@ -67,9 +71,9 @@ async function loadContext(){
 async function loadContextData(){
   const version=++generation,company=companyId();
   if(!company){FiscalEditor.clear();current=emptyContext();fillSelect($('#period'),[],'Todos os períodos',()=> '');fillSelect($('#mapping-plan'),[],'Selecione um plano',()=> '');render();await loadAccounts();return;}
-  const responses=await Promise.all(['periods','plans','mappings','files','audit','accounting-batches','document-reviews','accounting-evidence'].map(key=>api(key,{company_id:company})));
+  const responses=await Promise.all(['periods','plans','mappings','files','audit','accounting-batches','document-reviews','accounting-evidence','import-batches','products','participants'].map(key=>api(key,{company_id:company})));
   if(version!==generation || company!==companyId())return;
-  ['periods','plans','mappings','files','audit','batches','reviews','exports'].forEach((key,i)=>current[key]=responses[i]);
+  ['periods','plans','mappings','files','audit','batches','reviews','exports','imports','products','participants'].forEach((key,i)=>current[key]=responses[i]);
   fillSelect($('#period'),current.periods,'Todos os períodos',p=>`Base ${p.reference_competence} · Movimentos ${p.processing_competence}`);
   fillSelect($('#mapping-plan'),current.plans,'Selecione um plano',p=>`${p.label} · v${p.version} · #${p.id}`);
   if(!$('#mapping-plan').value && current.plans.length)$('#mapping-plan').value=String(current.plans[0].id);
@@ -145,16 +149,53 @@ bindForm('#company-form',async form=>{const result=await api('companies',formObj
 bindForm('#period-form',async form=>{if(!companyId())throw new Error('Selecione uma empresa.');const result=await api('periods',{...formObject(form),company_id:companyId()},'POST');await loadContext();$('#period').value=String(result.id);await loadContext();});
 bindForm('#plan-form',async form=>{if(!companyId())throw new Error('Selecione uma empresa.');const data=formObject(form);try{data.accounts=JSON.parse(data.accounts);}catch{throw new Error('O JSON das contas está inválido. Confira aspas, vírgulas e colchetes.');}if(!Array.isArray(data.accounts))throw new Error('Informe uma lista JSON de contas.');const result=await api('plans',{...data,company_id:companyId()},'POST');await loadContext();$('#mapping-plan').value=String(result.id);await loadAccounts();});
 bindForm('#mapping-form',async form=>{if(!companyId())throw new Error('Selecione uma empresa.');const data=formObject(form);if(!data.valid_to)data.valid_to=null;await api('mappings',{...data,company_id:companyId()},'POST');await loadContext();});
+function renderProducts(){
+  const area=$('#products-list');area.replaceChildren();
+  for(const product of current.products){
+    const card=element('article');card.className='card';card.append(element('h3',`#${product.id} · ${product.code} · ${product.data.description||'Descrição pendente'}`),element('p',product.namespace));
+    const details=element('details');details.append(element('summary','Cadastro e origens'),element('pre',JSON.stringify(product,null,2)));card.append(details);
+    if(product.pending){
+      const form=element('form'),select=labeledControl(form,'Origem a adotar após conferência','select','observation_id');select.required=true;
+      option(select,'','Selecione uma origem');product.observations.filter(o=>o.data.description&&o.file_status!=='excluido').forEach(o=>option(select,o.id,`Arquivo #${o.file_id} · ${o.locator} · ${o.data.description}`));
+      const reason=labeledControl(form,'Motivo da revisão','input','reason');reason.required=true;reason.maxLength=2000;
+      const button=element('button','Confirmar revisão cadastral');button.type='submit';form.append(button);
+      form.addEventListener('submit',async event=>{event.preventDefault();if(busy)return;setBusy(1);try{await api('product-review',{company_id:companyId(),product_id:product.id,version:product.version,observation_id:select.value,reason:reason.value},'POST');await loadContext();notice('Revisão do produto registrada. Histórico preservado.');}catch(error){notice(error.message,true);}finally{setBusy(-1);}});card.append(form);
+    }
+    area.append(card);
+  }
+}
+function renderImportBatches(){
+  const area=$('#import-batches-list');area.replaceChildren();
+  for(const batch of current.imports.filter(b=>!periodId()||String(b.period_id)===periodId())){
+    const detail=element('details'),summary=element('summary',`Lote #${batch.id} · ${batch.status} · ${batch.created_at}`);
+    detail.append(summary);const rows=element('div');detail.append(rows);
+    table(rows,batch.items.map(item=>({'Origem':item.id,'Pacote de origem':item.parent_id,'Arquivo':item.filename,'Tipo':item.kind,'Arquivo salvo':item.file_id,'Situação':item.status,'SHA-256':item.sha256,'Resultado':item.details})));
+    for(const item of batch.items.filter(i=>i.sha256)){
+      const button=element('button',`Baixar original #${item.id} · ${item.filename}`);button.type='button';button.className='secondary';
+      button.addEventListener('click',async()=>{try{
+        const response=await fetch('/api/import-original?'+new URLSearchParams({company_id:companyId(),item_id:item.id}),{cache:'no-store',headers:{'X-Local-Token':token}});
+        if(!response.ok)throw Error('Não foi possível recuperar esta origem.');
+        const url=URL.createObjectURL(await response.blob()),link=element('a');link.href=url;link.download=item.filename.split(/[\\/]/).pop();link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
+      }catch(error){notice(error.message,true);}});detail.append(button);
+    }
+    area.append(detail);
+  }
+}
 bindForm('#file-form',async form=>{
   const company=companyId(),period=periodId();if(!company || !period)throw new Error('Selecione a empresa e um período de trabalho antes de importar.');
-  const data=formObject(form);
-  const file=$('#upload-file').files[0];if(!file)throw new Error('Selecione um arquivo.');if(file.size>10*1024*1024)throw new Error('Arquivo acima de 10 MiB. O envio base64 precisa caber no limite de 15 MiB.');
-  const bytes=new Uint8Array(await file.arrayBuffer());let binary='';for(let i=0;i<bytes.length;i+=8192)binary+=String.fromCharCode(...bytes.subarray(i,i+8192));
-  const result=await api('files',{company_id:company,period_id:period,filename:file.name,kind:data.kind,sped_profile:data.kind==='SPED'?(data.sped_profile||null):null,content_base64:btoa(binary)},'POST');$('#upload-file').value='';await loadContext();
-  const details=result.metadata?.error || result.metadata?.warning || '';
-  return {message:result.duplicate?'Arquivo já recebido anteriormente. Nenhuma cópia foi criada.':`Arquivo recebido. Situação: ${result.status}. ${details}`,error:result.status==='rejeitado'||!!result.metadata?.error};
+  const data=formObject(form),files=Array.from($('#upload-file').files);
+  if(!files.length || files.length>500)throw new Error('Selecione de 1 a 500 arquivos.');
+  if(files.some(f=>f.size>10*1024*1024)||files.reduce((sum,f)=>sum+f.size,0)>10*1024*1024)throw new Error('Cada envio deve conter até 10 MiB de arquivos e pacotes.');
+  const scope=JSON.stringify([company,period,data.sped_profile,files.map(f=>[f.name,f.size,f.lastModified])]);
+  if(!uploadAttempt||uploadAttempt.scope!==scope)uploadAttempt={scope,key:crypto.randomUUID()};
+  const inputs=[];
+  for(const file of files){const bytes=new Uint8Array(await file.arrayBuffer());let binary='';for(let i=0;i<bytes.length;i+=8192)binary+=String.fromCharCode(...bytes.subarray(i,i+8192));inputs.push({filename:file.name,content_base64:btoa(binary)});}
+  const result=await api('import-batches',{company_id:company,period_id:period,inputs,request_key:uploadAttempt.key,sped_profile:data.sped_profile||null},'POST');
+  $('#upload-file').value='';uploadAttempt=null;await loadContext();
+  const rejected=result.counts.rejeitado||0;
+  return {message:`Lote #${result.id} recebido. ${rejected} entrada(s) rejeitada(s). Confira os resultados individuais e os originais abaixo.`,error:rejected>0};
 });
-$('#file-form [name="kind"]').addEventListener('change',event=>{$('#sped-profile').disabled=event.target.value!=='SPED';});
+$('#upload-file').addEventListener('change',()=>{uploadAttempt=null;});
 $('#analysis-file').addEventListener('change',selectAnalysisProfile);
 bindForm('#analysis-form',async form=>{if(!companyId())throw new Error('Selecione uma empresa.');const data=formObject(form);const result=await api('file-analysis',{...data,company_id:companyId()},'POST');await loadContext();return {message:result.duplicate?'Análise já registrada. Consulte Conciliação e as observações pendentes.':'Análise parcial registrada. Confira Conciliação e as observações pendentes.'};});
 bindForm('#removal-preview-form',async()=>{

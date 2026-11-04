@@ -2,7 +2,7 @@
 from collections import Counter
 import json
 
-from .reconciliation import XML_PROFILE, SPED_PROFILE, document_fields, differences, parse_sped
+from .reconciliation import XML_PROFILE, SPED_PROFILE, CATALOG_PROFILE, document_fields, differences, parse_sped
 
 RECONCILIATION_SCHEMA = """
 CREATE TABLE IF NOT EXISTS invoices (
@@ -75,6 +75,8 @@ class ReconciliationMixin:
 
     def _index_xml(self, company, period, file_id, payload):
         self.observe_document_participants(company, file_id, payload)
+        for product in payload.get('products', []):
+            self._observe_product(company['id'], file_id, 'XML:emitente:' + payload['issuer'], product['locator'], product['data'])
         warnings = list(payload["billing_warnings"])
         if not company["cnpj"]:
             warnings.append("CNPJ da empresa ausente; identidade não conferida")
@@ -120,7 +122,32 @@ class ReconciliationMixin:
             return {"id": existing["id"], "duplicate": True, "status": existing["status"], "metadata": json.loads(existing["metadata"])}
         metadata = {"partial": True, "profile": profile, "prosoft_validated": False}
         try:
-            if profile == XML_PROFILE and file_row["kind"] == "XML":
+            if profile == CATALOG_PROFILE:
+                if file_row['kind'] == 'XML':
+                    from .persistence import parse_nfe
+                    payload = parse_nfe(bytes(file_row['original']))
+                    if company['cnpj'] and company['cnpj'] not in {payload['issuer'], payload['buyer']}:
+                        raise ValueError('Documento não identifica a empresa cadastrada')
+                    self.observe_document_participants(company, file_row['id'], payload)
+                    for product in payload.get('products', []):
+                        self._observe_product(company['id'], file_row['id'], 'XML:emitente:' + payload['issuer'], product['locator'], product['data'])
+                        issues = [] if product['data']['code'] and product['data']['description'] else ['Código/descrição ausente na origem']
+                        self._observe(file_row['id'], profile, product['locator'], 'produto', product['data'], {}, issues)
+                else:
+                    rows, parsed = parse_sped(bytes(file_row['original']), company['cnpj'], period['processing_competence'])
+                    metadata.update(parsed)
+                    metadata['profile'] = CATALOG_PROFILE
+                    for row in rows:
+                        if row['record'] not in {'0150', '0200'}:
+                            continue
+                        catalog = row.get('catalog')
+                        if catalog and not row['issues']:
+                            if row['record'] == '0200':
+                                self._observe_product(company['id'], file_row['id'], 'SPED:empresa:' + company['cnpj'], f"linha:{row['line']}", catalog)
+                            elif catalog.get('identity'):
+                                self._record_participant(company['id'], catalog['identity'], catalog['name'], 'participante', f"arquivo:{file_row['id']}/linha:{row['line']}/0150")
+                        self._observe(file_row['id'], profile, f"linha:{row['line']}", 'cadastro', row, {}, row['issues'])
+            elif profile == XML_PROFILE and file_row["kind"] == "XML":
                 from .persistence import parse_nfe
                 payload = payload if payload is not None else parse_nfe(bytes(file_row["original"]))
                 if company["cnpj"] and company["cnpj"] not in {payload["issuer"], payload["buyer"]}:
@@ -132,6 +159,12 @@ class ReconciliationMixin:
                 documents = {}
                 for row in rows:
                     document_id = None
+                    catalog = row.get('catalog')
+                    if catalog and not row['issues']:
+                        if row['record'] == '0200':
+                            self._observe_product(company['id'], file_row['id'], 'SPED:empresa:' + company['cnpj'], f"linha:{row['line']}", catalog)
+                        elif catalog.get('identity'):
+                            self._record_participant(company['id'], catalog['identity'], catalog['name'], 'participante', f"arquivo:{file_row['id']}/linha:{row['line']}/0150")
                     if row["normalized"]:
                         document_id = self._ensure_document(company["id"], period, file_row["id"], row["normalized"], "pendente")
                         documents[row["line"]] = document_id
@@ -155,7 +188,7 @@ class ReconciliationMixin:
         return {"id": indexing_id, "duplicate": False, "status": "parcial", "metadata": metadata}
 
     def index_file(self, company_id, file_id, profile):
-        if profile not in {XML_PROFILE, SPED_PROFILE}:
+        if profile not in {XML_PROFILE, SPED_PROFILE, CATALOG_PROFILE}:
             raise ValueError("Perfil de análise não suportado")
         with self.db:
             self.db.execute("BEGIN IMMEDIATE")
@@ -163,7 +196,7 @@ class ReconciliationMixin:
             file_row = self._owned("files", company_id, file_id)
             if file_row["status"] == "excluido":
                 raise ValueError("Arquivo excluído não pode ser analisado")
-            if (file_row["kind"]=="XML" and profile!=XML_PROFILE) or (file_row["kind"]=="SPED" and profile!=SPED_PROFILE):
+            if profile != CATALOG_PROFILE and ((file_row["kind"]=="XML" and profile!=XML_PROFILE) or (file_row["kind"]=="SPED" and profile!=SPED_PROFILE)):
                 raise ValueError("Perfil não corresponde ao tipo de arquivo")
             period = self._owned("periods", company_id, file_row["period_id"])
             result = self._index_source(company, period, file_row, profile)
