@@ -18,3 +18,11 @@ __pycache__/
 *.py[cod]
 .venv/
 
+
+# SQLite originals and private runtime state
+*.sqlite
+*.sqlite3
+*.sqlite3-*
+*.sqlite-*
+*.db-*
+.pytest_cache/
