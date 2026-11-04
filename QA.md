@@ -72,3 +72,13 @@ Nenhum resultado local equivale a validação fiscal oficial ou pronto uso em pr
 - 143 testes da aplicação e 6 das ferramentas aprovados localmente; Node confirma valores acima da precisão de Number, centavos, grupos/documentos separados e entradas incompletas. Compileall, sintaxe dos módulos JS e diff-check aprovados.
 - Chromium real: lançamento por linhas assistidas, valor com vírgula, prévia, ida/volta JSON, troca de empresa, desktop/390px; associação visual com prévia/confirm e nova revisão liberando motor, sem criar títulos/parcelas extras. Sem erro JS ou overflow de página.
 - CI e novos binários devem ser conferidos no commit publicado; resultados finais registrados no PR e handoff. Sem Prosoft, PVA, GHCR ou produção.
+
+
+## Incremento fiscal manual — 04/11/2026
+
+- Base develop `a1e8932949d28eba9dfe604d660d4b0f61f59f6b`; branch `feat/fiscal-entry-ledger`. A CI da pré-release 0.3.0-dev.6.1 é evidência da base, não deste incremento.
+- `python scripts/build.py check`: 182 testes de aplicação, 18 de empacotamento (um DPAPI omitido em Linux) e 18 de entrega passaram. Inclui migração real de esquema 5, isolamento, concorrência, idempotência, originais, versões, datas independentes, 65 anônimo, terceiros, guias privadas, proteção de fontes e snapshots contábeis.
+- `qa/fiscal_browser.py`: Chromium, guias persistentes ao trocar de área, inclusão/revisão/edição de entrada de setembro emitida em agosto, serviço com ISS informado, tela 390 px sem transbordamento e sem erros JS. Corrigida corrida entre salvamento do rascunho e recriação do iframe. Screenshots só com fixtures fictícias.
+- `qa/portal_browser.py`: regressão de configuração, login, painel, empresas, usuários, área contábil/contexto, configurações, mobile, escopo/upload do cliente passou.
+- actionlint, node syntax, compileall, diff-check, ícones e smoke do portal local passaram. Nova regressão fiscal incluída no job Portal browser.
+- Não executados neste Linux: aplicativo Windows nativo e DPAPI; a aprovação desses builds depende da CI do novo SHA. Sem execução Prosoft/PVA, validação fiscal integral, NFS-e municipal ou reconferência dos arquivos reais relatados.

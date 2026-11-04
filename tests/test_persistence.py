@@ -218,12 +218,13 @@ class StoreTests(unittest.TestCase):
         self.assertEqual(self.store.list_documents(self.company_id)[0]["payload"]["competence"], "2026-09")
         self.assertEqual(self.store.create_period(self.company_id, "2026-08", "2026-09")["id"], self.period["id"])
 
-    def test_processing_mismatch_is_rejected_without_document_but_keeps_original(self):
+    def test_earlier_emission_is_received_in_selected_competence_and_keeps_original(self):
         content = fake_xml(issued="2026-08-15T10:00:00-03:00")
         result = self.import_xml(content)
-        self.assertEqual(result["status"], "rejeitado")
-        self.assertIn("Competência", result["metadata"]["error"])
-        self.assertEqual(self.store.list_documents(self.company_id), [])
+        self.assertEqual(result["status"], "validado")
+        self.assertTrue(result["metadata"]["warnings"])
+        self.assertEqual(self.store.list_documents(self.company_id)[0]['period_id'],self.period['id'])
+        self.assertEqual(self.store.list_documents(self.company_id)[0]['payload']['competence'],'2026-08')
         self.assertEqual(bytes(self.store.db.execute("SELECT original FROM files WHERE id=?", (result["id"],)).fetchone()[0]), content)
 
     def test_invalid_or_missing_competence_never_creates_period(self):
