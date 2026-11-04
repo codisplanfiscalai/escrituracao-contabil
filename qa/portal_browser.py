@@ -111,8 +111,10 @@ def main():
                 page.get_by_label('Período',exact=True).select_option(period)
                 page.get_by_label('Tipo',exact=True).select_option('SPED')
                 page.get_by_label('Documento',exact=True).set_input_files({'name':'amostra-sintetica.txt','mimeType':'text/plain','buffer':b'|0000|DADOS SINTETICOS PARA PRESERVACAO|\r\n'})
-                page.get_by_role('button',name='Enviar documento',exact=True).click()
-                page.get_by_text('Documento recebido e origem preservada.',exact=True).wait_for()
+                with page.expect_response(lambda response:response.url.endswith('/api/v1/client/files') and response.request.method=='POST') as uploaded:
+                    page.get_by_role('button',name='Enviar documento',exact=True).click()
+                assert uploaded.value.status==200,uploaded.value.text()
+                page.get_by_role('status').filter(has_text='Documento recebido e origem preservada.').wait_for()
                 page.get_by_role('cell',name='amostra-sintetica.txt',exact=True).wait_for()
                 page.screenshot(path=str(screenshots/'cliente.png'),full_page=True,animations="disabled")
                 assert not errors,errors
