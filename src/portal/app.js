@@ -20,12 +20,13 @@ const menu=[
 ];
 const app=createApp({
  render:EscrituraRender,
- data:()=>({ready:false,busy:false,configured:true,user:null,csrf:'',version:'',page:'dashboard',menuOpen:false,menuSearch:'',error:'',notice:'',authMode:'login',auth:{name:'',email:'',password:'',token:'',code:''},challenge:'',resetToken:'',dashboard:{metrics:{},companies:[]},users:[],roles:[],permissions:{},sessions:[],audit:[],mail:[],dialog:'',userForm:{},roleForm:{},companyForm:{name:'',cnpj:'',prosoft_company_code:'',prosoft_plan_code:''},settings:{general:{},smtp:{mode:'starttls',port:587}},menuOrder:menu.map(m=>m.id),allMenu:menu,workspacePages:['fiscal','setup','chart','imports','reconciliation','accounting','history'],clientCompany:'',workspacePeriod:'',clientPeriod:'',clientData:{files:[],documents:[],periods:[]},uploadKind:'XML',uploadFile:null,mfa:{password:'',code:'',token:'',secret:''},recoveryCodes:[],pageGeneration:0,clientGeneration:0,routeGeneration:0}),
+ data:()=>({ready:false,busy:false,configured:true,user:null,csrf:'',version:'',page:'dashboard',menuOpen:false,menuSearch:'',error:'',notice:'',authMode:'login',auth:{name:'',email:'',password:'',token:'',code:''},challenge:'',resetToken:'',dashboard:{metrics:{},companies:[]},users:[],roles:[],permissions:{},sessions:[],audit:[],mail:[],dialog:'',userForm:{},roleForm:{},companyForm:{name:'',cnpj:'',prosoft_company_code:'',prosoft_plan_code:''},settings:{general:{},smtp:{mode:'starttls',port:587}},menuOrder:menu.map(m=>m.id),allMenu:menu,workspacePages:['fiscal','setup','chart','imports','reconciliation','accounting','history'],clientCompany:'',workspacePeriod:'',clientPeriod:'',clientData:{files:[],documents:[],periods:[]},uploadKind:'XML',uploadFile:null,mfa:{password:'',code:'',token:'',secret:''},recoveryCodes:[],pageGeneration:0,clientGeneration:0,routeGeneration:0,workspaceMounted:false,workspaceTabs:[]}),
  computed:{
   initials(){return this.user?.name.split(' ').filter(Boolean).slice(0,2).map(s=>s[0].toUpperCase()).join('')||'E';},
   pageTitle(){return menu.find(m=>m.id===this.page)?.label||'Visão geral';},
   pageSubtitle(){return ({dashboard:'Uma visão clara do seu trabalho e das próximas etapas.',users:'Pessoas, vínculos e acessos em um único lugar.',roles:'Permissões explícitas para cada responsabilidade.',client:'Envie documentos e acompanhe as informações da sua empresa.',security:'Gerencie a proteção da conta e seus dispositivos.',audit:'Acompanhe as alterações e identifique seus responsáveis.',email:'Configure e acompanhe a entrega transacional.',settings:'Personalize o ambiente e organize a navegação.',companies:'Cadastre e organize as empresas do seu ambiente.'})[this.page]||'Trabalhe com as origens preservadas e decisões rastreáveis.';},
   menuGroups(){const order=this.menuOrder;const items=menu.filter(m=>(!m.permission||this.can(m.permission))&&m.label.toLowerCase().includes(this.menuSearch.toLowerCase())).sort((a,b)=>order.indexOf(a.id)-order.indexOf(b.id));return [...new Set(items.map(m=>m.group))].map(label=>({label,items:items.filter(m=>m.group===label)}));},
+  openWorkspaceTabs(){return this.workspaceTabs.map(id=>menu.find(m=>m.id===id)).filter(Boolean);},
   metrics(){return [{key:'companies',label:'Empresas',help:'No seu escopo de acesso',icon:'▥'},{key:'files',label:'Arquivos recebidos',help:'Origens preservadas',icon:'▧'},{key:'documents',label:'Documentos',help:'Disponíveis para conferência',icon:'≡'},{key:'batches',label:'Lotes contábeis',help:'Com histórico de decisões',icon:'▤'}];},
   nextSteps(){return this.can('workspace.read')?[{title:'Organize os documentos',text:'Receba XML e SPED na competência correta.',href:'#/imports'},{title:'Concilie as informações',text:'Confira origens e diferenças.',href:'#/reconciliation'},{title:'Prepare a escrituração',text:'Revise e preserve as evidências.',href:'#/accounting'}]:[{title:'Envie seus documentos',text:'Selecione a empresa e a competência.',href:'#/client'},{title:'Proteja seu acesso',text:'Ative a autenticação em duas etapas.',href:'#/security'}];},
   dialogTitle(){return ({user:this.userForm.id?'Editar usuário':'Novo usuário',role:'Perfil de acesso',mfa:'Configurar 2FA',recovery:'Códigos de recuperação'})[this.dialog]||'';}
@@ -38,9 +39,23 @@ const app=createApp({
   async run(action){if(this.busy)return;this.busy=true;this.error='';this.notice='';try{await action();}catch(e){this.error=e.message;}finally{this.busy=false;}},
   async init(){try{const s=await this.api('status');this.configured=s.configured;this.version=s.version;try{const session=await this.api('auth/me');this.acceptSession(session);}catch{}this.route();if(this.user)await this.loadPage();}catch(e){this.error=e.message;}finally{this.ready=true;}},
   acceptSession(session){this.user=session.user;this.csrf=session.csrf;if(session.menu?.length)this.menuOrder=[...session.menu.filter(id=>menu.some(m=>m.id===id)),...menu.map(m=>m.id).filter(id=>!session.menu.includes(id))];},
-  async route(){const navigation=++this.routeGeneration;const frame=document.querySelector('iframe');try{if(frame?.contentWindow?.EscrituraFiscalFlush)await frame.contentWindow.EscrituraFiscalFlush();}catch(e){this.error='A guia fiscal não foi salva: '+e.message;history.replaceState(null,'','#/'+this.page);return;}if(navigation!==this.routeGeneration)return;const hash=location.hash.slice(2);if(hash.startsWith('reset/')){this.user=null;this.csrf='';this.authMode='reset';this.resetToken=hash.slice(6);return;}const target=menu.find(m=>m.id===hash);this.page=target&&(!target.permission||this.can(target.permission))?target.id:'dashboard';this.menuOpen=false;this.error='';this.notice='';this.dialog='';if(this.user){this.loadPage();Vue.nextTick(()=>{document.querySelector('#content')?.focus({preventScroll:true});window.scrollTo(0,0);});}},
+  async flushWorkspace(){const frame=document.querySelector('#workspace-frame');if(frame?.contentWindow?.EscrituraWorkspace)await frame.contentWindow.EscrituraWorkspace.flush();},
+  async route(){
+   const navigation=++this.routeGeneration;
+   try{await this.flushWorkspace();}catch(e){if(navigation===this.routeGeneration){this.error='Rascunho pendente: '+e.message;history.replaceState(null,'','#/'+this.page);}return;}
+   if(navigation!==this.routeGeneration)return;
+   const hash=location.hash.slice(2);
+   if(hash.startsWith('reset/')){this.user=null;this.csrf='';this.authMode='reset';this.resetToken=hash.slice(6);return;}
+   const target=menu.find(m=>m.id===hash);
+   this.page=target&&(!target.permission||this.can(target.permission))?target.id:'dashboard';
+   if(this.workspacePages.includes(this.page)){this.workspaceMounted=true;if(!this.workspaceTabs.includes(this.page))this.workspaceTabs.push(this.page);}
+   this.menuOpen=false;this.error='';this.notice='';this.dialog='';
+   if(this.user){this.loadPage();await Vue.nextTick();this.activateWorkspace();document.querySelector('#content')?.focus({preventScroll:true});window.scrollTo(0,0);}
+  },
+  activateWorkspace(){if(this.workspacePages.includes(this.page))document.querySelector('#workspace-frame')?.contentWindow?.EscrituraWorkspace?.navigate(this.page==='history'?'audit':this.page);},
+  async closeWorkspaceTab(id){try{await this.flushWorkspace();const index=this.workspaceTabs.indexOf(id);if(index<0)return;this.workspaceTabs.splice(index,1);if(this.page===id)location.hash='#/'+(this.workspaceTabs[Math.min(index,this.workspaceTabs.length-1)]||'dashboard');}catch(e){this.error='Rascunho pendente: '+e.message;}},
   async submitAuth(){await this.run(async()=>{if(!this.configured){await this.api('setup',this.auth);this.configured=true;this.auth.token='';this.notice='Ambiente configurado. Entre com sua conta.';return;}if(this.authMode==='forgot'){this.notice=(await this.api('auth/forgot',{email:this.auth.email})).message;return;}if(this.authMode==='reset'){this.notice=(await this.api('auth/reset',{token:this.resetToken,password:this.auth.password,code:this.auth.code})).message;this.auth.password='';this.auth.code='';this.authMode='login';history.replaceState(null,'','#/dashboard');return;}const session=await this.api(this.challenge?'auth/mfa':'auth/login',this.challenge?{challenge:this.challenge,code:this.auth.code}:{email:this.auth.email,password:this.auth.password});this.auth.password='';this.auth.code='';if(session.mfa_required){this.challenge=session.challenge;return;}this.challenge='';this.acceptSession(session);history.replaceState(null,'','#/dashboard');this.page='dashboard';await this.loadPage();});},
-  async logout(){await this.run(async()=>{await this.api('auth/logout',{});this.user=null;this.csrf='';this.dashboard={metrics:{},companies:[]};this.clientData={files:[],documents:[],periods:[]};});},
+  async logout(){await this.run(async()=>{await this.flushWorkspace();await this.api('auth/logout',{});document.querySelector('#workspace-frame')?.contentWindow?.PostingEditor?.clearDrafts();this.workspaceMounted=false;this.workspaceTabs=[];this.user=null;this.csrf='';this.dashboard={metrics:{},companies:[]};this.clientData={files:[],documents:[],periods:[]};});},
   async loadPage(){const generation=++this.pageGeneration;const page=this.page;try{const dash=await this.api('dashboard');if(generation!==this.pageGeneration)return;this.dashboard=dash;
     if(page==='users'||page==='roles'){const [users,roles]=await Promise.all([page==='users'?this.api('users'):Promise.resolve([]),this.api('roles')]);if(generation!==this.pageGeneration)return;this.users=users;this.roles=roles.roles;this.permissions=roles.permissions;}
     if(page==='settings'||page==='email'){const [settings,mail]=await Promise.all([this.api('settings'),this.api('mail')]);if(generation!==this.pageGeneration)return;this.settings={general:{display_name:'Escritura',support_email:'',...settings.general},smtp:{host:'',port:587,mode:'starttls',sender:'',username:'',password:'',...settings.smtp}};this.mail=mail;}
@@ -49,18 +64,17 @@ const app=createApp({
     if(page==='client'){if(!dash.companies.some(c=>String(c.id)===this.clientCompany)){this.clientCompany=String(dash.companies[0]?.id||'');}await this.loadClient();}
    }catch(e){if(generation===this.pageGeneration)this.error=e.message;}
   },
-  openCompany(company){this.clientCompany=String(company.id);location.hash=this.can('workspace.read')?'#/imports':'#/client';},
+  async openCompany(company){try{await this.flushWorkspace();this.clientCompany=String(company.id);const control=document.querySelector('#workspace-frame')?.contentDocument?.querySelector('#company');if(control&&control.value!==this.clientCompany){control.value=this.clientCompany;control.dispatchEvent(new Event('change',{bubbles:true}));}location.hash=this.can('workspace.read')?'#/imports':'#/client';}catch(e){this.error='Rascunho pendente: '+e.message;}},
   selectWorkspace(event){
-   const frame=event.target, page=this.page, doc=frame.contentDocument;
+   const frame=event.target, doc=frame.contentDocument;
    if(!doc)return;
-   doc.querySelector('[data-panel="'+(page==='history'?'audit':page)+'"]')?.click();
+   this.activateWorkspace();
    const company=doc.querySelector('#company'),period=doc.querySelector('#period');
    const wantedCompany=this.clientCompany,wantedPeriod=this.workspacePeriod;
    let attempts=0,companyRestored=false;
-   company?.addEventListener('change',()=>{this.clientCompany=company.value;this.workspacePeriod='';});
-   period?.addEventListener('change',()=>{this.workspacePeriod=period.value;});
+   doc.addEventListener('escritura:context',()=>{this.clientCompany=company?.value||'';this.workspacePeriod=period?.value||'';});
    const restore=()=>{
-    if(page!==this.page||!frame.isConnected||++attempts>100)return;
+    if(!frame.isConnected||++attempts>100)return;
     if(!wantedCompany||!company)return;
     if(!companyRestored){
      if(![...company.options].some(o=>o.value===wantedCompany)){setTimeout(restore,100);return;}

@@ -1,7 +1,7 @@
 'use strict';
 /* UI draft only. The server remains authoritative for reviews, mappings and balance. */
 globalThis.PostingEditor=(function(){
-  let options,scope=null,rows=[];
+  let options,scope=null,rows=[],drafts={},restoring=false,storageKey;
   const q=s=>document.querySelector(s),form=()=>q('#accounting-form');
   function node(tag,text){const e=document.createElement(tag);if(text!==undefined)e.textContent=text;return e;}
   function addOption(select,value,text,disabled=false){const e=node('option',text);e.value=String(value);e.disabled=disabled;select.append(e);}
@@ -12,6 +12,20 @@ globalThis.PostingEditor=(function(){
     select.value=selected||'';
   }
   function context(){return options.context();}
+  function snapshot(){return {rows:rows.map(raw),mode:q('#posting-mode').value,json:q('#posting-json-input').value,plan:q('#accounting-plan').value,reason:form().elements.reason.value,previous:form().elements.previous_batch_id.value,key:form().elements.request_key.value};}
+  function save(){
+    if(restoring||!scope||!context().company)return;
+    drafts[scope]=snapshot();
+    try{sessionStorage.setItem(storageKey,JSON.stringify(drafts));q('#posting-draft-state').textContent='Rascunho guardado nesta sessão · empresa e competência separadas.';}
+    catch{q('#posting-draft-state').textContent='Rascunho em memória. O navegador não permitiu guardar a recuperação; mantenha esta janela aberta.';}
+  }
+  function restoreSelect(select,value){if(value&&![...select.options].some(o=>o.value===value))addOption(select,value,'Indisponível #'+value,true);select.value=value||'';}
+  function restore(draft){
+    restoring=true;
+    try{reset();if(draft){restoreSelect(q('#accounting-plan'),draft.plan);restoreSelect(form().elements.previous_batch_id,draft.previous);form().elements.reason.value=draft.reason;form().elements.request_key.value=draft.key;q('#posting-json-input').value=draft.json;q('#posting-mode').value=draft.mode;rows=[];q('#posting-lines').replaceChildren();draft.rows.forEach(add);}mode();totals();}
+    finally{restoring=false;}
+  }
+  function clearDrafts(){drafts={};try{sessionStorage.removeItem(storageKey);}catch{}}
   function newKey(){form().elements.request_key.value='local-'+crypto.randomUUID();}
   function mode(){const visual=q('#posting-mode').value==='visual';q('#posting-visual').hidden=!visual;q('#posting-json').hidden=visual;q('#posting-json-input').disabled=visual;q('#posting-json-input').required=!visual;rows.forEach(row=>Object.values(row.fields).forEach(control=>control.disabled=!visual));}
   function raw(row){const result=Object.fromEntries(Object.entries(row.fields).map(([key,control])=>[key,control.value]));result.observation_id=row.observation;return result;}
@@ -64,7 +78,7 @@ globalThis.PostingEditor=(function(){
   function reset(){rows=[];q('#posting-lines').replaceChildren();q('#posting-mode').value='visual';q('#posting-json-input').value='';form().elements.reason.value='';form().elements.previous_batch_id.value='';newKey();add();add();mode();}
   function refresh(){
     if(!options)return;const c=context(),next=JSON.stringify([c.company,c.period]);
-    if(scope!==next){scope=next;reset();}else{rows.forEach(refreshRow);totals();mode();}
+    if(scope!==next){scope=next;restore(drafts[scope]);}else{const draft=drafts[scope];if(draft){restoreSelect(q('#accounting-plan'),draft.plan);restoreSelect(form().elements.previous_batch_id,draft.previous);}rows.forEach(refreshRow);totals();mode();}
   }
   function read(){
     if(q('#posting-mode').value==='json'){let result;try{result=JSON.parse(q('#posting-json-input').value);}catch{throw new Error('Partidas: JSON inválido.');}if(!Array.isArray(result))throw new Error('Partidas devem ser uma lista.');return result;}
@@ -76,7 +90,9 @@ globalThis.PostingEditor=(function(){
     });
   }
   function init(config){
-    options=config;const safe=fn=>()=>{try{fn();}catch(error){options.onError(error.message,true);}};
+    options=config;storageKey='escritura:posting-drafts:v1:'+(window.frameElement?.dataset.owner||'local');try{drafts=JSON.parse(sessionStorage.getItem(storageKey)||'{}');}catch{drafts={};}
+    form().addEventListener('input',save);form().addEventListener('change',save);form().addEventListener('click',()=>queueMicrotask(save));
+    const safe=fn=>()=>{try{fn();save();}catch(error){options.onError(error.message,true);}};
     q('#posting-add').addEventListener('click',safe(()=>add()));q('#posting-mode').addEventListener('change',mode);q('#posting-new-key').addEventListener('click',newKey);
     q('#accounting-plan').addEventListener('change',()=>{rows.forEach(refreshRow);totals();});
     q('#posting-to-json').addEventListener('click',safe(()=>{q('#posting-json-input').value=JSON.stringify(read(),null,2);q('#posting-mode').value='json';mode();}));
@@ -87,5 +103,5 @@ globalThis.PostingEditor=(function(){
       rows=[];q('#posting-lines').replaceChildren();q('#posting-mode').value='visual';data.forEach(add);mode();
     }));refresh();
   }
-  return {init,refresh,read};
+  return {init,refresh,read,save,clearDrafts};
 })();

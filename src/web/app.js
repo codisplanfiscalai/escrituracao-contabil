@@ -4,6 +4,7 @@ const token = $('meta[name="local-token"]').content;
 let companies = [], current = emptyContext();
 function emptyContext(){return {periods:[],plans:[],mappings:[],files:[],documents:[],audit:[],reconciliation:[],observations:[],batches:[],reviews:[],exports:[]};}
 let generation = 0;
+let acceptedCompany='',acceptedPeriod='';
 let busy = 0;
 let removalPreview = null;
 const labels = {id:'ID',company_id:'Empresa',period_id:'Período',name:'Nome',prosoft_company_code:'Código Prosoft',prosoft_plan_code:'Plano Prosoft',cnpj:'CNPJ',reference_competence:'Referência',processing_competence:'Processamento',label:'Versão',created_at:'Criado em',updated_at:'Atualizado em',code:'Código',description:'Descrição',parent_code:'Conta superior',kind:'Tipo',nature:'Natureza',source_account:'Origem',target_code:'Destino',valid_from:'Início',valid_to:'Fim',state:'Estado',reason:'Motivo',filename:'Arquivo',sha256:'SHA-256',status:'Situação',actor:'Responsável',action:'Operação',details:'Detalhes',plan_id:'Plano',attributes:'Atributos'};
@@ -50,7 +51,7 @@ function render(){
   PostingEditor.refresh();
   setBusy(0);
 }
-async function loadCompanies(selected){companies=await api('companies');fillSelect($('#company'),companies,'Selecione uma empresa',c=>c.name,selected===undefined?companyId():String(selected));await loadContext();}
+async function loadCompanies(selected){companies=await api('companies');fillSelect($('#company'),companies,'Selecione uma empresa',c=>c.name,selected===undefined?companyId():String(selected));await loadContext();acceptedCompany=companyId();acceptedPeriod=periodId();document.dispatchEvent(new Event('escritura:context'));}
 async function loadAccounts(){
   const plan=$('#mapping-plan').value,company=companyId();
   if(!company || !plan){table('#accounts-list',[]);$('#account-codes').replaceChildren();return;}
@@ -174,9 +175,27 @@ bindForm('#removal-confirm-form',async form=>{
   await api('file-removal',{company_id:preview.company_id,file_id:preview.file_id,preview_token:preview.preview_token,reason:form.elements.reason.value,confirmed:true},'POST');
   form.reset();await loadContext();return {message:'Arquivo removido logicamente. Original e histórico preservados; documentos vinculados ficam pendentes.'};
 });
-document.querySelectorAll('.tab').forEach(button=>button.addEventListener('click',()=>{document.querySelectorAll('.tab').forEach(b=>{b.classList.toggle('active',b===button);b.setAttribute('aria-current',b===button?'page':'false');});document.querySelectorAll('.panel').forEach(panel=>panel.hidden=panel.id!==button.dataset.panel);}));
-$('#company').addEventListener('change',()=>{generation++;current=emptyContext();render();table('#accounts-list',[]);fillSelect($('#period'),[],'Todos os períodos',()=> '');fillSelect($('#mapping-plan'),[],'Selecione um plano',()=> '');loadContext().catch(e=>notice(e.message,true));});
-$('#period').addEventListener('change',()=>loadContext().catch(e=>notice(e.message,true)));
+const panelScroll=new Map();
+function selectPanel(id){
+  if(!document.getElementById(id)?.classList.contains('panel'))return;
+  const old=document.querySelector('.tab.active')?.dataset.panel;
+  panelScroll.set(old,window.scrollY);
+  document.querySelectorAll('.tab').forEach(button=>{const active=button.dataset.panel===id;button.classList.toggle('active',active);button.setAttribute('aria-current',active?'page':'false');});
+  document.querySelectorAll('.panel').forEach(panel=>panel.hidden=panel.id!==id);
+  window.scrollTo(0,panelScroll.get(id)||0);
+}
+document.querySelectorAll('.tab').forEach(button=>button.addEventListener('click',()=>selectPanel(button.dataset.panel)));
+async function changeContext(companyChanged){
+  setBusy(1);
+  try{await window.EscrituraFiscalFlush();}
+  catch(error){$('#company').value=acceptedCompany;$('#period').value=acceptedPeriod;notice('Rascunho pendente; contexto mantido: '+error.message,true);document.dispatchEvent(new Event('escritura:context'));setBusy(-1);return;}
+  try{
+    if(companyChanged){generation++;current=emptyContext();table('#accounts-list',[]);fillSelect($('#period'),[],'Todos os períodos',()=> '');fillSelect($('#mapping-plan'),[],'Selecione um plano',()=> '');render();}
+    acceptedCompany=companyId();acceptedPeriod=periodId();await loadContext();
+  }catch(error){notice(error.message,true);}finally{document.dispatchEvent(new Event('escritura:context'));setBusy(-1);}
+}
+$('#company').addEventListener('change',()=>changeContext(true));
+$('#period').addEventListener('change',()=>changeContext(false));
 $('#mapping-plan').addEventListener('change',()=>loadAccounts().catch(e=>notice(e.message,true)));
 $('#refresh').addEventListener('click',()=>loadCompanies().then(()=>notice('Dados locais atualizados.')).catch(e=>notice(e.message,true)));
 function labeledControl(form,labelText,tag,name){const label=element('label',labelText),control=element(tag);control.name=name;control.required=true;label.append(control);form.append(label);return control;}
@@ -257,12 +276,22 @@ const FiscalEditor=(()=>{
   function persist(){
     if(!active)return Promise.resolve();
     const tab=active,payload=capture();tab.data=payload;pending++;$('#fiscal-draft-state').textContent='Salvando rascunho…';
-    const operation=chain.then(async()=>{const result=await api('fiscal-workspaces',{company_id:tab.company_id,period_id:tab.period_id,title:tab.title,data:payload,request_key:tab.request_key,workspace_id:tab.id,version:tab.version},'POST');tab.version=result.version;saveError=null;});
+    const operation=chain.then(async()=>{const result=await api('fiscal-workspaces',{company_id:tab.company_id,period_id:tab.period_id,title:tab.title,data:payload,request_key:tab.request_key,workspace_id:tab.id,version:tab.version},'POST');tab.version=result.version;const recovered=!!saveError;saveError=null;if(recovered)notice('Rascunho recuperado e salvo. Você pode continuar.');});
     chain=operation.catch(e=>{saveError=e;notice('Rascunho não salvo: '+e.message,true);}).finally(()=>{pending--;if(!pending&&!saveError&&active===tab)$('#fiscal-draft-state').textContent='Guia salva · versão '+tab.version;});
     return operation;
   }
   async function flush(){await chain;if(saveError)throw saveError;}
-  function adapt(){const service=form().elements.operation.value.startsWith('servico_');if(service)form().elements.model.value='SERVICO';else if(form().elements.model.value==='SERVICO')form().elements.model.value='55';form().querySelectorAll('[data-service]').forEach(n=>n.hidden=!service&&!n.querySelector('input')?.value);form().elements.key.disabled=service;form().elements.series.required=!service;}
+  function adapt(){
+    const operation=form().elements.operation.value,service=operation.startsWith('servico_'),incoming=operation==='entrada'||operation==='servico_tomado';
+    if(service)form().elements.model.value='SERVICO';else if(form().elements.model.value==='SERVICO')form().elements.model.value='55';
+    form().querySelectorAll('[data-service]').forEach(n=>n.hidden=!service);
+    form().querySelectorAll('[data-goods]').forEach(n=>n.hidden=service);
+    form().elements.key.disabled=service;form().elements.series.required=!service;
+    $('#fiscal-participant-label').textContent=service?(incoming?'Prestador do serviço':'Tomador do serviço'):(incoming?'Fornecedor':'Cliente');
+    $('#fiscal-movement-label').textContent=service?'Data da prestação':incoming?'Data de entrada':'Data de saída';
+    $('#fiscal-operation-hint').textContent=service?'Serviço '+(incoming?'tomado':'prestado')+' · Confira prestador, tomador, município e ISS informado.':'Documento de '+(incoming?'entrada':'saída')+' · Confira emitente, destinatário, chave e datas.';
+    [...form().elements.model.options].forEach(option=>option.disabled=service?option.value!=='SERVICO':option.value==='SERVICO');
+  }
   function displayActive(){
     form().hidden=!active;
     const nav=$('#fiscal-tabs');nav.replaceChildren();
@@ -321,6 +350,7 @@ const FiscalEditor=(()=>{
   return {init,load,clear};
 })();
 FiscalEditor.init();
+window.EscrituraWorkspace={navigate:selectPanel,flush:async()=>{PostingEditor.save();await window.EscrituraFiscalFlush();}};
 
 PostingEditor.init({context:()=>({company:companyId(),period:periodId(),plan:$('#accounting-plan').value,periods:current.periods,mappings:current.mappings,documents:current.reconciliation}),onError:notice});
 loadCompanies().catch(error=>notice(error.message,true));

@@ -1,7 +1,7 @@
 /* Template pré-compilado: não requer eval no navegador. */
 var _Vue=Vue; var EscrituraRender=function render(_ctx, _cache) {
   with (_ctx) {
-    const { openBlock: _openBlock, createElementBlock: _createElementBlock, createCommentVNode: _createCommentVNode, createElementVNode: _createElementVNode, createTextVNode: _createTextVNode, toDisplayString: _toDisplayString, vModelText: _vModelText, withDirectives: _withDirectives, Fragment: _Fragment, withModifiers: _withModifiers, renderList: _renderList, normalizeClass: _normalizeClass, resolveComponent: _resolveComponent, createVNode: _createVNode, vModelSelect: _vModelSelect, vModelCheckbox: _vModelCheckbox } = _Vue
+    const { openBlock: _openBlock, createElementBlock: _createElementBlock, createCommentVNode: _createCommentVNode, createElementVNode: _createElementVNode, createTextVNode: _createTextVNode, toDisplayString: _toDisplayString, vModelText: _vModelText, withDirectives: _withDirectives, Fragment: _Fragment, withModifiers: _withModifiers, renderList: _renderList, normalizeClass: _normalizeClass, resolveComponent: _resolveComponent, createVNode: _createVNode, vModelSelect: _vModelSelect, vShow: _vShow, vModelCheckbox: _vModelCheckbox } = _Vue
 
     const _component_data_table = _resolveComponent("data-table")
 
@@ -148,7 +148,8 @@ var _Vue=Vue; var EscrituraRender=function render(_ctx, _cache) {
                   }, _toDisplayString(item.icon), 1), _createTextVNode(_toDisplayString(item.label), 1), (page===item.id)
                     ? (_openBlock(), _createElementBlock("span", {
                         key: 0,
-                        class: "nav-mark"
+                        class: "nav-mark",
+                        "aria-hidden": "true"
                       }, "•"))
                     : _createCommentVNode("", true)], 10, ["href", "aria-current", "onClick"]))
                 }), 128))], 8, ["aria-label"])], 64))
@@ -179,7 +180,8 @@ var _Vue=Vue; var EscrituraRender=function render(_ctx, _cache) {
               title: user.name
             }, _toDisplayString(initials), 9, ["title"])])]), _createElementVNode("main", {
               id: "content",
-              tabindex: "-1"
+              tabindex: "-1",
+              class: _normalizeClass({'operating':workspacePages.includes(page)})
             }, [
               _createElementVNode("div", { class: "page-heading" }, [_createElementVNode("div", null, [_createElementVNode("p", { class: "eyebrow" }, _toDisplayString(page==='client'?'PORTAL DO CLIENTE':'ESCRITURA / '+pageTitle.toUpperCase()), 1), _createElementVNode("h1", null, _toDisplayString(pageTitle), 1), _createElementVNode("p", { class: "muted" }, _toDisplayString(pageSubtitle), 1)]), _createElementVNode("button", {
                 class: "btn secondary",
@@ -206,8 +208,28 @@ var _Vue=Vue; var EscrituraRender=function render(_ctx, _cache) {
                     "aria-label": "Fechar aviso"
                   }, "×", 8, ["onClick"])]))
                 : _createCommentVNode("", true),
+              (openWorkspaceTabs.length)
+                ? (_openBlock(), _createElementBlock("nav", {
+                    key: 2,
+                    class: "activity-tabs",
+                    "aria-label": "Atividades abertas"
+                  }, [(_openBlock(true), _createElementBlock(_Fragment, null, _renderList(openWorkspaceTabs, (tab) => {
+                    return (_openBlock(), _createElementBlock("div", {
+                      key: tab.id,
+                      class: _normalizeClass({selected:page===tab.id})
+                    }, [_createElementVNode("a", {
+                      href: '#/'+tab.id,
+                      "aria-label": 'Atividade '+tab.label,
+                      "aria-current": page===tab.id?'page':undefined
+                    }, [_createElementVNode("span", { "aria-hidden": "true" }, _toDisplayString(tab.icon), 1), _createTextVNode(" " + _toDisplayString(tab.label), 1)], 8, ["href", "aria-label", "aria-current"]), _createElementVNode("button", {
+                      onClick: $event => (closeWorkspaceTab(tab.id)),
+                      "aria-label": 'Fechar atividade '+tab.label,
+                      title: "Fechar atividade; o rascunho permanece disponível"
+                    }, "×", 8, ["onClick", "aria-label"])], 2))
+                  }), 128))]))
+                : _createCommentVNode("", true),
               (page==='dashboard')
-                ? (_openBlock(), _createElementBlock("section", { key: 2 }, [_createElementVNode("div", { class: "welcome-banner" }, [_createElementVNode("div", null, [_createElementVNode("span", { class: "eyebrow" }, "SEU AMBIENTE, ORGANIZADO"), _createElementVNode("h2", null, "Bom trabalho, " + _toDisplayString(user.name.split(' ')[0]) + ".", 1), _createElementVNode("p", null, "Acompanhe suas empresas e continue de onde parou.")]), _createElementVNode("img", {
+                ? (_openBlock(), _createElementBlock("section", { key: 3 }, [_createElementVNode("div", { class: "welcome-banner" }, [_createElementVNode("div", null, [_createElementVNode("span", { class: "eyebrow" }, "SEU AMBIENTE, ORGANIZADO"), _createElementVNode("h2", null, "Bom trabalho, " + _toDisplayString(user.name.split(' ')[0]) + ".", 1), _createElementVNode("p", null, "Acompanhe suas empresas e continue de onde parou.")]), _createElementVNode("img", {
                     src: "/assets/symbol.svg",
                     alt: "",
                     width: "88"
@@ -262,292 +284,294 @@ var _Vue=Vue; var EscrituraRender=function render(_ctx, _cache) {
                       href: step.href
                     }, [_createElementVNode("span", { class: "step-number" }, _toDisplayString(i+1), 1), _createElementVNode("span", null, [_createElementVNode("b", null, _toDisplayString(step.title), 1), _createElementVNode("small", null, _toDisplayString(step.text), 1)]), _createElementVNode("span", null, "→")], 8, ["href"]))
                   }), 128))])])]))
-                : (workspacePages.includes(page))
-                  ? (_openBlock(), _createElementBlock("section", {
-                      key: 3,
-                      class: "work-frame panel"
-                    }, [(_openBlock(), _createElementBlock("iframe", {
-                      key: page,
-                      src: "/workspace",
-                      title: "Área de escrituração",
-                      onLoad: selectWorkspace
-                    }, null, 40, ["onLoad"]))]))
-                  : (page==='companies')
-                    ? (_openBlock(), _createElementBlock("section", { key: 4 }, [_createElementVNode("div", { class: "panel padded" }, [_createElementVNode("h2", null, "Nova empresa"), _createElementVNode("form", {
-                        onSubmit: _withModifiers(saveCompany, ["prevent"]),
-                        class: "form-grid"
-                      }, [
-                        _createElementVNode("label", { class: "field" }, [_createTextVNode("Nome"), _withDirectives(_createElementVNode("input", {
-                          "onUpdate:modelValue": $event => ((companyForm.name) = $event),
-                          required: "",
-                          maxlength: "200"
-                        }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, companyForm.name]])]),
-                        _createElementVNode("label", { class: "field" }, [_createTextVNode("CNPJ"), _withDirectives(_createElementVNode("input", {
-                          "onUpdate:modelValue": $event => ((companyForm.cnpj) = $event),
-                          maxlength: "18"
-                        }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, companyForm.cnpj]])]),
-                        _createElementVNode("label", { class: "field" }, [_createTextVNode("Código da empresa no Prosoft"), _withDirectives(_createElementVNode("input", {
-                          "onUpdate:modelValue": $event => ((companyForm.prosoft_company_code) = $event),
-                          required: ""
-                        }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, companyForm.prosoft_company_code]])]),
-                        _createElementVNode("label", { class: "field" }, [_createTextVNode("Código do plano no Prosoft"), _withDirectives(_createElementVNode("input", {
-                          "onUpdate:modelValue": $event => ((companyForm.prosoft_plan_code) = $event),
-                          required: ""
-                        }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, companyForm.prosoft_plan_code]])]),
-                        _createElementVNode("div", { class: "wide" }, [_createElementVNode("button", {
+                : (page==='companies')
+                  ? (_openBlock(), _createElementBlock("section", { key: 4 }, [_createElementVNode("div", { class: "panel padded" }, [_createElementVNode("h2", null, "Nova empresa"), _createElementVNode("form", {
+                      onSubmit: _withModifiers(saveCompany, ["prevent"]),
+                      class: "form-grid"
+                    }, [
+                      _createElementVNode("label", { class: "field" }, [_createTextVNode("Nome"), _withDirectives(_createElementVNode("input", {
+                        "onUpdate:modelValue": $event => ((companyForm.name) = $event),
+                        required: "",
+                        maxlength: "200"
+                      }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, companyForm.name]])]),
+                      _createElementVNode("label", { class: "field" }, [_createTextVNode("CNPJ"), _withDirectives(_createElementVNode("input", {
+                        "onUpdate:modelValue": $event => ((companyForm.cnpj) = $event),
+                        maxlength: "18"
+                      }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, companyForm.cnpj]])]),
+                      _createElementVNode("label", { class: "field" }, [_createTextVNode("Código da empresa no Prosoft"), _withDirectives(_createElementVNode("input", {
+                        "onUpdate:modelValue": $event => ((companyForm.prosoft_company_code) = $event),
+                        required: ""
+                      }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, companyForm.prosoft_company_code]])]),
+                      _createElementVNode("label", { class: "field" }, [_createTextVNode("Código do plano no Prosoft"), _withDirectives(_createElementVNode("input", {
+                        "onUpdate:modelValue": $event => ((companyForm.prosoft_plan_code) = $event),
+                        required: ""
+                      }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, companyForm.prosoft_plan_code]])]),
+                      _createElementVNode("div", { class: "wide" }, [_createElementVNode("button", {
+                        class: "btn primary",
+                        disabled: busy
+                      }, "Cadastrar empresa", 8, ["disabled"])])
+                    ], 40, ["onSubmit"])]), _createElementVNode("div", { class: "panel spaced" }, [_createVNode(_component_data_table, {
+                      rows: dashboard.companies,
+                      columns: {name:'Empresa',cnpj:'CNPJ',prosoft_company_code:'Código Prosoft',prosoft_plan_code:'Plano'}
+                    }, null, 8, ["rows", "columns"])])]))
+                  : (page==='users')
+                    ? (_openBlock(), _createElementBlock("section", { key: 5 }, [_createElementVNode("div", { class: "panel" }, [_createElementVNode("header", { class: "panel-header" }, [_createElementVNode("h2", null, "Usuários e acessos"), _createElementVNode("button", {
+                        class: "btn primary",
+                        onClick: $event => (editUser())
+                      }, "+ Novo usuário", 8, ["onClick"])]), _createElementVNode("div", { class: "table-scroll" }, [_createElementVNode("table", null, [_createElementVNode("thead", null, [_createElementVNode("tr", null, [
+                        _createElementVNode("th", null, "Usuário"),
+                        _createElementVNode("th", null, "Perfil"),
+                        _createElementVNode("th", null, "Empresas"),
+                        _createElementVNode("th", null, "2FA"),
+                        _createElementVNode("th", null, "Situação"),
+                        _createElementVNode("th")
+                      ])]), _createElementVNode("tbody", null, [(_openBlock(true), _createElementBlock(_Fragment, null, _renderList(users, (u) => {
+                        return (_openBlock(), _createElementBlock("tr", { key: u.id }, [
+                          _createElementVNode("td", null, [_createElementVNode("b", null, _toDisplayString(u.name), 1), _createElementVNode("small", null, _toDisplayString(u.email), 1)]),
+                          _createElementVNode("td", null, _toDisplayString(u.role_name), 1),
+                          _createElementVNode("td", null, _toDisplayString(u.role==='admin'?'Todas':u.companies.length), 1),
+                          _createElementVNode("td", null, _toDisplayString(u.mfa_enabled?'Ativo':'Não habilitado'), 1),
+                          _createElementVNode("td", null, [_createElementVNode("span", { class: _normalizeClass(["badge", {warning:!u.active}]) }, _toDisplayString(u.active?'Ativo':'Inativo'), 3)]),
+                          _createElementVNode("td", null, [_createElementVNode("button", {
+                            class: "link-button",
+                            onClick: $event => (editUser(u))
+                          }, "Editar", 8, ["onClick"])])
+                        ]))
+                      }), 128))])])])])]))
+                    : (page==='roles')
+                      ? (_openBlock(), _createElementBlock("section", { key: 6 }, [_createElementVNode("div", { class: "panel" }, [_createElementVNode("header", { class: "panel-header" }, [_createElementVNode("h2", null, "Perfis de acesso"), _createElementVNode("button", {
                           class: "btn primary",
-                          disabled: busy
-                        }, "Cadastrar empresa", 8, ["disabled"])])
-                      ], 40, ["onSubmit"])]), _createElementVNode("div", { class: "panel spaced" }, [_createVNode(_component_data_table, {
-                        rows: dashboard.companies,
-                        columns: {name:'Empresa',cnpj:'CNPJ',prosoft_company_code:'Código Prosoft',prosoft_plan_code:'Plano'}
-                      }, null, 8, ["rows", "columns"])])]))
-                    : (page==='users')
-                      ? (_openBlock(), _createElementBlock("section", { key: 5 }, [_createElementVNode("div", { class: "panel" }, [_createElementVNode("header", { class: "panel-header" }, [_createElementVNode("h2", null, "Usuários e acessos"), _createElementVNode("button", {
-                          class: "btn primary",
-                          onClick: $event => (editUser())
-                        }, "+ Novo usuário", 8, ["onClick"])]), _createElementVNode("div", { class: "table-scroll" }, [_createElementVNode("table", null, [_createElementVNode("thead", null, [_createElementVNode("tr", null, [
-                          _createElementVNode("th", null, "Usuário"),
-                          _createElementVNode("th", null, "Perfil"),
-                          _createElementVNode("th", null, "Empresas"),
-                          _createElementVNode("th", null, "2FA"),
-                          _createElementVNode("th", null, "Situação"),
-                          _createElementVNode("th")
-                        ])]), _createElementVNode("tbody", null, [(_openBlock(true), _createElementBlock(_Fragment, null, _renderList(users, (u) => {
-                          return (_openBlock(), _createElementBlock("tr", { key: u.id }, [
-                            _createElementVNode("td", null, [_createElementVNode("b", null, _toDisplayString(u.name), 1), _createElementVNode("small", null, _toDisplayString(u.email), 1)]),
-                            _createElementVNode("td", null, _toDisplayString(u.role_name), 1),
-                            _createElementVNode("td", null, _toDisplayString(u.role==='admin'?'Todas':u.companies.length), 1),
-                            _createElementVNode("td", null, _toDisplayString(u.mfa_enabled?'Ativo':'Não habilitado'), 1),
-                            _createElementVNode("td", null, [_createElementVNode("span", { class: _normalizeClass(["badge", {warning:!u.active}]) }, _toDisplayString(u.active?'Ativo':'Inativo'), 3)]),
-                            _createElementVNode("td", null, [_createElementVNode("button", {
-                              class: "link-button",
-                              onClick: $event => (editUser(u))
-                            }, "Editar", 8, ["onClick"])])
-                          ]))
-                        }), 128))])])])])]))
-                      : (page==='roles')
-                        ? (_openBlock(), _createElementBlock("section", { key: 6 }, [_createElementVNode("div", { class: "panel" }, [_createElementVNode("header", { class: "panel-header" }, [_createElementVNode("h2", null, "Perfis de acesso"), _createElementVNode("button", {
-                            class: "btn primary",
-                            onClick: $event => {roleForm={name:'',permissions:[]};dialog='role'}
-                          }, "+ Novo perfil", 8, ["onClick"])]), _createElementVNode("div", { class: "role-grid" }, [(_openBlock(true), _createElementBlock(_Fragment, null, _renderList(roles, (role) => {
-                            return (_openBlock(), _createElementBlock("article", { key: role.id }, [
-                              _createElementVNode("h3", null, _toDisplayString(role.name), 1),
-                              _createElementVNode("p", null, _toDisplayString(role.permissions.length) + " permissões", 1),
-                              _createElementVNode("ul", null, [(_openBlock(true), _createElementBlock(_Fragment, null, _renderList(role.permissions, (permission) => {
-                                return (_openBlock(), _createElementBlock("li", { key: permission }, _toDisplayString(permissions[permission]), 1))
-                              }), 128))]),
-                              (!['admin','accountant','reviewer','client','reader'].includes(role.id))
-                                ? (_openBlock(), _createElementBlock("button", {
-                                    key: 0,
-                                    class: "link-button",
-                                    onClick: $event => {roleForm=structuredCopy(role);dialog='role'}
-                                  }, "Editar perfil", 8, ["onClick"]))
-                                : _createCommentVNode("", true)
-                            ]))
-                          }), 128))])])]))
-                        : (page==='client')
-                          ? (_openBlock(), _createElementBlock("section", { key: 7 }, [_createElementVNode("div", { class: "panel padded" }, [_createElementVNode("div", { class: "form-grid" }, [_createElementVNode("label", { class: "field" }, [_createTextVNode("Empresa"), _withDirectives(_createElementVNode("select", {
-                              "aria-label": "Empresa",
-                              "onUpdate:modelValue": $event => ((clientCompany) = $event),
-                              onChange: loadClient
-                            }, [_createElementVNode("option", { value: "" }, "Selecione"), (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(dashboard.companies, (c) => {
-                              return (_openBlock(), _createElementBlock("option", {
-                                value: String(c.id),
-                                key: c.id
-                              }, _toDisplayString(c.name), 9, ["value"]))
-                            }), 128))], 40, ["onUpdate:modelValue", "onChange"]), [[_vModelSelect, clientCompany]])]), _createElementVNode("label", { class: "field" }, [_createTextVNode("Período"), _withDirectives(_createElementVNode("select", {
-                              "aria-label": "Período",
-                              "onUpdate:modelValue": $event => ((clientPeriod) = $event)
-                            }, [_createElementVNode("option", { value: "" }, "Selecione"), (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(clientData.periods, (p) => {
-                              return (_openBlock(), _createElementBlock("option", {
-                                value: String(p.id),
-                                key: p.id
-                              }, _toDisplayString(p.reference_competence) + " · processamento " + _toDisplayString(p.processing_competence), 9, ["value"]))
-                            }), 128))], 8, ["onUpdate:modelValue"]), [[_vModelSelect, clientPeriod]])])]), (can('client.upload'))
-                              ? (_openBlock(), _createElementBlock("form", {
+                          onClick: $event => {roleForm={name:'',permissions:[]};dialog='role'}
+                        }, "+ Novo perfil", 8, ["onClick"])]), _createElementVNode("div", { class: "role-grid" }, [(_openBlock(true), _createElementBlock(_Fragment, null, _renderList(roles, (role) => {
+                          return (_openBlock(), _createElementBlock("article", { key: role.id }, [
+                            _createElementVNode("h3", null, _toDisplayString(role.name), 1),
+                            _createElementVNode("p", null, _toDisplayString(role.permissions.length) + " permissões", 1),
+                            _createElementVNode("ul", null, [(_openBlock(true), _createElementBlock(_Fragment, null, _renderList(role.permissions, (permission) => {
+                              return (_openBlock(), _createElementBlock("li", { key: permission }, _toDisplayString(permissions[permission]), 1))
+                            }), 128))]),
+                            (!['admin','accountant','reviewer','client','reader'].includes(role.id))
+                              ? (_openBlock(), _createElementBlock("button", {
                                   key: 0,
-                                  onSubmit: _withModifiers(uploadClient, ["prevent"]),
-                                  class: "upload-bar"
-                                }, [_createElementVNode("label", { class: "field" }, [_createTextVNode("Tipo"), _withDirectives(_createElementVNode("select", {
-                                  "aria-label": "Tipo",
-                                  "onUpdate:modelValue": $event => ((uploadKind) = $event)
-                                }, [_createElementVNode("option", null, "XML"), _createElementVNode("option", null, "SPED")], 8, ["onUpdate:modelValue"]), [[_vModelSelect, uploadKind]])]), _createElementVNode("label", { class: "field grow" }, [_createTextVNode("Documento"), _createElementVNode("input", {
-                                  type: "file",
-                                  accept: ".xml,.txt,.sped",
-                                  onChange: $event => (uploadFile=$event.target.files[0]),
-                                  required: ""
-                                }, null, 40, ["onChange"])]), _createElementVNode("button", {
-                                  class: "btn primary",
-                                  disabled: busy||!clientCompany||!clientPeriod
-                                }, "Enviar documento", 8, ["disabled"])], 40, ["onSubmit"]))
-                              : _createCommentVNode("", true)]), _createElementVNode("div", { class: "panel spaced" }, [_createElementVNode("header", { class: "panel-header" }, [_createElementVNode("h2", null, "Arquivos recebidos"), _createElementVNode("span", { class: "badge" }, _toDisplayString(clientData.files.length), 1)]), _createVNode(_component_data_table, {
-                              rows: clientData.files,
-                              columns: {filename:'Arquivo',kind:'Tipo',status:'Situação',created_at:'Recebido em'}
-                            }, null, 8, ["rows", "columns"])]), _createElementVNode("div", { class: "panel spaced" }, [_createElementVNode("header", { class: "panel-header" }, [_createElementVNode("h2", null, "Documentos")]), _createVNode(_component_data_table, {
-                              rows: clientData.documents,
-                              columns: {'payload.number':'Documento','payload.key':'Chave',status:'Situação','payload.total':'Valor'}
-                            }, null, 8, ["rows", "columns"])])]))
-                          : (page==='settings')
-                            ? (_openBlock(), _createElementBlock("section", {
-                                key: 8,
-                                class: "panel padded"
+                                  class: "link-button",
+                                  onClick: $event => {roleForm=structuredCopy(role);dialog='role'}
+                                }, "Editar perfil", 8, ["onClick"]))
+                              : _createCommentVNode("", true)
+                          ]))
+                        }), 128))])])]))
+                      : (page==='client')
+                        ? (_openBlock(), _createElementBlock("section", { key: 7 }, [_createElementVNode("div", { class: "panel padded" }, [_createElementVNode("div", { class: "form-grid" }, [_createElementVNode("label", { class: "field" }, [_createTextVNode("Empresa"), _withDirectives(_createElementVNode("select", {
+                            "aria-label": "Empresa",
+                            "onUpdate:modelValue": $event => ((clientCompany) = $event),
+                            onChange: loadClient
+                          }, [_createElementVNode("option", { value: "" }, "Selecione"), (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(dashboard.companies, (c) => {
+                            return (_openBlock(), _createElementBlock("option", {
+                              value: String(c.id),
+                              key: c.id
+                            }, _toDisplayString(c.name), 9, ["value"]))
+                          }), 128))], 40, ["onUpdate:modelValue", "onChange"]), [[_vModelSelect, clientCompany]])]), _createElementVNode("label", { class: "field" }, [_createTextVNode("Período"), _withDirectives(_createElementVNode("select", {
+                            "aria-label": "Período",
+                            "onUpdate:modelValue": $event => ((clientPeriod) = $event)
+                          }, [_createElementVNode("option", { value: "" }, "Selecione"), (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(clientData.periods, (p) => {
+                            return (_openBlock(), _createElementBlock("option", {
+                              value: String(p.id),
+                              key: p.id
+                            }, _toDisplayString(p.reference_competence) + " · processamento " + _toDisplayString(p.processing_competence), 9, ["value"]))
+                          }), 128))], 8, ["onUpdate:modelValue"]), [[_vModelSelect, clientPeriod]])])]), (can('client.upload'))
+                            ? (_openBlock(), _createElementBlock("form", {
+                                key: 0,
+                                onSubmit: _withModifiers(uploadClient, ["prevent"]),
+                                class: "upload-bar"
+                              }, [_createElementVNode("label", { class: "field" }, [_createTextVNode("Tipo"), _withDirectives(_createElementVNode("select", {
+                                "aria-label": "Tipo",
+                                "onUpdate:modelValue": $event => ((uploadKind) = $event)
+                              }, [_createElementVNode("option", null, "XML"), _createElementVNode("option", null, "SPED")], 8, ["onUpdate:modelValue"]), [[_vModelSelect, uploadKind]])]), _createElementVNode("label", { class: "field grow" }, [_createTextVNode("Documento"), _createElementVNode("input", {
+                                type: "file",
+                                accept: ".xml,.txt,.sped",
+                                onChange: $event => (uploadFile=$event.target.files[0]),
+                                required: ""
+                              }, null, 40, ["onChange"])]), _createElementVNode("button", {
+                                class: "btn primary",
+                                disabled: busy||!clientCompany||!clientPeriod
+                              }, "Enviar documento", 8, ["disabled"])], 40, ["onSubmit"]))
+                            : _createCommentVNode("", true)]), _createElementVNode("div", { class: "panel spaced" }, [_createElementVNode("header", { class: "panel-header" }, [_createElementVNode("h2", null, "Arquivos recebidos"), _createElementVNode("span", { class: "badge" }, _toDisplayString(clientData.files.length), 1)]), _createVNode(_component_data_table, {
+                            rows: clientData.files,
+                            columns: {filename:'Arquivo',kind:'Tipo',status:'Situação',created_at:'Recebido em'}
+                          }, null, 8, ["rows", "columns"])]), _createElementVNode("div", { class: "panel spaced" }, [_createElementVNode("header", { class: "panel-header" }, [_createElementVNode("h2", null, "Documentos")]), _createVNode(_component_data_table, {
+                            rows: clientData.documents,
+                            columns: {'payload.number':'Documento','payload.key':'Chave',status:'Situação','payload.total':'Valor'}
+                          }, null, 8, ["rows", "columns"])])]))
+                        : (page==='settings')
+                          ? (_openBlock(), _createElementBlock("section", {
+                              key: 8,
+                              class: "panel padded"
+                            }, [
+                              _createElementVNode("h2", null, "Configurações do ambiente"),
+                              _createElementVNode("form", {
+                                onSubmit: _withModifiers($event => (saveSettings('general')), ["prevent"]),
+                                class: "form-grid"
+                              }, [_createElementVNode("label", { class: "field" }, [_createTextVNode("Nome de exibição"), _withDirectives(_createElementVNode("input", {
+                                "onUpdate:modelValue": $event => ((settings.general.display_name) = $event),
+                                maxlength: "200"
+                              }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, settings.general.display_name]])]), _createElementVNode("label", { class: "field" }, [_createTextVNode("E-mail de suporte"), _withDirectives(_createElementVNode("input", {
+                                "onUpdate:modelValue": $event => ((settings.general.support_email) = $event),
+                                type: "email"
+                              }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, settings.general.support_email]])]), _createElementVNode("div", { class: "wide" }, [_createElementVNode("button", {
+                                class: "btn primary",
+                                disabled: busy
+                              }, "Salvar configurações", 8, ["disabled"])])], 40, ["onSubmit"]),
+                              _createElementVNode("div", { class: "divider" }),
+                              _createElementVNode("h2", null, "Ordem dos menus"),
+                              _createElementVNode("p", { class: "muted" }, "As permissões de cada usuário continuam sendo aplicadas."),
+                              _createElementVNode("div", { class: "menu-editor" }, [(_openBlock(true), _createElementBlock(_Fragment, null, _renderList(menuOrder, (id, i) => {
+                                return (_openBlock(), _createElementBlock("div", { key: id }, [_createElementVNode("span", null, _toDisplayString(allMenu.find(m=>m.id===id)?.label||id), 1), _createElementVNode("button", {
+                                  class: "btn secondary small-button",
+                                  onClick: $event => (moveMenu(i,-1)),
+                                  disabled: i===0,
+                                  "aria-label": "Subir menu"
+                                }, "↑", 8, ["onClick", "disabled"]), _createElementVNode("button", {
+                                  class: "btn secondary small-button",
+                                  onClick: $event => (moveMenu(i,1)),
+                                  disabled: i===menuOrder.length-1,
+                                  "aria-label": "Descer menu"
+                                }, "↓", 8, ["onClick", "disabled"])]))
+                              }), 128))]),
+                              _createElementVNode("button", {
+                                class: "btn primary",
+                                onClick: $event => (saveSettings('menu')),
+                                disabled: busy
+                              }, "Salvar ordem", 8, ["onClick", "disabled"])
+                            ]))
+                          : (page==='email')
+                            ? (_openBlock(), _createElementBlock("section", { key: 9 }, [_createElementVNode("div", { class: "panel padded" }, [_createElementVNode("h2", null, "Entrega de e-mails"), _createElementVNode("p", { class: "muted" }, "Recuperação de senha e notificações transacionais."), _createElementVNode("form", {
+                                onSubmit: _withModifiers($event => (saveSettings('smtp')), ["prevent"]),
+                                class: "form-grid"
                               }, [
-                                _createElementVNode("h2", null, "Configurações do ambiente"),
-                                _createElementVNode("form", {
-                                  onSubmit: _withModifiers($event => (saveSettings('general')), ["prevent"]),
-                                  class: "form-grid"
-                                }, [_createElementVNode("label", { class: "field" }, [_createTextVNode("Nome de exibição"), _withDirectives(_createElementVNode("input", {
-                                  "onUpdate:modelValue": $event => ((settings.general.display_name) = $event),
-                                  maxlength: "200"
-                                }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, settings.general.display_name]])]), _createElementVNode("label", { class: "field" }, [_createTextVNode("E-mail de suporte"), _withDirectives(_createElementVNode("input", {
-                                  "onUpdate:modelValue": $event => ((settings.general.support_email) = $event),
-                                  type: "email"
-                                }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, settings.general.support_email]])]), _createElementVNode("div", { class: "wide" }, [_createElementVNode("button", {
+                                _createElementVNode("label", { class: "field" }, [_createTextVNode("Servidor SMTP"), _withDirectives(_createElementVNode("input", {
+                                  "onUpdate:modelValue": $event => ((settings.smtp.host) = $event),
+                                  required: ""
+                                }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, settings.smtp.host]])]),
+                                _createElementVNode("label", { class: "field" }, [_createTextVNode("Porta"), _withDirectives(_createElementVNode("input", {
+                                  "onUpdate:modelValue": $event => ((settings.smtp.port) = $event),
+                                  type: "number",
+                                  min: "1",
+                                  max: "65535",
+                                  required: ""
+                                }, null, 8, ["onUpdate:modelValue"]), [[
+                                  _vModelText,
+                                  settings.smtp.port,
+                                  void 0,
+                                  { number: true }
+                                ]])]),
+                                _createElementVNode("label", { class: "field" }, [_createTextVNode("Conexão"), _withDirectives(_createElementVNode("select", { "onUpdate:modelValue": $event => ((settings.smtp.mode) = $event) }, [_createElementVNode("option", { value: "starttls" }, "STARTTLS"), _createElementVNode("option", { value: "ssl" }, "TLS direto")], 8, ["onUpdate:modelValue"]), [[_vModelSelect, settings.smtp.mode]])]),
+                                _createElementVNode("label", { class: "field" }, [_createTextVNode("Remetente"), _withDirectives(_createElementVNode("input", {
+                                  "onUpdate:modelValue": $event => ((settings.smtp.sender) = $event),
+                                  type: "email",
+                                  required: ""
+                                }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, settings.smtp.sender]])]),
+                                _createElementVNode("label", { class: "field" }, [_createTextVNode("Usuário"), _withDirectives(_createElementVNode("input", {
+                                  "onUpdate:modelValue": $event => ((settings.smtp.username) = $event),
+                                  autocomplete: "off"
+                                }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, settings.smtp.username]])]),
+                                _createElementVNode("label", { class: "field" }, [_createTextVNode("Senha"), _withDirectives(_createElementVNode("input", {
+                                  "onUpdate:modelValue": $event => ((settings.smtp.password) = $event),
+                                  type: "password",
+                                  autocomplete: "new-password",
+                                  placeholder: settings.smtp.has_password?'Já configurada · deixe vazio para manter':'Senha SMTP'
+                                }, null, 8, ["onUpdate:modelValue", "placeholder"]), [[_vModelText, settings.smtp.password]])]),
+                                _createElementVNode("div", { class: "wide actions" }, [_createElementVNode("button", {
                                   class: "btn primary",
                                   disabled: busy
-                                }, "Salvar configurações", 8, ["disabled"])])], 40, ["onSubmit"]),
-                                _createElementVNode("div", { class: "divider" }),
-                                _createElementVNode("h2", null, "Ordem dos menus"),
-                                _createElementVNode("p", { class: "muted" }, "As permissões de cada usuário continuam sendo aplicadas."),
-                                _createElementVNode("div", { class: "menu-editor" }, [(_openBlock(true), _createElementBlock(_Fragment, null, _renderList(menuOrder, (id, i) => {
-                                  return (_openBlock(), _createElementBlock("div", { key: id }, [_createElementVNode("span", null, _toDisplayString(allMenu.find(m=>m.id===id)?.label||id), 1), _createElementVNode("button", {
-                                    class: "btn secondary small-button",
-                                    onClick: $event => (moveMenu(i,-1)),
-                                    disabled: i===0,
-                                    "aria-label": "Subir menu"
-                                  }, "↑", 8, ["onClick", "disabled"]), _createElementVNode("button", {
-                                    class: "btn secondary small-button",
-                                    onClick: $event => (moveMenu(i,1)),
-                                    disabled: i===menuOrder.length-1,
-                                    "aria-label": "Descer menu"
-                                  }, "↓", 8, ["onClick", "disabled"])]))
-                                }), 128))]),
-                                _createElementVNode("button", {
-                                  class: "btn primary",
-                                  onClick: $event => (saveSettings('menu')),
+                                }, "Salvar SMTP", 8, ["disabled"]), _createElementVNode("button", {
+                                  type: "button",
+                                  class: "btn secondary",
+                                  onClick: testEmail,
                                   disabled: busy
-                                }, "Salvar ordem", 8, ["onClick", "disabled"])
-                              ]))
-                            : (page==='email')
-                              ? (_openBlock(), _createElementBlock("section", { key: 9 }, [_createElementVNode("div", { class: "panel padded" }, [_createElementVNode("h2", null, "Entrega de e-mails"), _createElementVNode("p", { class: "muted" }, "Recuperação de senha e notificações transacionais."), _createElementVNode("form", {
-                                  onSubmit: _withModifiers($event => (saveSettings('smtp')), ["prevent"]),
-                                  class: "form-grid"
-                                }, [
-                                  _createElementVNode("label", { class: "field" }, [_createTextVNode("Servidor SMTP"), _withDirectives(_createElementVNode("input", {
-                                    "onUpdate:modelValue": $event => ((settings.smtp.host) = $event),
-                                    required: ""
-                                  }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, settings.smtp.host]])]),
-                                  _createElementVNode("label", { class: "field" }, [_createTextVNode("Porta"), _withDirectives(_createElementVNode("input", {
-                                    "onUpdate:modelValue": $event => ((settings.smtp.port) = $event),
-                                    type: "number",
-                                    min: "1",
-                                    max: "65535",
-                                    required: ""
-                                  }, null, 8, ["onUpdate:modelValue"]), [[
-                                    _vModelText,
-                                    settings.smtp.port,
-                                    void 0,
-                                    { number: true }
-                                  ]])]),
-                                  _createElementVNode("label", { class: "field" }, [_createTextVNode("Conexão"), _withDirectives(_createElementVNode("select", { "onUpdate:modelValue": $event => ((settings.smtp.mode) = $event) }, [_createElementVNode("option", { value: "starttls" }, "STARTTLS"), _createElementVNode("option", { value: "ssl" }, "TLS direto")], 8, ["onUpdate:modelValue"]), [[_vModelSelect, settings.smtp.mode]])]),
-                                  _createElementVNode("label", { class: "field" }, [_createTextVNode("Remetente"), _withDirectives(_createElementVNode("input", {
-                                    "onUpdate:modelValue": $event => ((settings.smtp.sender) = $event),
-                                    type: "email",
-                                    required: ""
-                                  }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, settings.smtp.sender]])]),
-                                  _createElementVNode("label", { class: "field" }, [_createTextVNode("Usuário"), _withDirectives(_createElementVNode("input", {
-                                    "onUpdate:modelValue": $event => ((settings.smtp.username) = $event),
-                                    autocomplete: "off"
-                                  }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, settings.smtp.username]])]),
-                                  _createElementVNode("label", { class: "field" }, [_createTextVNode("Senha"), _withDirectives(_createElementVNode("input", {
-                                    "onUpdate:modelValue": $event => ((settings.smtp.password) = $event),
+                                }, "Enviar teste para meu e-mail", 8, ["onClick", "disabled"])])
+                              ], 40, ["onSubmit"])]), _createElementVNode("div", { class: "panel spaced" }, [_createElementVNode("header", { class: "panel-header" }, [_createElementVNode("h2", null, "Fila de entrega")]), _createVNode(_component_data_table, {
+                                rows: mail,
+                                columns: {id:'ID',recipient:'Destinatário',status:'Situação',attempts:'Tentativas',error:'Diagnóstico'}
+                              }, null, 8, ["rows", "columns"])])]))
+                            : (page==='security')
+                              ? (_openBlock(), _createElementBlock("section", { key: 10 }, [_createElementVNode("div", { class: "two-col" }, [_createElementVNode("section", { class: "panel padded" }, [
+                                  _createElementVNode("p", { class: "eyebrow" }, "PROTEÇÃO DA CONTA"),
+                                  _createElementVNode("h2", null, "Autenticação em duas etapas"),
+                                  _createElementVNode("p", { class: "muted" }, "Um código do autenticador complementa sua senha."),
+                                  _createElementVNode("span", { class: _normalizeClass(["badge spaced", {warning:!user.mfa_enabled}]) }, _toDisplayString(user.mfa_enabled?'2FA habilitado':'2FA não habilitado'), 3),
+                                  _createElementVNode("form", { onSubmit: _withModifiers($event => (user.mfa_enabled?disableMfa():beginMfa()), ["prevent"]) }, [_createElementVNode("label", { class: "field" }, [_createTextVNode("Senha atual"), _withDirectives(_createElementVNode("input", {
+                                    "onUpdate:modelValue": $event => ((mfa.password) = $event),
                                     type: "password",
-                                    autocomplete: "new-password",
-                                    placeholder: settings.smtp.has_password?'Já configurada · deixe vazio para manter':'Senha SMTP'
-                                  }, null, 8, ["onUpdate:modelValue", "placeholder"]), [[_vModelText, settings.smtp.password]])]),
-                                  _createElementVNode("div", { class: "wide actions" }, [_createElementVNode("button", {
+                                    required: "",
+                                    autocomplete: "current-password"
+                                  }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, mfa.password]])]), (user.mfa_enabled)
+                                    ? (_openBlock(), _createElementBlock("label", {
+                                        key: 0,
+                                        class: "field"
+                                      }, [_createTextVNode("Código do autenticador ou recuperação"), _withDirectives(_createElementVNode("input", {
+                                        "onUpdate:modelValue": $event => ((mfa.code) = $event),
+                                        required: "",
+                                        autocomplete: "one-time-code"
+                                      }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, mfa.code]])]))
+                                    : _createCommentVNode("", true), _createElementVNode("button", {
                                     class: "btn primary",
                                     disabled: busy
-                                  }, "Salvar SMTP", 8, ["disabled"]), _createElementVNode("button", {
-                                    type: "button",
-                                    class: "btn secondary",
-                                    onClick: testEmail,
-                                    disabled: busy
-                                  }, "Enviar teste para meu e-mail", 8, ["onClick", "disabled"])])
-                                ], 40, ["onSubmit"])]), _createElementVNode("div", { class: "panel spaced" }, [_createElementVNode("header", { class: "panel-header" }, [_createElementVNode("h2", null, "Fila de entrega")]), _createVNode(_component_data_table, {
-                                  rows: mail,
-                                  columns: {id:'ID',recipient:'Destinatário',status:'Situação',attempts:'Tentativas',error:'Diagnóstico'}
-                                }, null, 8, ["rows", "columns"])])]))
-                              : (page==='security')
-                                ? (_openBlock(), _createElementBlock("section", { key: 10 }, [_createElementVNode("div", { class: "two-col" }, [_createElementVNode("section", { class: "panel padded" }, [
-                                    _createElementVNode("p", { class: "eyebrow" }, "PROTEÇÃO DA CONTA"),
-                                    _createElementVNode("h2", null, "Autenticação em duas etapas"),
-                                    _createElementVNode("p", { class: "muted" }, "Um código do autenticador complementa sua senha."),
-                                    _createElementVNode("span", { class: _normalizeClass(["badge spaced", {warning:!user.mfa_enabled}]) }, _toDisplayString(user.mfa_enabled?'2FA habilitado':'2FA não habilitado'), 3),
-                                    _createElementVNode("form", { onSubmit: _withModifiers($event => (user.mfa_enabled?disableMfa():beginMfa()), ["prevent"]) }, [_createElementVNode("label", { class: "field" }, [_createTextVNode("Senha atual"), _withDirectives(_createElementVNode("input", {
-                                      "onUpdate:modelValue": $event => ((mfa.password) = $event),
-                                      type: "password",
-                                      required: "",
-                                      autocomplete: "current-password"
-                                    }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, mfa.password]])]), (user.mfa_enabled)
-                                      ? (_openBlock(), _createElementBlock("label", {
+                                  }, _toDisplayString(user.mfa_enabled?'Desabilitar 2FA':'Configurar autenticador'), 9, ["disabled"])], 40, ["onSubmit"])
+                                ]), _createElementVNode("section", { class: "panel padded" }, [
+                                  _createElementVNode("p", { class: "eyebrow" }, "SEU ACESSO"),
+                                  _createElementVNode("h2", null, _toDisplayString(user.name), 1),
+                                  _createElementVNode("p", null, _toDisplayString(user.email), 1),
+                                  _createElementVNode("p", { class: "muted spaced" }, "Perfil: " + _toDisplayString(user.role_name), 1),
+                                  _createElementVNode("p", { class: "muted" }, "Ao alterar senha, perfil ou 2FA, as sessões anteriores são encerradas.")
+                                ])]), _createElementVNode("div", { class: "panel spaced" }, [_createElementVNode("header", { class: "panel-header" }, [_createElementVNode("h2", null, "Sessões da sua conta")]), _createElementVNode("div", { class: "table-scroll" }, [_createElementVNode("table", null, [_createElementVNode("thead", null, [_createElementVNode("tr", null, [
+                                  _createElementVNode("th", null, "Origem"),
+                                  _createElementVNode("th", null, "Última atividade"),
+                                  _createElementVNode("th", null, "Situação"),
+                                  _createElementVNode("th")
+                                ])]), _createElementVNode("tbody", null, [(_openBlock(true), _createElementBlock(_Fragment, null, _renderList(sessions, (s) => {
+                                  return (_openBlock(), _createElementBlock("tr", { key: s.id }, [
+                                    _createElementVNode("td", null, [_createTextVNode(_toDisplayString(s.label) + " ", 1), (s.current)
+                                      ? (_openBlock(), _createElementBlock("span", {
                                           key: 0,
-                                          class: "field"
-                                        }, [_createTextVNode("Código do autenticador ou recuperação"), _withDirectives(_createElementVNode("input", {
-                                          "onUpdate:modelValue": $event => ((mfa.code) = $event),
-                                          required: "",
-                                          autocomplete: "one-time-code"
-                                        }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, mfa.code]])]))
-                                      : _createCommentVNode("", true), _createElementVNode("button", {
-                                      class: "btn primary",
-                                      disabled: busy
-                                    }, _toDisplayString(user.mfa_enabled?'Desabilitar 2FA':'Configurar autenticador'), 9, ["disabled"])], 40, ["onSubmit"])
-                                  ]), _createElementVNode("section", { class: "panel padded" }, [
-                                    _createElementVNode("p", { class: "eyebrow" }, "SEU ACESSO"),
-                                    _createElementVNode("h2", null, _toDisplayString(user.name), 1),
-                                    _createElementVNode("p", null, _toDisplayString(user.email), 1),
-                                    _createElementVNode("p", { class: "muted spaced" }, "Perfil: " + _toDisplayString(user.role_name), 1),
-                                    _createElementVNode("p", { class: "muted" }, "Ao alterar senha, perfil ou 2FA, as sessões anteriores são encerradas.")
-                                  ])]), _createElementVNode("div", { class: "panel spaced" }, [_createElementVNode("header", { class: "panel-header" }, [_createElementVNode("h2", null, "Sessões da sua conta")]), _createElementVNode("div", { class: "table-scroll" }, [_createElementVNode("table", null, [_createElementVNode("thead", null, [_createElementVNode("tr", null, [
-                                    _createElementVNode("th", null, "Origem"),
-                                    _createElementVNode("th", null, "Última atividade"),
-                                    _createElementVNode("th", null, "Situação"),
-                                    _createElementVNode("th")
-                                  ])]), _createElementVNode("tbody", null, [(_openBlock(true), _createElementBlock(_Fragment, null, _renderList(sessions, (s) => {
-                                    return (_openBlock(), _createElementBlock("tr", { key: s.id }, [
-                                      _createElementVNode("td", null, [_createTextVNode(_toDisplayString(s.label) + " ", 1), (s.current)
-                                        ? (_openBlock(), _createElementBlock("span", {
-                                            key: 0,
-                                            class: "badge"
-                                          }, "Esta sessão"))
-                                        : _createCommentVNode("", true)]),
-                                      _createElementVNode("td", null, _toDisplayString(date(s.seen)), 1),
-                                      _createElementVNode("td", null, _toDisplayString(s.revoked?'Revogada':'Ativa'), 1),
-                                      _createElementVNode("td", null, [(!s.revoked)
-                                        ? (_openBlock(), _createElementBlock("button", {
-                                            key: 0,
-                                            class: "link-button",
-                                            onClick: $event => (revokeSession(s))
-                                          }, "Encerrar", 8, ["onClick"]))
-                                        : _createCommentVNode("", true)])
-                                    ]))
-                                  }), 128))])])])])]))
-                                : (page==='audit')
-                                  ? (_openBlock(), _createElementBlock("section", {
-                                      key: 11,
-                                      class: "panel"
-                                    }, [_createElementVNode("header", { class: "panel-header" }, [_createElementVNode("h2", null, "Histórico administrativo")]), _createVNode(_component_data_table, {
-                                      rows: audit,
-                                      columns: {id:'Evento',created:'Data',actor:'Usuário',action:'Ação',target:'Registro',details:'Detalhes'}
-                                    }, null, 8, ["rows", "columns"]), _createElementVNode("div", { class: "padded" }, [_createElementVNode("button", {
-                                      class: "btn secondary",
-                                      onClick: olderAudit,
-                                      disabled: !audit.length||busy
-                                    }, "Carregar eventos anteriores", 8, ["onClick", "disabled"])])]))
-                                  : _createCommentVNode("", true),
+                                          class: "badge"
+                                        }, "Esta sessão"))
+                                      : _createCommentVNode("", true)]),
+                                    _createElementVNode("td", null, _toDisplayString(date(s.seen)), 1),
+                                    _createElementVNode("td", null, _toDisplayString(s.revoked?'Revogada':'Ativa'), 1),
+                                    _createElementVNode("td", null, [(!s.revoked)
+                                      ? (_openBlock(), _createElementBlock("button", {
+                                          key: 0,
+                                          class: "link-button",
+                                          onClick: $event => (revokeSession(s))
+                                        }, "Encerrar", 8, ["onClick"]))
+                                      : _createCommentVNode("", true)])
+                                  ]))
+                                }), 128))])])])])]))
+                              : (page==='audit')
+                                ? (_openBlock(), _createElementBlock("section", {
+                                    key: 11,
+                                    class: "panel"
+                                  }, [_createElementVNode("header", { class: "panel-header" }, [_createElementVNode("h2", null, "Histórico administrativo")]), _createVNode(_component_data_table, {
+                                    rows: audit,
+                                    columns: {id:'Evento',created:'Data',actor:'Usuário',action:'Ação',target:'Registro',details:'Detalhes'}
+                                  }, null, 8, ["rows", "columns"]), _createElementVNode("div", { class: "padded" }, [_createElementVNode("button", {
+                                    class: "btn secondary",
+                                    onClick: olderAudit,
+                                    disabled: !audit.length||busy
+                                  }, "Carregar eventos anteriores", 8, ["onClick", "disabled"])])]))
+                                : _createCommentVNode("", true),
+              (workspaceMounted && can('workspace.read'))
+                ? _withDirectives((_openBlock(), _createElementBlock("section", {
+                    key: 12,
+                    class: "work-frame panel"
+                  }, [_createElementVNode("iframe", {
+                    id: "workspace-frame",
+                    "data-owner": user.id,
+                    src: "/workspace",
+                    title: "Área de escrituração",
+                    onLoad: selectWorkspace
+                  }, null, 40, ["data-owner", "onLoad"])], 512)), [[_vShow, workspacePages.includes(page)]])
+                : _createCommentVNode("", true),
               _createElementVNode("footer", { class: "content-footer" }, [_createElementVNode("span", null, "Escritura · Organização contábil"), _createElementVNode("span", null, _toDisplayString(version) + " · " + _toDisplayString(user.role_name), 1)])
-            ])])
+            ], 2)])
           ])), dialog
       ? (_openBlock(), _createElementBlock("div", {
           key: 3,
