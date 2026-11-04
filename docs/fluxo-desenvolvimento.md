@@ -44,6 +44,8 @@ python scripts/ci/flow.py sync --apply
 Estes comandos são ferramentas de desenvolvimento. O usuário final abre o aplicativo Windows gráfico; não precisa de terminal.
 
 ```bash
+python -m pip install --only-binary=:all: --require-hashes -r requirements-server.txt
+node frontend/build.mjs
 python scripts/build.py check
 python scripts/build.py container
 python scripts/build.py container --no-cache
@@ -92,7 +94,7 @@ python scripts/ci/flow.py bootstrap --protect --apply
 
 Usa a autenticação existente do gh e exige permissão administrativa para configurar proteção. Cria develop apenas se ausente. Preserva proteções já existentes. Configura PR obrigatório, checks, bloqueio de exclusão/force-push e conversas resolvidas. O número mínimo de revisores é zero para permitir fluxo de mantenedor único; aumentar conforme a equipe. A presença do script não significa que as regras foram aplicadas no servidor.
 
-Checks recomendados: Branch policy, Tests Python 3.10/3.12/3.13, Workflow lint e Build gate. É necessário que o GitHub permita Actions e escrita de pacotes para os jobs de distribuição. Nenhuma configuração é contornada pelo pipeline.
+Checks recomendados: Branch policy, Tests Python 3.10/3.12/3.13, Workflow lint, Portal browser e Build gate. É necessário que o GitHub permita Actions e escrita de pacotes para os jobs de distribuição. Nenhuma configuração é contornada pelo pipeline.
 
 ## Recuperação
 

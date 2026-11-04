@@ -1,7 +1,7 @@
 [project]
 name = "prosoft-sped-contabil-integration"
-version = "0.2.1"
-description = "Aplicação local persistente de escrituração com integração Prosoft em preparação"
+version = "0.3.0"
+description = "Portal corporativo e aplicativo Windows de escrituração com integração Prosoft em preparação"
 requires-python = ">=3.10"
 dependencies = []
 

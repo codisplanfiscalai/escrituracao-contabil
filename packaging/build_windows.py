@@ -47,7 +47,10 @@ def main():
         "--add-data", f"{ROOT / 'src' / 'web' / 'posting_editor.js'}:src/web",
         "--add-data", f"{ROOT / 'src' / 'web' / 'style.css'}:src/web",
         *asset_args,
+        "--add-data", f"{ROOT / 'src' / 'portal'}:src/portal",
         "--collect-submodules", "src",
+        "--collect-submodules", "uvicorn",
+        "--collect-submodules", "cryptography",
         "--distpath", str(out), "--workpath", str(ROOT / "build" / args.arch),
         "--specpath", str(ROOT / "build" / args.arch), str(ROOT / "packaging" / "launcher.py"),
     ], cwd=ROOT, check=True)

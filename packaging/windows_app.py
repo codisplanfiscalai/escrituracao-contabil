@@ -11,6 +11,8 @@ import os
 from pathlib import Path
 import sys
 import threading
+import time
+import queue
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import webbrowser
@@ -24,7 +26,7 @@ class BackendController:
         self.server = None
         self.thread = None
 
-    def start(self, database, port):
+    def start(self, database, port, corporate=False):
         if self.server is not None: return
         path = Path(database).expanduser().resolve()
         if not 1024 <= int(port) <= 65535: raise ValueError('Informe uma porta entre 1024 e 65535.')
@@ -32,10 +34,21 @@ class BackendController:
             raise ValueError('Escolha a pasta de dados fora da instalação.')
         path.parent.mkdir(parents=True, exist_ok=True)
         with local_app.open_store(path): pass
-        server = local_app.LocalServer(path, int(port))
+        if corporate:
+            from src.server.runtime import PortalServer
+            server = PortalServer(path, int(port))
+        else:
+            server = local_app.LocalServer(path, int(port))
         self.server = server
         self.thread = threading.Thread(target=server.serve_forever, name='EscrituraLocal', daemon=True)
         self.thread.start()
+        if corporate:
+            deadline=time.monotonic()+10
+            while not server.server.started:
+                if not self.thread.is_alive() or time.monotonic()>deadline:
+                    self.stop()
+                    raise RuntimeError('Servidor corporativo não iniciou.')
+                time.sleep(0.05)
 
     def stop(self):
         server, thread = self.server, self.thread
@@ -172,23 +185,31 @@ def main(argv=None):
         if window: user.PostMessageW(window, 0x8002, 0, 0)
         kernel.CloseHandle(mutex)
         return
-    root = tk.Tk(); root.title('Escritura | Administração'); root.geometry('760x490'); root.minsize(660, 430)
-    root.configure(bg='#eeeeee')
+    root = tk.Tk(); root.title('Escritura | Administração'); root.geometry('1080x720'); root.minsize(920, 620)
+    root.configure(bg='#f3f5f7')
     style = ttk.Style(root); style.theme_use('clam')
-    style.configure('TFrame', background='#eeeeee'); style.configure('TLabel', background='#eeeeee')
+    style.configure('TFrame', background='#f3f5f7'); style.configure('TLabel', background='#f3f5f7')
+    style.configure('TButton',font=('Segoe UI',10),padding=(12,9))
+    style.configure('TNotebook.Tab',padding=(18,10),font=('Segoe UI',10))
     style.configure('TNotebook', background='#eeeeee')
     style.configure('Title.TLabel', foreground='#064D5D', font=('Segoe UI', 18, 'bold'))
     icon = local_app.WEB_ROOT / 'assets/icon.ico'
     root.iconbitmap(str(icon))
     backend = BackendController()
-    outer = ttk.Frame(root, padding=20); outer.pack(fill='both', expand=True)
-    ttk.Label(outer, text='Escritura', style='Title.TLabel').pack(anchor='w')
+    sidebar=tk.Frame(root,bg='#064d5d',width=210);sidebar.pack(side='left',fill='y');sidebar.pack_propagate(False)
+    tk.Label(sidebar,text='Escritura',font=('Segoe UI',25,'bold'),fg='white',bg='#064d5d').pack(anchor='w',padx=22,pady=(32,4))
+    tk.Label(sidebar,text='ORGANIZAÇÃO CONTÁBIL',font=('Segoe UI',8),fg='#adcbd0',bg='#064d5d').pack(anchor='w',padx=24)
+    tk.Label(sidebar,text='ADMINISTRAÇÃO\nDA ESTAÇÃO',font=('Segoe UI',9,'bold'),fg='#adcbd0',bg='#064d5d',justify='left').pack(anchor='w',padx=24,pady=(50,12))
+    tk.Label(sidebar,text='Serviços e conexões\nConfiguração local\nHistórico operacional',font=('Segoe UI',11),fg='#edf5f6',bg='#064d5d',justify='left',pady=15).pack(anchor='w',padx=24)
+    tk.Label(sidebar,text='Disponível na bandeja\nmesmo com a janela fechada.',font=('Segoe UI',9),fg='#adcbd0',bg='#064d5d',justify='left').pack(side='bottom',padx=20,pady=30)
+    outer = ttk.Frame(root, padding=26); outer.pack(fill='both', expand=True)
+    ttk.Label(outer, text='Administração do ambiente', style='Title.TLabel').pack(anchor='w')
     state = tk.StringVar(value='Serviço parado')
     ttk.Label(outer, textvariable=state, padding=(0, 8)).pack(anchor='w')
     tabs = ttk.Notebook(outer); tabs.pack(fill='both', expand=True)
-    operations = ttk.Frame(tabs, padding=16); settings = ttk.Frame(tabs, padding=16); logs = ttk.Frame(tabs, padding=8)
-    tabs.add(operations, text='Serviços'); tabs.add(settings, text='Configurações'); tabs.add(logs, text='Histórico operacional')
-    ttk.Label(operations, text='Serviço local de compatibilidade\nOs dados permanecem neste computador.', justify='left').pack(anchor='w', pady=(0, 16))
+    operations = ttk.Frame(tabs, padding=16); settings = ttk.Frame(tabs, padding=16); logs = ttk.Frame(tabs, padding=8); remote_tab=ttk.Frame(tabs,padding=16)
+    tabs.add(operations, text='Serviços'); tabs.add(settings, text='Configurações'); tabs.add(remote_tab,text='Servidor Docker'); tabs.add(logs, text='Histórico')
+    ttk.Label(operations, text='Portal corporativo local\nLogin, usuários, perfis, empresas e escrituração nesta estação.', justify='left').pack(anchor='w', pady=(0, 16))
     ttk.Label(operations, text='O portal de trabalho abre no navegador.\nA administração permanece disponível na área de notificação.', justify='left').pack(anchor='w', pady=8)
     database_var, port_var = tk.StringVar(value=database), tk.StringVar(value=str(port))
     ttk.Label(settings, text='Arquivo de dados privado').grid(row=0, column=0, sticky='w')
@@ -210,7 +231,7 @@ def main(argv=None):
     def show(): root.deiconify(); root.lift(); root.focus_force()
     def start():
         try:
-            backend.start(database_var.get(), int(port_var.get()))
+            backend.start(database_var.get(), int(port_var.get()),corporate=True)
             state.set(f'Serviço ativo - http://127.0.0.1:{backend.server.server_port}')
             log('Serviço iniciado.')
             if tray: tray.notify('Serviço local iniciado.')
@@ -238,6 +259,97 @@ def main(argv=None):
     ttk.Button(settings, text='Salvar configuração', command=save).grid(row=5, column=0, sticky='w', pady=12)
     buttons = ttk.Frame(operations); buttons.pack(anchor='w', pady=12)
     for label, action in [('Iniciar', start), ('Interromper', stop), ('Reiniciar', restart), ('Abrir portal', portal)]: ttk.Button(buttons, text=label, command=action).pack(side='left', padx=(0, 6))
+    def setup_key():
+        path=Path(database_var.get()).expanduser().resolve().parent/'identity'/'setup.token'
+        if not path.exists():
+            messagebox.showinfo('Escritura','Inicie o portal local para preparar a instalação.',parent=root);return
+        key=path.read_text(encoding='utf-8').strip()
+        root.clipboard_clear();root.clipboard_append(key)
+        messagebox.showinfo('Escritura','Chave de instalação copiada. Cole-a na tela de primeiro acesso do portal. Após configurar, esta chave não cria outro administrador.',parent=root)
+    ttk.Button(operations,text='Copiar chave do primeiro acesso',command=setup_key).pack(anchor='w',pady=15)
+    from remote_services import RemoteServices,save_token,load_token,validate_url
+    remote_config_file=home/'remote.json';remote_config={}
+    if remote_config_file.exists():
+        try:remote_config=json.loads(remote_config_file.read_text(encoding='utf-8'))
+        except (ValueError,OSError):pass
+    agent_url=tk.StringVar(value=remote_config.get('agent_url',''))
+    portal_url=tk.StringVar(value=remote_config.get('portal_url',''))
+    ca_file=tk.StringVar(value=remote_config.get('ca_file',''))
+    credential=tk.StringVar(value='')
+    ttk.Label(remote_tab,text='Conexão com a instalação Docker',font=('Segoe UI',13,'bold')).grid(row=0,column=0,columnspan=3,sticky='w',pady=(0,10))
+    for row,label,variable in [(1,'URL HTTPS do portal',portal_url),(3,'URL HTTPS do agente',agent_url),(5,'Certificado da CA (opcional)',ca_file),(7,'Credencial do agente (em branco mantém o cofre)',credential)]:
+        ttk.Label(remote_tab,text=label).grid(row=row,column=0,columnspan=3,sticky='w')
+        ttk.Entry(remote_tab,textvariable=variable,width=67,show='•' if row==7 else '').grid(row=row+1,column=0,columnspan=3,sticky='ew',pady=(3,9))
+    remote_tab.columnconfigure(0,weight=1)
+    service_tree=ttk.Treeview(remote_tab,columns=('service','state','image'),show='headings',height=5)
+    for column,title,width in [('service','Serviço',150),('state','Estado',90),('image','Imagem',330)]:service_tree.heading(column,text=title);service_tree.column(column,width=width)
+    service_tree.grid(row=10,column=0,columnspan=3,sticky='nsew',pady=10)
+    remote_tab.rowconfigure(10,weight=1)
+    task_queue=queue.Queue();remote_busy=False
+    def remote_client():
+        token=credential.get() or load_token(home/'agent.dpapi')
+        if not token:raise ValueError('Informe a credencial do agente.')
+        return RemoteServices(agent_url.get(),token,ca_file.get())
+    def complete_tasks():
+        try:
+            while True:task_queue.get_nowait()()
+        except queue.Empty:pass
+        root.after(100,complete_tasks)
+    root.after(100,complete_tasks)
+    def remote_task(action):
+        nonlocal remote_busy
+        if remote_busy:return
+        try:client=remote_client()
+        except Exception as error:messagebox.showerror('Escritura',str(error),parent=root);return
+        selected=service_tree.selection()
+        if action!='status' and not selected:messagebox.showinfo('Escritura','Selecione um serviço desta instalação.',parent=root);return
+        ident=selected[0] if selected else None
+        if action in ('stop','restart') and not messagebox.askyesno('Escritura','Esta operação afeta os usuários conectados. Executar no serviço selecionado?',parent=root):return
+        remote_busy=True
+        state.set('Consultando instalação remota…')
+        def work():
+            try:
+                if action=='logs':
+                    detail=client.logs(ident)
+                    result=client.services()
+                else:
+                    if action!='status':client.command(ident,action)
+                    result=client.services();detail=''
+                def done():
+                    nonlocal remote_busy
+                    service_tree.delete(*service_tree.get_children())
+                    for item in result['services']:service_tree.insert('', 'end',iid=item['id'],values=(item['name'],item['state'],item['image']))
+                    if ident and service_tree.exists(ident):service_tree.selection_set(ident)
+                    state.set('Instalação remota conectada: '+result['installation'])
+                    log('Agente: '+action+' concluído.')
+                    if detail:log(detail);tabs.select(logs)
+                    if tray and action in ('start','stop','restart'):tray.notify('Comando remoto concluído: '+action)
+                    remote_busy=False
+                task_queue.put(done)
+            except Exception as error:
+                message=str(error)
+                def failed():
+                    nonlocal remote_busy
+                    remote_busy=False;state.set('Instalação remota indisponível');log(message)
+                    messagebox.showerror('Escritura',message,parent=root)
+                task_queue.put(failed)
+        threading.Thread(target=work,daemon=True,name='EscrituraAgent').start()
+    def save_remote():
+        try:
+            values={'agent_url':validate_url(agent_url.get()),'portal_url':validate_url(portal_url.get()),'ca_file':ca_file.get()}
+            if ca_file.get() and not Path(ca_file.get()).is_file():raise ValueError('Arquivo da CA não encontrado.')
+            if credential.get():save_token(home/'agent.dpapi',credential.get());credential.set('')
+            temporary=remote_config_file.with_suffix('.tmp');temporary.write_text(json.dumps(values,indent=2),encoding='utf-8');temporary.replace(remote_config_file)
+            log('Conexão salva. Credencial protegida pelo Windows para este usuário.')
+        except Exception as error:messagebox.showerror('Escritura',str(error),parent=root)
+    def open_remote():
+        try:webbrowser.open(validate_url(portal_url.get()))
+        except ValueError as error:messagebox.showerror('Escritura',str(error),parent=root)
+    remote_actions=ttk.Frame(remote_tab);remote_actions.grid(row=9,column=0,columnspan=3,sticky='w')
+    ttk.Button(remote_actions,text='Salvar conexão',command=save_remote).pack(side='left',padx=(0,6))
+    ttk.Button(remote_actions,text='Abrir portal remoto',command=open_remote).pack(side='left')
+    commands=ttk.Frame(remote_tab);commands.grid(row=11,column=0,columnspan=3,sticky='w')
+    for title,action in [('Consultar','status'),('Iniciar','start'),('Parar','stop'),('Reiniciar','restart'),('Logs','logs')]:ttk.Button(commands,text=title,command=lambda a=action:remote_task(a)).pack(side='left',padx=(0,5))
     def hide(event=None):
         if tray and tray.available: root.withdraw()
         else: root.iconify()
@@ -245,7 +357,7 @@ def main(argv=None):
         backend.stop()
         if tray: tray.close()
         root.destroy()
-    callbacks = {1: ('Abrir administração', show), 2: ('Abrir portal', portal), 3: ('Iniciar serviço', start), 4: ('Interromper serviço', stop), 5: ('Reiniciar serviço', restart), 6: ('Sair do Escritura', quit_app)}
+    callbacks = {1: ('Abrir administração', show), 2: ('Abrir portal', portal), 3: ('Iniciar serviço', start), 4: ('Interromper serviço', stop), 5: ('Reiniciar serviço', restart), 6: ('Sair do Escritura', quit_app), 7: ('Consultar Docker remoto', lambda: remote_task('status')), 8: ('Abrir portal remoto', open_remote)}
     try: tray = Tray(root, icon, callbacks, identity)
     except Exception: log('Área de notificação indisponível; use a janela de administração.')
     ttk.Button(outer, text='Sair do Escritura', command=quit_app).pack(anchor='e', pady=(12, 0))
@@ -265,7 +377,7 @@ def main(argv=None):
         kernel.GetConsoleWindow.restype = w.HWND
         def smoke_status():
             Path(status_file).write_text(json.dumps({'tk_window': bool(root.winfo_exists()), 'tray_window': bool(tray and tray.window), 'tray_available': bool(tray and tray.available), 'console_window': bool(kernel.GetConsoleWindow()), 'frozen': bool(getattr(sys, 'frozen', False)), 'backend_running': backend.running}), encoding='utf-8')
-        root.after(800, smoke_status)
+        root.after(1800, smoke_status)
     try: root.mainloop()
     finally:
         backend.stop()

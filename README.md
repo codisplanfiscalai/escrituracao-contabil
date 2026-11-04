@@ -1,4 +1,11 @@
-# Escritura - organização fiscal e contábil
+# Escritura
+
+Portal corporativo de organização contábil com aplicativo Windows gráfico, autenticação, administração e serviços Docker.
+
+- [Portal, primeiro acesso e instalação](docs/portal-corporativo.md)
+- [Fluxo main/develop, builds, releases e limpeza](docs/fluxo-desenvolvimento.md)
+- [Arquitetura e preservação funcional](docs/arquitetura-consolidada.md)
+
 
 **Windows gráfico:** abra o EXE para administrar a aplicação pela janela e pelo ícone na área de notificação, sem terminal. Fechar/ESC recolhe a janela; Sair encerra o serviço.
 
@@ -24,12 +31,16 @@ Este repositório contém apenas código, decisões e testes com identificadores
 
 ## Começar
 
-Execute com Python 3.10 ou superior, sem dependências externas, a partir da raiz deste projeto:
+No Windows, extraia o ZIP completo e abra `EscrituracaoContabil.exe`. Inicie o serviço na janela, copie a chave do primeiro acesso e abra o portal para cadastrar o administrador. A operação diária usa interface gráfica e ícone na área de notificação.
 
-    python -m src.local_app --database /caminho/privado/escrituracao.sqlite3 --port 8765
+Para servidor Docker, use as configurações de `deploy/` e siga [instalação do portal](docs/portal-corporativo.md). O acesso compartilhado usa HTTPS, autenticação e escopo por empresa. Dados e chaves ficam em volume persistente, com backup privado.
 
-Abra http://127.0.0.1:8765. Em Windows, informe por exemplo um caminho privado no seu perfil de usuário. O servidor aceita somente conexões loopback. Use um banco fora do repositório; ele contém dados originais em texto claro e deve ficar em diretório privado, com proteção e backup do sistema operacional. CNPJ é opcional no cadastro, mas importações sem ele permanecem pendentes de conferência de identidade.
+Para desenvolvimento com Python 3.10 ou superior:
 
+    python -m pip install --only-binary=:all: --require-hashes -r requirements-server.txt
+    python -m src.server.runtime --host 127.0.0.1 --database /caminho/privado/escrituracao.sqlite3
+
+Abra http://127.0.0.1:8765 e configure o administrador com a chave em `identity/setup.token`, junto do banco informado. O módulo local anterior permanece para compatibilidade e testes, mas o aplicativo distribuído e o contêiner iniciam o portal autenticado.
 Cadastre uma empresa, defina os períodos de parâmetros e movimentos e importe seu plano pelo formulário JSON. As contas requerem code, description, parent_code (ou null), kind (sintetica/analitica), nature (devedora/credora) e attributes (opcional). Cada nova importação com o mesmo nome cria uma versão, sem alterar a anterior. Mapeamentos exigem destino analítico e preservam versões.
 
 Recebimento XML suporta apenas NF-e 4.00 modelo 55, com cabeçalho e faturas/parcelas. Verifica chave/DV, campos de controle e competência de emissão, mas não assinatura, autorização, esquema XSD ou correção fiscal integral. Competência diferente da emissão exige revisão e não é atribuída automaticamente.
@@ -38,7 +49,7 @@ SPED pode ser apenas preservado (padrão) ou analisado com o perfil explícito E
 
 Faturas e parcelas extraídas do XML possuem IDs próprios, ligados ao documento e às observações de arquivo/caminho. Referências iguais agregam fontes; valores conflitantes não sobrescrevem os primeiros. Identificadores de cobrança divergentes ficam pendentes, sem criar títulos/parcelas adicionais por suposição. Em Conciliação, a associação explícita aceita apenas XMLs do mesmo contexto, com identificadores presentes, valores/vencimentos iguais e correspondência completa 1:1; exige prévia, motivo e confirmação. Originais e diferenças ficam preservados; a decisão versionada exige nova revisão documental. Casos incompletos, aritmética ou valores divergentes continuam bloqueados. [Contrato de associação](docs/associacao-cobranca.md). Em Documentos, “Analisar arquivo já salvo” reutiliza os bytes armazenados e registra a tentativa sem duplicar entidades.
 
-O programa não calcula CBS/IBS, não gera arquivos de importação Prosoft e não transmite dados. Não existe autenticação multiusuário nem pronto uso em rede/produção. Em Documentos, a remoção lógica apresenta o arquivo, documentos dependentes e consequências; exige motivo e confirmação, preserva o original e a auditoria e deixa os documentos vinculados pendentes. Uma prévia desatualizada é recusada. Fontes de documentos vinculados a lotes fechados têm remoção bloqueada. Purga definitiva e restauração permanecem indisponíveis.
+O programa não calcula CBS/IBS, não gera arquivos de importação Prosoft e não transmite dados. O portal possui autenticação multiusuário e isolamento por empresa; a implantação em rede exige a configuração HTTPS documentada e a homologação operacional do ambiente. Em Documentos, a remoção lógica apresenta o arquivo, documentos dependentes e consequências; exige motivo e confirmação, preserva o original e a auditoria e deixa os documentos vinculados pendentes. Uma prévia desatualizada é recusada. Fontes de documentos vinculados a lotes fechados têm remoção bloqueada. Purga definitiva e restauração permanecem indisponíveis.
 
 Na Conciliação, registre a fonte escolhida, o motivo e a conferência explícita. A decisão tem versão e fingerprint das fontes; mudanças tornam a decisão caduca e mantêm as diferenças visíveis. Em Contabilização local, use o editor assistido para escolher documentos revisados e mapeamentos aprovados/vigentes, consultar fontes e informar as partidas. Os totalizadores usam centavos inteiros; contas e contrapartidas não são sugeridas automaticamente. O modo JSON avançado permanece disponível. Rascunhos não enviados ficam somente na página e são limpos ao trocar empresa/período; prévias salvas persistem. [Contrato do editor](docs/editor-partidas.md). O motor exige contas analíticas, valores decimais textuais, datas dos movimentos, equilíbrio por grupo/documento/lote e total correspondente à fonte escolhida. Não escolhe contas ou tratamentos fiscais automaticamente.
 

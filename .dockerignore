@@ -2,6 +2,10 @@
 **
 !src/
 !src/*.py
+!src/server/
+!src/server/*.py
+!src/portal/
+!src/portal/**
 !src/web/
 !src/web/index.html
 !src/web/app.js
@@ -27,9 +31,13 @@
 !packaging/smoke_test.py
 !tests/
 !tests/test_*.py
+!tests/server/
+!tests/server/*.py
 !config/
 !config/scenario.synthetic.json
 !pyproject.toml
+!requirements-server.txt
+!VERSION
 !Dockerfile
 **/__pycache__/
 **/*.pyc

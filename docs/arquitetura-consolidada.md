@@ -14,7 +14,7 @@ A retomada inicial foi conferida no SHA 8f8e075566ca718708945520f6fea6e80b5c6451
 
 1. Preservar os módulos de domínio e suas invariantes; ampliar por contratos e adaptadores. Não substituir o banco, framework, interface e motor simultaneamente.
 2. Usar Python no backend. As duas referências já possuem FastAPI; a adaptação de uma API autenticada é coerente e evita introduzir PHP/Laravel apenas para reproduzir telas.
-3. Evoluir o portal com Vue 3 e TypeScript em módulo separado. Reaproveitar padrões e componentes isoláveis; não transportar toda a árvore de templates ou seu build acoplado ao domínio escolar.
+3. Evoluir o portal com Vue 3 em módulo separado; introduzir TypeScript quando houver migração incremental do build. Reaproveitar padrões e componentes isoláveis; não transportar toda a árvore de templates ou seu build acoplado ao domínio escolar.
 4. Manter SQLite no modo local de compatibilidade até existir migração testada. O destino compartilhado pode usar PostgreSQL, com adaptadores de persistência e migração explícita. Não compartilhar arquivo SQLite em pasta de rede.
 5. Separar administração Windows, serviços de negócio e controle de infraestrutura. O aplicativo do operador não deve conter uma cópia divergente do motor contábil.
 6. Ter um serviço de identidade e uma política de autorização. Não instalar duas autenticações e dois cadastros de usuários concorrentes.
@@ -92,11 +92,11 @@ Fluxo previsto: Windows e portal acessam a API autenticada por HTTPS; a API usa 
 
 **Banco e filas.** SQLAlchemy/Alembic/PostgreSQL, S3, Redis e RabbitMQ aparecem nos materiais; a base atual usa stdlib/SQLite. Não introduzir todos de uma vez. Começar pela API/contratos, adicionar jobs persistentes e storage quando necessário, depois migrar dados com reconciliação. Não manter dois escritores independentes para os mesmos eventos contábeis.
 
-## Windows e Docker: transição
+## Windows e Docker: transição original
 
 O incremento de distribuição entrega aplicativo gráfico com tray e controles do serviço local de compatibilidade. O núcleo fiscal/contábil continua inalterado. Os checks Windows passam a exigir PE GUI e ausência de console no EXE.
 
-O modo Docker compartilhado exige primeiro API autenticada, identidade real e isolamento de empresas. O contêiner atual não fornece essa fronteira. Próxima implementação: cadastro de instalações/endpoints, validação TLS, autenticação de operador/dispositivo, capacidades anunciadas pela API, consulta de versões e health/readiness, logs paginados e comandos administrativos com autorização e idempotência.
+O modo Docker compartilhado exige primeiro API autenticada, identidade real e isolamento de empresas. Na análise inicial, o contêiner ainda não fornecia essa fronteira. Requisitos identificados para evolução: cadastro de instalações/endpoints, validação TLS, autenticação de operador/dispositivo, capacidades anunciadas pela API, consulta de versões e health/readiness, logs paginados e comandos administrativos com autorização e idempotência.
 
 Em instalação remota, o cliente Windows conversa com um agente no host dos contêineres. Iniciar/parar/reiniciar deve selecionar apenas serviços cadastrados dessa instalação, sem receber comandos arbitrários. Iniciar toda a infraestrutura não pode depender exclusivamente da API de negócio que está parada. Credenciais ficam no cofre do sistema operacional; tokens de sessão, segredos de e-mail e credenciais GHCR não entram em arquivo de configuração comum.
 
@@ -133,3 +133,9 @@ A interface nova pode ser introduzida por módulo, mantendo a anterior acessíve
 ## Limites da análise
 
 A suíte da base funcional foi executada; as duas aplicações de referência não foram implantadas integralmente neste ambiente. A análise estrutural cobre os pacotes, e a revisão de comportamento se concentra nos fluxos que serão integrados. Cada módulo ainda requer testes de caracterização antes de portar implementação. A análise não substitui homologação fiscal, testes com os layouts reais já fornecidos nem ensaio em instalações Windows/Docker de produção.
+
+## Implementação corporativa 0.3.0
+
+A evolução de identidade e portal foi implementada em módulos novos, preservando o motor e o esquema contábil. Há API FastAPI autenticada, portal Vue com templates pré-compilados, administração, cliente, TOTP, sessões, reset e SMTP. O aplicativo Windows executa o portal local autenticado e administra contêineres por agente HTTPS independente. A integração visual preserva os componentes operacionais existentes dentro da área de trabalho autenticada. Os detalhes de operação, permissões, implantação e limites estão em [portal-corporativo.md](portal-corporativo.md).
+
+A decisão de manter os componentes contábeis em uma área integrada evita reescrever os fluxos de revisão, conciliação e fechamento ao mesmo tempo que se introduz autenticação. A autorização é aplicada na API que reutiliza a mesma fachada de domínio. O layout e a navegação novos não autorizam operações por conta própria.

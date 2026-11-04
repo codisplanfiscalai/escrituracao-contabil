@@ -1,0 +1,9 @@
+{$ESCRITURA_DOMAIN} {
+    encode zstd gzip
+    handle_path /agent/* {
+        reverse_proxy agent:8766
+    }
+    handle {
+        reverse_proxy api:8765
+    }
+}

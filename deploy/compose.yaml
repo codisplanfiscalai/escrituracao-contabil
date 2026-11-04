@@ -1,0 +1,57 @@
+name: escritura
+services:
+  api:
+    image: ${ESCRITURA_IMAGE:-ghcr.io/codisplanfiscalai/escrituracao-contabil:develop}
+    restart: unless-stopped
+    environment:
+      ESCRITURA_PUBLIC_URL: ${ESCRITURA_PUBLIC_URL:?Informe a URL HTTPS do portal}
+      ESCRITURA_DATA: /data
+    volumes:
+      - accounting:/data
+    read_only: true
+    tmpfs:
+      - /tmp:rw,noexec,nosuid,size=64m
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    labels:
+      io.escritura.installation: ${ESCRITURA_INSTALLATION:-escritura}
+      io.escritura.managed: 'true'
+    healthcheck:
+      test: [CMD, python, -c, "import os,urllib.request; u=os.environ['ESCRITURA_PUBLIC_URL']; r=urllib.request.Request('http://127.0.0.1:8765/health/live',headers={'Host':u.split('://',1)[1].rstrip('/')}); urllib.request.urlopen(r,timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+  proxy:
+    image: caddy:2.10.2-alpine
+    restart: unless-stopped
+    environment:
+      ESCRITURA_DOMAIN: ${ESCRITURA_DOMAIN:?Informe o domínio do portal}
+    ports:
+      - '80:80'
+      - '443:443'
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - certificates:/data
+      - proxy_config:/config
+    depends_on: [api]
+  agent:
+    profiles: [management]
+    image: ${ESCRITURA_IMAGE:-ghcr.io/codisplanfiscalai/escrituracao-contabil:develop}
+    entrypoint: [python, -m, src.agent]
+    user: '0:0'
+    restart: unless-stopped
+    environment:
+      ESCRITURA_AGENT_DATA: /agent-data
+      ESCRITURA_INSTALLATION: ${ESCRITURA_INSTALLATION:-escritura}
+    volumes:
+      - agent_data:/agent-data
+      - /var/run/docker.sock:/var/run/docker.sock
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+volumes:
+  accounting:
+  certificates:
+  proxy_config:
+  agent_data:

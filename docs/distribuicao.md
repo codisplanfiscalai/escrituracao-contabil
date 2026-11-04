@@ -56,7 +56,7 @@ Fontes: [resvg WASM](https://github.com/yisibl/resvg-js/tree/main/wasm),
 
 ## Contêiner
 
-O Dockerfile preserva a base fixada por digest, execução sem privilégios e teste isolado. A imagem atual ainda é uma fundação local, com listener loopback no contêiner: publicar o pacote no GHCR não cria um serviço web compartilhado. Não publicar portas desta imagem como atalho para habilitar uso multiusuário.
+O Dockerfile preserva a base fixada por digest, execução sem privilégios e teste isolado. A imagem executa o portal corporativo autenticado. A implantação usa a URL pública configurada e proxy HTTPS; o modo local publica somente em loopback. Consulte [portal-corporativo.md](portal-corporativo.md).
 
 O pipeline testa o alvo test, cria final, executa smoke com rede desabilitada, filesystem somente leitura e diretórios temporários privados; salva a imagem exata para publicação posterior. Manifestos e hashes acompanham cada entrega.
 
@@ -65,3 +65,7 @@ O pipeline testa o alvo test, cria final, executa smoke com rede desabilitada, f
 Confira SHA256SUMS.txt e release.json, preserve o diretório inteiro do pacote e faça backup privado do SQLite. Releases imutáveis mantêm SHA fonte, versão SemVer e digest da imagem. Migrações de banco são independentes de rollback do executável.
 
 Veja os comandos de build, manutenção, prerelease contínua, release estável e recuperação em [fluxo-desenvolvimento.md](fluxo-desenvolvimento.md).
+
+## Portal corporativo
+
+A partir de 0.3.0 o executável abre a administração gráfica da estação e executa o portal autenticado. O primeiro acesso é configurado com a chave fornecida pela própria janela. A aba Servidor Docker oferece conexão HTTPS e comandos via agente isolado. Extraia todo o pacote: recursos Vue e bibliotecas da API fazem parte da distribuição. Consulte [portal-corporativo.md](portal-corporativo.md) para instalação, SMTP, usuários e operação.
