@@ -5,6 +5,7 @@ Portal corporativo de organização contábil com aplicativo Windows gráfico, a
 - [Portal, primeiro acesso e instalação](docs/portal-corporativo.md)
 - [Fluxo main/develop, builds, releases e limpeza](docs/fluxo-desenvolvimento.md)
 - [Arquitetura e preservação funcional](docs/arquitetura-consolidada.md)
+- [Windows offline, Docker e dependências GHCR](docs/distribuicao-offline-ghcr.md)
 
 
 **Windows gráfico:** abra o EXE para administrar a aplicação pela janela e pelo ícone na área de notificação, sem terminal. Fechar/ESC recolhe a janela; Sair encerra o serviço.

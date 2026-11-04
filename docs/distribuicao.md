@@ -10,7 +10,7 @@ O ícone na área de notificação oferece os mesmos controles. Fechar a janela 
 
 Dados padrão: `%LOCALAPPDATA%\EscrituracaoContabil\accounting.sqlite3`. A configuração gráfica fica em desktop.json na mesma pasta. Trocar o caminho não copia nem migra o banco. Interrompa o serviço antes de salvar a configuração e faça backup antes de atualizar. O histórico exibido na janela é operacional e temporário; a auditoria fiscal/contábil persistente continua no banco.
 
-Esta versão administra o serviço local de compatibilidade. A conexão administrativa a serviços Docker remotos é parte da próxima etapa de arquitetura e não está habilitada por esta janela. O serviço local continua em 127.0.0.1; não houve exposição de porta em rede.
+O aplicativo administra o portal autenticado local em 127.0.0.1. A aba Servidor Docker conecta ao agente HTTPS independente para consultar e controlar serviços autorizados; esse modo exige rede até o servidor e não substitui a instalação local offline.
 
 PyInstaller usa `--windowed`. O build valida o subsystem PE GUI, arquitetura e ícones. O teste nativo abre a janela, cria a infraestrutura do tray, confere ausência de console no EXE, inicia o serviço, grava dados fictícios, encerra e reinicia. A disponibilidade visual do ícone depende da sessão do Windows; execução em runner não substitui homologação em todas as edições do sistema. EXEs ainda não possuem assinatura Authenticode.
 
@@ -59,6 +59,8 @@ Fontes: [resvg WASM](https://github.com/yisibl/resvg-js/tree/main/wasm),
 O Dockerfile preserva a base fixada por digest, execução sem privilégios e teste isolado. A imagem executa o portal corporativo autenticado. A implantação usa a URL pública configurada e proxy HTTPS; o modo local publica somente em loopback. Consulte [portal-corporativo.md](portal-corporativo.md).
 
 O pipeline testa o alvo test, cria final, executa smoke com rede desabilitada, filesystem somente leitura e diretórios temporários privados; salva a imagem exata para publicação posterior. Manifestos e hashes acompanham cada entrega.
+
+O inventário de imagens, espelhamento GHCR, operação offline e limites da cadeia de build estão em [Distribuição offline e dependências](distribuicao-offline-ghcr.md).
 
 ## Verificação e atualização
 

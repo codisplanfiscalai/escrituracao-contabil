@@ -8,8 +8,12 @@ on:
       version:
         type: string
         required: true
+      base_source:
+        type: string
+        default: upstream
 permissions:
   contents: read
+  packages: read
 jobs:
   container:
     runs-on: ubuntu-24.04
@@ -22,7 +26,21 @@ jobs:
       - name: Test, build and export the exact tested image
         env:
           BUILD_VERSION: ${{ inputs.version }}
-        run: python scripts/build.py container --version "$BUILD_VERSION"
+          BASE_SOURCE: ${{ inputs.base_source }}
+          GH_TOKEN: ${{ github.token }}
+          REGISTRY_USER: ${{ github.actor }}
+        run: |
+          set -euo pipefail
+          case "$BASE_SOURCE" in
+            upstream) ;;
+            ghcr)
+              trap 'docker logout ghcr.io >/dev/null 2>&1' EXIT
+              printf '%s' "$GH_TOKEN" | docker login ghcr.io --username "$REGISTRY_USER" --password-stdin
+              ;;
+            *) echo 'Invalid dependency source' >&2; exit 1 ;;
+          esac
+          unset GH_TOKEN
+          python scripts/build.py container --version "$BUILD_VERSION" --base-source "$BASE_SOURCE"
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
           name: container

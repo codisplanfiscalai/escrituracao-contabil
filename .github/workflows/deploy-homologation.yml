@@ -33,5 +33,5 @@ jobs:
           docker pull "$image"
           docker logout ghcr.io >/dev/null
           unset GH_TOKEN
-          docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges --tmpfs /tmp:rw,nosuid,nodev,mode=1777 --tmpfs /data:rw,nosuid,nodev,uid=10001,gid=10001,mode=0700 --entrypoint python "$image" packaging/smoke_test.py
+          docker run --rm --network none --read-only --cap-drop ALL --security-opt no-new-privileges --tmpfs /tmp:rw,nosuid,nodev,mode=1777 --tmpfs /data:rw,nosuid,nodev,uid=10001,gid=10001,mode=0700 --entrypoint python "$image" packaging/smoke_test.py --server
           printf 'Homologação técnica efêmera concluída: %s\nDados fictícios descartados; nenhuma homologação fiscal ou implantação em produção.\n' "$image" >> "$GITHUB_STEP_SUMMARY"

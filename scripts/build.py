@@ -12,6 +12,8 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / 'scripts' / 'ci'))
 from version import read_version, validate_build
+from container_images import load_lock, image_ref
+from container_smoke import smoke
 
 
 def run(*args, **kwargs):
@@ -48,14 +50,18 @@ def windows(arch, version, install):
     run(sys.executable, 'packaging/build_windows.py', '--arch', arch, '--version', version)
 
 
-def container(version, no_cache):
+def container(version, no_cache, base_source="upstream", proxy_ca=None):
     sha = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
     if not re.fullmatch(r'[0-9a-f]{40}', sha): raise ValueError('SHA inválido.')
     image = f'escritura-build:{version}'
     cache = ['--no-cache'] if no_cache else []
-    run('docker', 'build', *cache, '--build-arg', f'APP_VERSION={version}', '--target', 'test', '--tag', 'escritura-tests:local', '.')
-    run('docker', 'build', *cache, '--build-arg', f'APP_VERSION={version}', '--target', 'final', '--label', f'org.opencontainers.image.version={version}', '--label', f'org.opencontainers.image.revision={sha}', '--tag', image, '.')
-    run('docker', 'run', '--rm', '--network', 'none', '--read-only', '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges', '--tmpfs', '/tmp:rw,nosuid,nodev,mode=1777', '--tmpfs', '/data:rw,nosuid,nodev,uid=10001,gid=10001,mode=0700', '--entrypoint', 'python', image, 'packaging/smoke_test.py')
+    base = image_ref(load_lock()['images']['python'], base_source)
+    build_args = ['--build-arg', f'PYTHON_IMAGE={base}']
+    if proxy_ca:
+        build_args += ['--secret', f'id=proxy_ca,src={Path(proxy_ca).resolve()}']
+    run('docker', 'build', *cache, *build_args, '--build-arg', f'APP_VERSION={version}', '--target', 'test', '--tag', 'escritura-tests:local', '.')
+    run('docker', 'build', *cache, *build_args, '--build-arg', f'APP_VERSION={version}', '--target', 'final', '--label', f'org.opencontainers.image.version={version}', '--label', f'org.opencontainers.image.revision={sha}', '--tag', image, '.')
+    smoke(image)
     image_id = subprocess.check_output(['docker', 'image', 'inspect', '--format', '{{.Id}}', image], text=True).strip()
     out = ROOT / 'artifacts'; out.mkdir(exist_ok=True)
     tar = out / 'container.tar'
@@ -67,7 +73,7 @@ def container(version, no_cache):
     hasher = hashlib.sha256()
     with archive.open('rb') as handle:
         for block in iter(lambda: handle.read(1024*1024), b''): hasher.update(block)
-    manifest = {'schema': 1, 'version': version, 'source_sha': sha, 'image': image, 'image_id': image_id, 'file': archive.name, 'sha256': hasher.hexdigest(), 'size': archive.stat().st_size, 'smoke_test': 'passed'}
+    manifest = {'schema': 1, 'base_image': base, 'images_lock_sha256': hashlib.sha256((ROOT / 'packaging/container-images.lock.json').read_bytes()).hexdigest(), 'version': version, 'source_sha': sha, 'image': image, 'image_id': image_id, 'file': archive.name, 'sha256': hasher.hexdigest(), 'size': archive.stat().st_size, 'smoke_test': 'passed'}
     (out / 'container.manifest.json').write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')
 
 
@@ -78,15 +84,17 @@ def main():
     parser.add_argument('--version')
     parser.add_argument('--install-build-tools', action='store_true')
     parser.add_argument('--no-cache', action='store_true')
+    parser.add_argument('--base-source', choices=['upstream', 'ghcr'], default='upstream')
+    parser.add_argument('--proxy-ca', type=Path, help='CA de build via secret temporário; nunca incorporada à imagem')
     args = parser.parse_args()
     version = validate_build(args.version or read_version(), read_version())
     if args.target == 'check': check()
     elif args.target == 'windows': windows(args.arch, version, args.install_build_tools)
-    elif args.target == 'container': container(version, args.no_cache)
+    elif args.target == 'container': container(version, args.no_cache, args.base_source, args.proxy_ca)
     else:
         if sys.platform == 'win32': windows(args.arch, version, args.install_build_tools)
         else: check()
-        container(version, args.no_cache)
+        container(version, args.no_cache, args.base_source, args.proxy_ca)
 
 
 if __name__ == '__main__': main()
