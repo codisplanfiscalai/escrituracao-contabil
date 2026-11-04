@@ -1,12 +1,13 @@
 import importlib.util
 import json
+import os
 from datetime import datetime, timezone
 from pathlib import Path
 import subprocess
 import sys
 import tempfile
 import unittest
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 CI = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(CI))
@@ -79,6 +80,24 @@ class CleanupTests(unittest.TestCase):
 
 
 class ArtifactTests(unittest.TestCase):
+    def test_publication_checks_visibility_before_and_after_push(self):
+        sha = 'a' * 40
+        version = '0.2.1'
+        container = {'file': 'container.tar.gz', 'image': 'synthetic', 'image_id': 'sha256:' + 'b' * 64}
+        inspected = json.dumps([{'Id': container['image_id'], 'Config': {'Labels': {
+            'org.opencontainers.image.revision': sha, 'org.opencontainers.image.version': version}}}])
+        for private, before in ((False, 'public'), (False, 'private'), (True, 'private'), (False, None), (True, None)):
+            allowed = ('private',) if private else ('private', 'public')
+            with self.subTest(private=private, before=before), tempfile.TemporaryDirectory() as temporary:
+                with patch('release.repository', return_value='owner/repo'), patch('release.read_version', return_value=version), patch('release.api', side_effect=[{'private': private}, {'object': {'sha': sha}}, {'status': 'identical'}, None, None]) as api_mock, patch('release.existing_release', return_value=(None, False)), patch('release.verify'), patch('release.verify_container', return_value=container), patch('release.subprocess.check_output', return_value=inspected), patch('release.run') as command, patch.dict(os.environ, {'GH_TOKEN': 'synthetic-token'}), patch('release.check', side_effect=[before, RuntimeError('post-check stop')]) as visibility:
+                    with self.assertRaisesRegex(RuntimeError, 'post-check stop'):
+                        publish(Path(temporary), version, sha, 'stable', 'User')
+                    self.assertEqual(visibility.call_args_list, [
+                        call('owner/repo', 'User', 'synthetic-token', allow_missing=True, allowed_visibilities=allowed),
+                        call('owner/repo', 'User', 'synthetic-token', allowed_visibilities=(before,) if before else allowed)])
+                    self.assertIn(call('docker', 'push', 'ghcr.io/owner/repo:0.2.1'), command.call_args_list)
+                    self.assertEqual(api_mock.call_count, 5)
+
     def test_completed_release_is_idempotent_for_public_and_private_repositories(self):
         for private in (False, True):
             with self.subTest(private=private), patch('release.repository', return_value='owner/repo'), patch('release.read_version', return_value='0.2.1'), patch('release.api', side_effect=[{'private': private, 'archived': False}, {'object': {'sha': 'a'*40}}, {'status': 'identical'}]), patch('release.existing_release', return_value=({}, True)), patch('release.run') as command:

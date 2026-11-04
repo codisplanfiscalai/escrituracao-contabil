@@ -94,7 +94,10 @@ def publish(folder, version, sha, channel, owner_type):
         raise ValueError('Imagem carregada não corresponde ao manifesto.')
     image = f'ghcr.io/{repo.lower()}'
     remote = f'{image}:{version}'
-    check(repo, owner_type, os.environ['GH_TOKEN'], allow_missing=True)
+    # Repositório público admite pacote público ou privado; privado exige privado.
+    allowed_visibility = ('private', 'public') if info.get('private') is False else ('private',)
+    before_visibility = check(repo, owner_type, os.environ['GH_TOKEN'], allow_missing=True,
+                              allowed_visibilities=allowed_visibility)
     # Consulta tags do pacote; falha de autorização não equivale a versão ausente.
     owner, package_name = repo.lower().split('/')
     package_path = f'{"users" if owner_type == "User" else "orgs"}/{owner}/packages/container/{quote(package_name, safe="")}'
@@ -109,14 +112,16 @@ def publish(folder, version, sha, channel, owner_type):
     else:
         run('docker', 'tag', container['image'], remote)
         run('docker', 'push', remote)
-    check(repo, owner_type, os.environ['GH_TOKEN'])
+    # Se o pacote existia, sua visibilidade precisa permanecer a mesma após o push.
+    package_visibility = check(repo, owner_type, os.environ['GH_TOKEN'],
+                               allowed_visibilities=(before_visibility,) if before_visibility else allowed_visibility)
     digests = json.loads(subprocess.check_output(['docker', 'image', 'inspect', '--format', '{{json .RepoDigests}}', remote], text=True))
     immutable = next((item for item in digests if item.startswith(image + '@sha256:')), None)
     if not immutable: raise ValueError('Digest publicado não identificado.')
     source = folder / f'escritura-{version}-source.zip'
     run('git', 'archive', '--format=zip', f'--prefix=escritura-{version}/', '--output', source.resolve(), sha)
     files = [{'name': p.name, 'size': p.stat().st_size, 'sha256': digest(p)} for p in sorted(folder.iterdir()) if p.is_file() and p.name not in {'release.json', 'SHA256SUMS.txt'}]
-    manifest = {'schema': 1, 'version': version, 'channel': channel, 'source_sha': sha, 'image': immutable, 'image_id': container['image_id'], 'files': files, 'run_url': f'https://github.com/{repo}/actions/runs/{os.getenv("GITHUB_RUN_ID", "")}', 'windows_subsystem': 'GUI', 'product_status': 'development-not-fiscally-homologated'}
+    manifest = {'schema': 1, 'version': version, 'channel': channel, 'source_sha': sha, 'image': immutable, 'image_id': container['image_id'], 'package_visibility': package_visibility, 'files': files, 'run_url': f'https://github.com/{repo}/actions/runs/{os.getenv("GITHUB_RUN_ID", "")}', 'windows_subsystem': 'GUI', 'product_status': 'development-not-fiscally-homologated'}
     (folder / 'release.json').write_text(json.dumps(manifest, indent=2) + '\n', encoding='utf-8')
     (folder / 'SHA256SUMS.txt').write_text(''.join(f'{digest(p)}  {p.name}\n' for p in sorted(folder.iterdir()) if p.is_file() and p.name != 'SHA256SUMS.txt'), encoding='utf-8')
     verify_release_files(folder, manifest, sha, version)

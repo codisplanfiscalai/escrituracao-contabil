@@ -1,4 +1,4 @@
-"""Synthetic checks for distribution integrity and the private GHCR gate."""
+"""Synthetic checks for distribution integrity and GHCR visibility policies."""
 from contextlib import redirect_stdout
 import io
 import hashlib
@@ -64,7 +64,29 @@ class CombinedReleaseTests(unittest.TestCase):
                 verify(root, sha)
 
 
-class PrivatePackageGateTests(unittest.TestCase):
+class PackageGateTests(unittest.TestCase):
+    def test_explicit_public_repository_policy_returns_actual_visibility(self):
+        for visibility in ("private", "public", "internal", None):
+            with self.subTest(visibility=visibility), patch("check_ghcr_visibility.urlopen", return_value=io.BytesIO(json.dumps({"visibility": visibility}).encode())), redirect_stdout(io.StringIO()):
+                if visibility in ("private", "public"):
+                    self.assertEqual(check("owner/repo", "User", "synthetic-token", allowed_visibilities=("private", "public")), visibility)
+                else:
+                    with self.assertRaisesRegex(ValueError, "not allowed"):
+                        check("owner/repo", "User", "synthetic-token", allowed_visibilities=("private", "public"))
+
+    def test_changed_visibility_is_rejected_by_post_push_policy(self):
+        for before, after in (("private", "public"), ("public", "private")):
+            with self.subTest(before=before), patch("check_ghcr_visibility.urlopen", return_value=io.BytesIO(json.dumps({"visibility": after}).encode())):
+                with self.assertRaisesRegex(ValueError, "not allowed"):
+                    check("owner/repo", "User", "synthetic-token", allowed_visibilities=(before,))
+
+    def test_invalid_visibility_policy_never_sends_request(self):
+        with patch("check_ghcr_visibility.urlopen") as request:
+            for allowed in ((), ("internal",), ("public", "unknown")):
+                with self.assertRaises(ValueError):
+                    check("owner/repo", "User", "synthetic-token", allowed_visibilities=allowed)
+            request.assert_not_called()
+
     def test_private_only_and_account_route(self):
         for owner_type, prefix in (("User", "users"), ("Organization", "orgs")):
             for visibility in ("private", "public", "internal", None):
