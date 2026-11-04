@@ -10,7 +10,8 @@ from verify_icons import read_ico
 
 
 def verify(directory, source_sha):
-    manifests = sorted(directory.glob("*.manifest.json"))
+    manifests = sorted(file for file in directory.glob("*.manifest.json")
+                       if file.name != "container.manifest.json")
     assert len(manifests) == 2, "Expected exactly two architecture manifests"
     architectures = set()
     for file in manifests:
@@ -46,6 +47,8 @@ def verify(directory, source_sha):
             assert executable[offset:offset + 4] == b"PE\0\0", "Invalid PE signature"
             machine = struct.unpack_from("<H", executable, offset + 4)[0]
             assert machine == {"x86": 0x14C, "x64": 0x8664}[manifest["architecture"]], "Wrong PE architecture"
+            assert struct.unpack_from("<H", executable, offset + 24 + 68)[0] == 2, "Console executable is not allowed"
+            assert manifest.get("windows_subsystem") == "GUI"
             identity = manifest["identity"]
             assert identity["name"] == "Escritura" and identity["embedded_pe_icons"] == "verified"
             assets = "EscrituracaoContabil/_internal/src/web/assets/"

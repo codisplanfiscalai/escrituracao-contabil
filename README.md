@@ -1,4 +1,9 @@
-# Escritura — organização fiscal e contábil
+# Escritura - organização fiscal e contábil
+
+**Windows gráfico:** abra o EXE para administrar a aplicação pela janela e pelo ícone na área de notificação, sem terminal. Fechar/ESC recolhe a janela; Sair encerra o serviço.
+
+**Desenvolvimento:** main/develop, SemVer, builds x86/x64 e Docker, pré-release contínua, release estável e manutenção de cache. [Fluxo e scripts completos](docs/fluxo-desenvolvimento.md). [Arquitetura e integração incremental](docs/arquitetura-consolidada.md).
+
 
 **Status:** produto em desenvolvimento, com aplicação local persistente, cadastro multiempresa, planos e mapeamentos versionados, documentos e cobrança NF-e 4.00, conciliação parcial XML × SPED, revisão persistente e motor de partidas explícitas com editor assistido, associações de cobrança, evidências de fechamento e identidade visual Escritura. Nenhum dado real foi incluído ou enviado. Integração e homologação Prosoft permanecem pendentes.
 
@@ -47,7 +52,7 @@ Fluxos A–E, navegação, entidades, permissões e dependências: [mapa funcion
 
 Escopo de leitura, origem dos perfis, migração e aceite da conciliação: [conciliação documental](docs/conciliacao-documental.md).
 
-Distribuição Windows x86/x64, dependências fixadas, manifestos/checksums, imagem Docker e workflows de release/GHCR/homologação: [instalação e distribuição](docs/distribuicao.md). Os builds precisam de execução e verificação dos artefatos no Actions; definir o workflow não comprova que os binários estão prontos. Os fluxos manuais não publicam nem implantam por este PR. [Critérios para conclusão do produto](docs/criterios-produto.md) distinguem funcionalidades, distribuição e homologação real.
+Distribuição Windows x86/x64, dependências fixadas, manifestos/checksums, imagem Docker e workflows de release/GHCR/homologação: [instalação e distribuição](docs/distribuicao.md). Os builds precisam de execução e verificação dos artefatos no Actions; definir o workflow não comprova que os binários estão prontos. Push em develop produz pré-release contínua; promoção em main produz release estável. Publicação de artefatos não implanta serviços em produção. [Critérios para conclusão do produto](docs/criterios-produto.md) distinguem funcionalidades, distribuição e homologação real.
 
 Identidade, favicon e ícone Windows: [identidade visual](docs/identidade-visual.md). Os [insumos já localizados na Library](docs/insumos-localizados.md) incluem plano e pacotes Prosoft; sua transferência ainda não permitiu validar novos leiautes. Não é necessário pedir novamente esses arquivos como se não tivessem sido enviados.
 

@@ -2,6 +2,9 @@
 from __future__ import annotations
 
 import argparse
+import ctypes
+from ctypes import wintypes
+import uuid
 from contextlib import closing
 import http.client
 import json
@@ -37,7 +40,9 @@ def request(port, path, *, token=None, data=None, origin=None):
 def stop(process):
     if process.poll() is None:
         if os.name == "nt":
-            process.send_signal(signal.CTRL_BREAK_EVENT)
+            kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+            kernel.SetEvent.argtypes = [wintypes.HANDLE]
+            assert kernel.SetEvent(process._stop_event), "Cannot signal GUI shutdown"
         else:
             process.send_signal(signal.SIGINT)
     try:
@@ -46,6 +51,9 @@ def stop(process):
         process.kill()
         process.communicate()
         raise AssertionError("Application did not stop within 15 seconds") from None
+    if os.name == "nt":
+        kernel.CloseHandle.argtypes = [wintypes.HANDLE]
+        kernel.CloseHandle(process._stop_event)
     if process.returncode != 0:
         raise AssertionError(f"Exit status {process.returncode}: {stdout!r} {stderr!r}")
 
@@ -60,11 +68,23 @@ def run(command):
             with socket.socket() as reserve:
                 reserve.bind(("127.0.0.1", 0))
                 port = reserve.getsockname()[1]
+            environment = os.environ.copy()
+            if os.name == "nt":
+                kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+                kernel.CreateEventW.argtypes = [ctypes.c_void_p, wintypes.BOOL, wintypes.BOOL, wintypes.LPCWSTR]
+                kernel.CreateEventW.restype = wintypes.HANDLE
+                event_name = "Local\\EscrituraSmoke_" + uuid.uuid4().hex
+                stop_event = kernel.CreateEventW(None, True, False, event_name)
+                assert stop_event
+                environment["ESCRITURA_SMOKE_STOP_EVENT"] = event_name
+                status_file = root / f"gui-status-{iteration}.json"
+                environment["ESCRITURA_SMOKE_STATUS_FILE"] = str(status_file)
             process = subprocess.Popen(
                 [*command, "--database", str(database), "--port", str(port)],
-                cwd=root, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
+                cwd=root, env=environment, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0,
             )
+            if os.name == "nt": process._stop_event = stop_event
             try:
                 deadline = time.monotonic() + 45
                 while True:
@@ -79,6 +99,11 @@ def run(command):
                     if time.monotonic() >= deadline:
                         raise AssertionError("HTTP startup timed out")
                     time.sleep(0.1)
+                if os.name == "nt":
+                    while not status_file.exists() and time.monotonic() < deadline: time.sleep(0.1)
+                    gui = json.loads(status_file.read_text(encoding="utf-8"))
+                    assert gui["tk_window"] and gui["tray_window"] and gui["backend_running"], gui
+                    if gui["frozen"]: assert not gui["console_window"], "A GUI executable must not create a console"
                 match = re.search(rb'<meta name="local-token" content="([^"]+)"', html)
                 assert match and b"__LOCAL_TOKEN__" not in html, "Missing injected session token"
                 token = match.group(1).decode("ascii")

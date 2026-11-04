@@ -19,11 +19,15 @@ ROOT = Path(__file__).resolve().parents[1]
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--arch", choices=("x86", "x64"), required=True)
+    parser.add_argument("--version", help="Versão SemVer estável ou pré-release da mesma base")
     args = parser.parse_args()
     expected_bits = {"x86": 32, "x64": 64}[args.arch]
     if sys.platform != "win32" or struct.calcsize("P") * 8 != expected_bits:
         parser.error("Build on Windows with an interpreter of the requested architecture")
     version = re.search(r'^version = "([^"]+)"', (ROOT / "pyproject.toml").read_text(), re.M).group(1)
+    sys.path.insert(0, str(ROOT / "scripts" / "ci"))
+    from version import read_version, validate_build
+    version = validate_build(args.version or version, read_version())
     name = f"escrituracao-contabil-{version}-windows-{args.arch}"
     out = ROOT / "dist" / args.arch
     if out.exists():
@@ -34,7 +38,7 @@ def main():
                    *(f"icon-{size}.png" for size in (16, 24, 32, 48, 64, 128, 256, 512))]
     asset_args = [arg for name in asset_names for arg in ("--add-data", f"{assets / name}:src/web/assets")]
     subprocess.run([
-        sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean", "--onedir", "--console",
+        sys.executable, "-m", "PyInstaller", "--noconfirm", "--clean", "--onedir", "--windowed",
         "--name", "EscrituracaoContabil", "--noupx", "--paths", str(ROOT),
         "--icon", str(assets / "icon.ico"),
         "--add-data", f"{ROOT / 'src' / 'web' / 'index.html'}:src/web",
@@ -55,6 +59,9 @@ def main():
         file.seek(offset)
         assert file.read(4) == b"PE\0\0"
         assert struct.unpack("<H", file.read(2))[0] == {"x86": 0x14C, "x64": 0x8664}[args.arch]
+    with exe.open("rb") as file:
+        file.seek(offset + 24 + 68)
+        assert struct.unpack("<H", file.read(2))[0] == 2, "Windows GUI subsystem required"
     verify_pe(exe, icon_images)
     print("Verified Escritura PE icon resources: 16, 24, 32, 48, 64, 128, 256 px")
     subprocess.run([sys.executable, str(ROOT / "packaging" / "smoke_test.py"), "--executable", str(exe)], check=True)
@@ -65,7 +72,7 @@ def main():
             files.append({"path": file.relative_to(bundle).as_posix(), "size": file.stat().st_size,
                           "sha256": hashlib.sha256(file.read_bytes()).hexdigest()})
     source_sha = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT, text=True).strip()
-    manifest = {"name": name, "version": version, "architecture": args.arch, "source_sha": source_sha,
+    manifest = {"name": name, "version": version, "architecture": args.arch, "source_sha": source_sha, "windows_subsystem": "GUI",
                 "python": platform.python_version(), "pyinstaller": importlib.metadata.version("pyinstaller"),
                 "identity": {"name": "Escritura", "icon_sha256": hashlib.sha256((assets / "icon.ico").read_bytes()).hexdigest(),
                              "icons_manifest_sha256": hashlib.sha256((assets / "icons-manifest.json").read_bytes()).hexdigest(),

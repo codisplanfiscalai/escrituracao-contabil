@@ -1,26 +1,47 @@
-name: Synthetic tests
+name: CI
 on:
-  push:
-    branches: [main, 'feat/**']
   pull_request:
+    branches: [main, develop]
+  push:
+    branches: ['feat/**', 'feature/**', 'fix/**', 'ci/**', 'chore/**', 'hotfix/**']
+  workflow_call:
+    inputs:
+      source_sha:
+        type: string
+        required: true
 permissions:
   contents: read
 jobs:
   tests:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+    name: Tests Python ${{ matrix.python }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     strategy:
+      fail-fast: false
       matrix:
         python: ['3.10', '3.12', '3.13']
     steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
+          ref: ${{ inputs.source_sha || github.sha }}
           persist-credentials: false
-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
         with:
           python-version: ${{ matrix.python }}
-      - run: python -m unittest discover -s tests -v
-      - run: python -m compileall -q src tests
-      - run: node --check src/web/app.js
-      - run: node --check src/web/posting_editor.js
-      - run: node tests/test_posting_math.cjs
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38
+        with:
+          node-version: '24.22.2'
+          package-manager-cache: false
+      - run: python scripts/build.py check
+  workflow-lint:
+    name: Workflow lint
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ inputs.source_sha || github.sha }}
+          persist-credentials: false
+      - name: Install pinned workflow validator
+        run: go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
+      - run: '"$(go env GOPATH)/bin/actionlint" -color'

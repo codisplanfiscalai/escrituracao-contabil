@@ -1,0 +1,31 @@
+name: Branch policy
+on:
+  pull_request:
+    branches: [main, develop]
+    types: [opened, synchronize, reopened, edited, ready_for_review]
+permissions:
+  contents: read
+jobs:
+  policy:
+    name: Branch policy
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      # Sem checkout: texto e nomes de PR são dados, nunca código executável.
+      - name: Validate branch and title contract
+        env:
+          BASE: ${{ github.base_ref }}
+          HEAD: ${{ github.head_ref }}
+          TITLE: ${{ github.event.pull_request.title }}
+          SAME_REPO: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
+        run: |
+          python - <<'PY'
+          import os, re
+          base, head, title = (os.environ[k] for k in ('BASE', 'HEAD', 'TITLE'))
+          if base == 'main':
+              assert head == 'develop' and os.environ['SAME_REPO'] == 'true', 'main recebe somente develop do próprio repositório'
+              assert re.fullmatch(r'release\((patch|minor|major)\): .+', title), 'Use release(patch|minor|major): descrição'
+          else:
+              assert re.fullmatch(r'(feat|feature|fix|ci|chore|docs|test|build|perf|refactor|hotfix)/[a-z0-9][a-z0-9._/-]*', head), 'Branch de trabalho inválida'
+              assert re.fullmatch(r'(feat|fix|ci|chore|docs|test|build|perf|refactor)(\([a-zA-Z0-9._/-]+\))?(!)?: .+', title), 'Use Conventional Commits no título'
+          PY

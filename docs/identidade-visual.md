@@ -1,6 +1,6 @@
 # Identidade visual Escritura
 
-Nome provisório solicitado pelo responsável do produto. Símbolo e ícone SVG recebidos diretamente na mensagem de execução; preservados em `src/web/assets/symbol.svg` e `icon.svg`. O pacote de referência foi localizado na Library, mas sua transferência para este ambiente falhou. A alternativa de usar esses SVGs foi expressamente autorizada. Nenhum ativo do Gerador SPED foi usado.
+Nome provisório solicitado pelo responsável do produto. Símbolo e ícone SVG recebidos diretamente na mensagem de execução; preservados em `src/web/assets/symbol.svg` e `icon.svg`. O pacote de referência foi localizado na Library, mas sua transferência para este ambiente falhou. A alternativa de usar esses SVGs foi expressamente autorizada. A identidade visual é própria da aplicação.
 
 Paleta: azul-petróleo `#064D5D`, verde `#08A45B`, cinza `#86A1A6`, branco. O petróleo orienta texto, botões e foco; verde marca detalhes e seleção; cinza serve como apoio visual. Textos auxiliares usam tom escuro derivado para legibilidade. O verde não recebe texto branco pequeno: esse par teria contraste insuficiente.
 

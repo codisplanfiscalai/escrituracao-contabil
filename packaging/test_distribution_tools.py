@@ -1,20 +1,92 @@
-"""Synthetic checks for distribution integrity and the private GHCR gate."""
+"""Synthetic checks for distribution integrity and GHCR visibility policies."""
 from contextlib import redirect_stdout
 import io
+import hashlib
 import json
 from pathlib import Path
 import shutil
 import struct
 import tempfile
 import unittest
+import zipfile
 from unittest.mock import patch
 from urllib.error import HTTPError
 
 from check_ghcr_visibility import check
 from verify_icons import ASSETS, read_ico, verify_assets
+from verify_artifacts import verify
 
 
-class PrivatePackageGateTests(unittest.TestCase):
+class CombinedReleaseTests(unittest.TestCase):
+    def test_container_manifest_does_not_replace_or_add_a_windows_architecture(self):
+        sha = "a" * 40
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            for architecture, machine in (("x86", 0x14C), ("x64", 0x8664)):
+                executable = bytearray(256)
+                executable[:2] = b"MZ"
+                struct.pack_into("<I", executable, 0x3C, 0x80)
+                executable[0x80:0x84] = b"PE\0\0"
+                struct.pack_into("<H", executable, 0x84, machine)
+                struct.pack_into("<H", executable, 0x80 + 24 + 68, 2)
+                files = {"EscrituracaoContabil.exe": bytes(executable)}
+                files.update({"_internal/src/web/assets/" + p.name: p.read_bytes()
+                              for p in ASSETS.iterdir() if p.is_file()})
+                name = f"escritura-windows-{architecture}"
+                manifest = {
+                    "name": name, "source_sha": sha, "architecture": architecture,
+                    "smoke_test": "passed", "windows_subsystem": "GUI",
+                    "identity": {"name": "Escritura", "embedded_pe_icons": "verified",
+                                 "icon_sha256": hashlib.sha256((ASSETS / "icon.ico").read_bytes()).hexdigest(),
+                                 "icons_manifest_sha256": hashlib.sha256((ASSETS / "icons-manifest.json").read_bytes()).hexdigest()},
+                    "files": [{"path": path, "size": len(data), "sha256": hashlib.sha256(data).hexdigest()}
+                              for path, data in files.items()],
+                }
+                content = json.dumps(manifest)
+                (root / f"{name}.manifest.json").write_text(content, encoding="utf-8")
+                archive = root / f"{name}.zip"
+                with zipfile.ZipFile(archive, "w") as zipped:
+                    for path, data in files.items():
+                        zipped.writestr("EscrituracaoContabil/" + path, data)
+                    zipped.writestr("EscrituracaoContabil/manifest.json", content)
+                (root / f"{name}.sha256").write_text(
+                    hashlib.sha256(archive.read_bytes()).hexdigest() + "  " + archive.name,
+                    encoding="ascii")
+            (root / "container.manifest.json").write_text('{"image": "synthetic"}')
+            with redirect_stdout(io.StringIO()):
+                verify(root, sha)
+            (root / "unexpected.manifest.json").write_text("{}")
+            with self.assertRaisesRegex(AssertionError, "exactly two"):
+                verify(root, sha)
+            (root / "unexpected.manifest.json").unlink()
+            (root / "escritura-windows-x86.manifest.json").unlink()
+            with self.assertRaisesRegex(AssertionError, "exactly two"):
+                verify(root, sha)
+
+
+class PackageGateTests(unittest.TestCase):
+    def test_explicit_public_repository_policy_returns_actual_visibility(self):
+        for visibility in ("private", "public", "internal", None):
+            with self.subTest(visibility=visibility), patch("check_ghcr_visibility.urlopen", return_value=io.BytesIO(json.dumps({"visibility": visibility}).encode())), redirect_stdout(io.StringIO()):
+                if visibility in ("private", "public"):
+                    self.assertEqual(check("owner/repo", "User", "synthetic-token", allowed_visibilities=("private", "public")), visibility)
+                else:
+                    with self.assertRaisesRegex(ValueError, "not allowed"):
+                        check("owner/repo", "User", "synthetic-token", allowed_visibilities=("private", "public"))
+
+    def test_changed_visibility_is_rejected_by_post_push_policy(self):
+        for before, after in (("private", "public"), ("public", "private")):
+            with self.subTest(before=before), patch("check_ghcr_visibility.urlopen", return_value=io.BytesIO(json.dumps({"visibility": after}).encode())):
+                with self.assertRaisesRegex(ValueError, "not allowed"):
+                    check("owner/repo", "User", "synthetic-token", allowed_visibilities=(before,))
+
+    def test_invalid_visibility_policy_never_sends_request(self):
+        with patch("check_ghcr_visibility.urlopen") as request:
+            for allowed in ((), ("internal",), ("public", "unknown")):
+                with self.assertRaises(ValueError):
+                    check("owner/repo", "User", "synthetic-token", allowed_visibilities=allowed)
+            request.assert_not_called()
+
     def test_private_only_and_account_route(self):
         for owner_type, prefix in (("User", "users"), ("Organization", "orgs")):
             for visibility in ("private", "public", "internal", None):

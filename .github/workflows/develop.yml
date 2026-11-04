@@ -1,0 +1,17 @@
+name: Develop prerelease
+on:
+  push:
+    branches: [develop]
+  workflow_dispatch:
+permissions:
+  contents: read
+  packages: write
+jobs:
+  delivery:
+    if: github.ref == 'refs/heads/develop'
+    permissions:
+      contents: write
+      packages: write
+    uses: ./.github/workflows/delivery.yml
+    with:
+      channel: develop
