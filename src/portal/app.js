@@ -8,6 +8,7 @@ const menu=[
  {id:'imports',label:'Documentos',icon:'▧',group:'OPERAÇÃO',permission:'workspace.read'},
  {id:'reconciliation',label:'Conciliação',icon:'⇄',group:'OPERAÇÃO',permission:'workspace.read'},
  {id:'accounting',label:'Escrituração',icon:'▤',group:'OPERAÇÃO',permission:'workspace.read'},
+ {id:'history',label:'Histórico contábil',icon:'◷',group:'OPERAÇÃO',permission:'workspace.read'},
  {id:'client',label:'Portal do cliente',icon:'◇',group:'RELACIONAMENTO',permission:'client.read'},
  {id:'users',label:'Usuários',icon:'♙',group:'ADMINISTRAÇÃO',permission:'users.manage'},
  {id:'roles',label:'Perfis e permissões',icon:'▣',group:'ADMINISTRAÇÃO',permission:'roles.manage'},
@@ -18,7 +19,7 @@ const menu=[
 ];
 const app=createApp({
  render:EscrituraRender,
- data:()=>({ready:false,busy:false,configured:true,user:null,csrf:'',version:'',page:'dashboard',menuOpen:false,menuSearch:'',error:'',notice:'',authMode:'login',auth:{name:'',email:'',password:'',token:'',code:''},challenge:'',resetToken:'',dashboard:{metrics:{},companies:[]},users:[],roles:[],permissions:{},sessions:[],audit:[],mail:[],dialog:'',userForm:{},roleForm:{},companyForm:{name:'',cnpj:'',prosoft_company_code:'',prosoft_plan_code:''},settings:{general:{},smtp:{mode:'starttls',port:587}},menuOrder:menu.map(m=>m.id),allMenu:menu,workspacePages:['setup','chart','imports','reconciliation','accounting'],clientCompany:'',workspacePeriod:'',clientPeriod:'',clientData:{files:[],documents:[],periods:[]},uploadKind:'XML',uploadFile:null,mfa:{password:'',code:'',token:'',secret:''},recoveryCodes:[],pageGeneration:0,clientGeneration:0}),
+ data:()=>({ready:false,busy:false,configured:true,user:null,csrf:'',version:'',page:'dashboard',menuOpen:false,menuSearch:'',error:'',notice:'',authMode:'login',auth:{name:'',email:'',password:'',token:'',code:''},challenge:'',resetToken:'',dashboard:{metrics:{},companies:[]},users:[],roles:[],permissions:{},sessions:[],audit:[],mail:[],dialog:'',userForm:{},roleForm:{},companyForm:{name:'',cnpj:'',prosoft_company_code:'',prosoft_plan_code:''},settings:{general:{},smtp:{mode:'starttls',port:587}},menuOrder:menu.map(m=>m.id),allMenu:menu,workspacePages:['setup','chart','imports','reconciliation','accounting','history'],clientCompany:'',workspacePeriod:'',clientPeriod:'',clientData:{files:[],documents:[],periods:[]},uploadKind:'XML',uploadFile:null,mfa:{password:'',code:'',token:'',secret:''},recoveryCodes:[],pageGeneration:0,clientGeneration:0}),
  computed:{
   initials(){return this.user?.name.split(' ').filter(Boolean).slice(0,2).map(s=>s[0].toUpperCase()).join('')||'E';},
   pageTitle(){return menu.find(m=>m.id===this.page)?.label||'Visão geral';},
@@ -36,7 +37,7 @@ const app=createApp({
   async run(action){if(this.busy)return;this.busy=true;this.error='';this.notice='';try{await action();}catch(e){this.error=e.message;}finally{this.busy=false;}},
   async init(){try{const s=await this.api('status');this.configured=s.configured;this.version=s.version;try{const session=await this.api('auth/me');this.acceptSession(session);}catch{}this.route();if(this.user)await this.loadPage();}catch(e){this.error=e.message;}finally{this.ready=true;}},
   acceptSession(session){this.user=session.user;this.csrf=session.csrf;if(session.menu?.length)this.menuOrder=[...session.menu.filter(id=>menu.some(m=>m.id===id)),...menu.map(m=>m.id).filter(id=>!session.menu.includes(id))];},
-  route(){const hash=location.hash.slice(2);if(hash.startsWith('reset/')){this.authMode='reset';this.resetToken=hash.slice(6);return;}const target=menu.find(m=>m.id===hash);this.page=target&&(!target.permission||this.can(target.permission))?target.id:'dashboard';this.menuOpen=false;this.error='';this.notice='';this.dialog='';if(this.user){this.loadPage();Vue.nextTick(()=>{document.querySelector('#content')?.focus({preventScroll:true});window.scrollTo(0,0);});}},
+  route(){const hash=location.hash.slice(2);if(hash.startsWith('reset/')){this.user=null;this.csrf='';this.authMode='reset';this.resetToken=hash.slice(6);return;}const target=menu.find(m=>m.id===hash);this.page=target&&(!target.permission||this.can(target.permission))?target.id:'dashboard';this.menuOpen=false;this.error='';this.notice='';this.dialog='';if(this.user){this.loadPage();Vue.nextTick(()=>{document.querySelector('#content')?.focus({preventScroll:true});window.scrollTo(0,0);});}},
   async submitAuth(){await this.run(async()=>{if(!this.configured){await this.api('setup',this.auth);this.configured=true;this.auth.token='';this.notice='Ambiente configurado. Entre com sua conta.';return;}if(this.authMode==='forgot'){this.notice=(await this.api('auth/forgot',{email:this.auth.email})).message;return;}if(this.authMode==='reset'){this.notice=(await this.api('auth/reset',{token:this.resetToken,password:this.auth.password,code:this.auth.code})).message;this.auth.password='';this.auth.code='';this.authMode='login';history.replaceState(null,'','#/dashboard');return;}const session=await this.api(this.challenge?'auth/mfa':'auth/login',this.challenge?{challenge:this.challenge,code:this.auth.code}:{email:this.auth.email,password:this.auth.password});this.auth.password='';this.auth.code='';if(session.mfa_required){this.challenge=session.challenge;return;}this.challenge='';this.acceptSession(session);history.replaceState(null,'','#/dashboard');this.page='dashboard';await this.loadPage();});},
   async logout(){await this.run(async()=>{await this.api('auth/logout',{});this.user=null;this.csrf='';this.dashboard={metrics:{},companies:[]};this.clientData={files:[],documents:[],periods:[]};});},
   async loadPage(){const generation=++this.pageGeneration;const page=this.page;try{const dash=await this.api('dashboard');if(generation!==this.pageGeneration)return;this.dashboard=dash;
@@ -51,7 +52,7 @@ const app=createApp({
   selectWorkspace(event){
    const frame=event.target, page=this.page, doc=frame.contentDocument;
    if(!doc)return;
-   doc.querySelector('[data-panel="'+page+'"]')?.click();
+   doc.querySelector('[data-panel="'+(page==='history'?'audit':page)+'"]')?.click();
    const company=doc.querySelector('#company'),period=doc.querySelector('#period');
    const wantedCompany=this.clientCompany,wantedPeriod=this.workspacePeriod;
    let attempts=0,companyRestored=false;
