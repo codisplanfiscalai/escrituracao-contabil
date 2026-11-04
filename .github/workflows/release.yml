@@ -1,0 +1,78 @@
+name: Manual draft prerelease
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing reviewed tag vX.Y.Z reachable from main and matching pyproject.toml
+        required: true
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: draft-release-${{ inputs.tag }}
+  cancel-in-progress: false
+jobs:
+  validate:
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    outputs:
+      sha: ${{ steps.source.outputs.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Validate reviewed tag without running tagged code
+        id: source
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+          [[ "$RELEASE_TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]
+          sha=$(git rev-parse --verify "refs/tags/$RELEASE_TAG^{commit}")
+          git merge-base --is-ancestor "$sha" origin/main
+          git show "$sha:pyproject.toml" > /tmp/release-pyproject.toml
+          python - <<'PY'
+          import os, pathlib, tomllib
+          project = tomllib.loads(pathlib.Path('/tmp/release-pyproject.toml').read_text())
+          assert 'v' + project['project']['version'] == os.environ['RELEASE_TAG']
+          PY
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+  build:
+    needs: validate
+    uses: ./.github/workflows/windows-build.yml
+    with:
+      source_ref: ${{ needs.validate.outputs.sha }}
+    permissions:
+      contents: read
+  draft:
+    needs: [validate, build]
+    runs-on: ubuntu-24.04
+    environment: release-review
+    permissions:
+      contents: write
+    steps:
+      # This checkout is the reviewed workflow revision, never the requested tag.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7 verified 2026-11-04
+        with:
+          pattern: windows-*
+          path: release-assets
+          merge-multiple: true
+      - name: Verify both architectures and source SHA
+        env:
+          SOURCE_SHA: ${{ needs.validate.outputs.sha }}
+        run: python packaging/verify_artifacts.py release-assets --source-sha "$SOURCE_SHA"
+      - name: Create draft only; publication remains a separate human action
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+          SOURCE_SHA: ${{ needs.validate.outputs.sha }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          printf 'Protótipo local monousuário. Sem homologação Prosoft.\nFonte testada: %s\nWindows x86/x64: testes sintéticos, PE e smoke HTTP aprovados neste workflow.\nExecutáveis sem assinatura Authenticode.\n' "$SOURCE_SHA" > /tmp/release-notes.txt
+          gh release create "$RELEASE_TAG" release-assets/* --verify-tag --draft --prerelease --title "Protótipo $RELEASE_TAG" --notes-file /tmp/release-notes.txt

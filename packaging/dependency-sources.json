@@ -1,0 +1,68 @@
+{
+  "pip": {
+    "version": "26.3",
+    "source": "https://pypi.org/pypi/pip/26.3/json",
+    "wheels": {
+      "pip-26.3-py3-none-any.whl": "f3b60b20ffaadd4415ed7957212a38ac63fa4c5fa375bd0f4a797777940fad13"
+    }
+  },
+  "setuptools": {
+    "version": "84.2.1",
+    "source": "https://pypi.org/pypi/setuptools/84.2.1/json",
+    "wheels": {
+      "setuptools-84.2.1-py3-none-any.whl": "ca140b45d5325a9478f880e351484f62fef15f336462e449ca0c03c873d589c2"
+    }
+  },
+  "altgraph": {
+    "version": "0.17.5",
+    "source": "https://pypi.org/pypi/altgraph/0.17.5/json",
+    "wheels": {
+      "altgraph-0.17.5-py2.py3-none-any.whl": "f3a22400bce1b0c701683820ac4f3b159cd301acab067c51c653e06961600597"
+    }
+  },
+  "packaging": {
+    "version": "26.3",
+    "source": "https://pypi.org/pypi/packaging/26.3/json",
+    "wheels": {
+      "packaging-26.3-py3-none-any.whl": "d7193f7c8e4e93f444fde0262bf90af30e16fa0ad0ad44cb553c87339b23cd1c"
+    }
+  },
+  "pyinstaller": {
+    "version": "6.22.3",
+    "source": "https://pypi.org/pypi/pyinstaller/6.22.3/json",
+    "wheels": {
+      "pyinstaller-6.22.3-py3-none-macosx_10_13_universal2.whl": "052f4a1cd4f81092ccb7a18fe8ebc9ecf832a5917317e39fb3775af4e959b253",
+      "pyinstaller-6.22.3-py3-none-manylinux2014_aarch64.whl": "312da84b4b31ab9750066a823734c11b7c68757fdd67c9f038bf19c330a954e4",
+      "pyinstaller-6.22.3-py3-none-manylinux2014_i686.whl": "020d4fe0627f5c73dfbcfad1a6578ef354d5fe4bdccd9d8e5a615528f5a45d2b",
+      "pyinstaller-6.22.3-py3-none-manylinux2014_ppc64le.whl": "9e4f7bd64b2103f14b4a6240fb9155e9fe7bc61391b4043bbddb7d3ebc8ab0fa",
+      "pyinstaller-6.22.3-py3-none-manylinux2014_s390x.whl": "f82d0fb89f21c3ed6f482ee16f341bc59e8a31dbabb9bae9ef04e53ade4dc0d9",
+      "pyinstaller-6.22.3-py3-none-manylinux2014_x86_64.whl": "451a4ae14b719365bf1a2f0a99dae7b3463060061c3a394c70d5264cfb439528",
+      "pyinstaller-6.22.3-py3-none-musllinux_1_1_aarch64.whl": "ea240b5dfa831ff673c97505eee0ec24670bccf71396c83109440348944c83d0",
+      "pyinstaller-6.22.3-py3-none-musllinux_1_1_x86_64.whl": "a2b6fc26601e8c2596c3d54981566934a3382e85d05d0fe91b55b6a8dcc6b282",
+      "pyinstaller-6.22.3-py3-none-win32.whl": "46a3e30a118341a1ec20667a5a95aa7e0aa8c4fa129893c0151b3eb3f801a722",
+      "pyinstaller-6.22.3-py3-none-win_amd64.whl": "500bd58c7bf7e584a8435adccbd763a0b918d5c12b08d74ff50fd79b2915458b",
+      "pyinstaller-6.22.3-py3-none-win_arm64.whl": "31df3cc4261e804a53d358b7897c293ec8b88b167a7cca06c78018085c855f97"
+    }
+  },
+  "pyinstaller-hooks-contrib": {
+    "version": "2026.9",
+    "source": "https://pypi.org/pypi/pyinstaller-hooks-contrib/2026.9/json",
+    "wheels": {
+      "pyinstaller_hooks_contrib-2026.9-py3-none-any.whl": "fb3e67dd64122561724c48ad0366ac9e8c16e638b63bf7d85de03bf3fdbf06c3"
+    }
+  },
+  "pefile": {
+    "version": "2024.8.26",
+    "source": "https://pypi.org/pypi/pefile/2024.8.26/json",
+    "wheels": {
+      "pefile-2024.8.26-py3-none-any.whl": "76f8b485dcd3b1bb8166f1128d395fa3d87af26360c2358fb75b80019b957c6f"
+    }
+  },
+  "pywin32-ctypes": {
+    "version": "0.2.3",
+    "source": "https://pypi.org/pypi/pywin32-ctypes/0.2.3/json",
+    "wheels": {
+      "pywin32_ctypes-0.2.3-py3-none-any.whl": "8a1513379d709975552d202d942d9837758905c8d01eb82b8bcc30918929e7b8"
+    }
+  }
+}

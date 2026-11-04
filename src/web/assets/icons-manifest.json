@@ -1,0 +1,25 @@
+{
+  "schema": 1,
+  "renderer": "@resvg/resvg-wasm@2.6.2",
+  "node": "24.22.2",
+  "source_hash_format": "UTF-8 with LF line endings",
+  "wasm_sha256": "22bf6e9f9a100d972da0411a69c5ba504367fc1fa87b3b64e3f35e53926d2d70",
+  "generator_sha256": "0c2eba2fbc7fe1ed8c6189c1e5145045d1eff6435280b90bb00a1629b3002243",
+  "package_lock_sha256": "71ec3150b1715cfec58177798a7c092a955cd9a5cb3868047d7c91cda372363e",
+  "sources": {
+    "icon.svg": "b1bbb033a548a2f52479f191f86a4a411b1d51f680e70c7ffa1a543a1e2a94f1",
+    "symbol.svg": "232b0adc833635a1205b4ae01230de46c8a8fea7e2e892418e18b48665d8e0b6"
+  },
+  "outputs": {
+    "icon-16.png": "08ad9e9df4bfde34062e101d76403cda20dac7a408dec324662ed854f96efa02",
+    "icon-24.png": "c706da350033edfa02f257c845d1e401903a3f92ccb0d1c6603d277549ac95de",
+    "icon-32.png": "b1f0bb782800ca9ce6b878c0545f3fd11d53009fced2da7320071b2d137d6009",
+    "icon-48.png": "6528f39590b0239d1e3f05e5d1977c86d827b9befbf20f86901f07392d6db459",
+    "icon-64.png": "7c7719a102b5cb5a7007736bd1682cabcac7fc77ae01228ab664675f107048a0",
+    "icon-128.png": "15295f76584fc4e209ba7357320b52104adc17feb3d54a0512510dceb5abbe46",
+    "icon-256.png": "31072f5524852dfbc6d8f63030a08afc305c8a474794f9a739359e2ae04f72c1",
+    "icon-512.png": "ae44f7d9ce23934f17b20455b96d2575071b4a9407dc559464cb84d2d8bc63b6",
+    "icon.ico": "975aa48fcc93b4c916cd023fa717dda16f683936438e2dc426206eca2c5a8835",
+    "symbol-512.png": "d218222ba77ffb89bbf8372b0d3a5ff5db2745f3941d777dc330617e06c43c43"
+  }
+}

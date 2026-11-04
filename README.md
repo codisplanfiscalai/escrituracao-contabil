@@ -1,16 +1,16 @@
-# Integração fiscal e contábil Prosoft
+# Escritura — organização fiscal e contábil
 
-**Status:** esqueleto inicial, somente documentação e contratos sintéticos. Nenhum dado real foi incluído ou enviado.
+**Status:** produto em desenvolvimento, com aplicação local persistente, cadastro multiempresa, planos e mapeamentos versionados, documentos e cobrança NF-e 4.00, conciliação parcial XML × SPED, revisão persistente e motor de partidas explícitas, evidências de fechamento e identidade visual Escritura. Nenhum dado real foi incluído ou enviado. Integração e homologação Prosoft permanecem pendentes.
 
 Este projeto prepara o fluxo entre documentos fiscais, arquivo SPED para importação no Prosoft e lançamentos contábeis com proteção contra duplicidade. Ele não transmite obrigações ao Fisco, não executa o PVA e não grava diretamente no banco de dados do Prosoft.
 
-## Parâmetros fixos deste primeiro cenário
+## Parâmetros configuráveis e cenário inicial
 
 - Competência de referência dos parâmetros: agosto de 2026 (2026-08).
 - Competência processada: setembro de 2026 (2026-09).
 - A referência parametriza as regras deste cenário; ela não altera a competência dos documentos processados.
 - O arquivo fiscal é preparado para importação no Prosoft. A instalação, o leiaute do importador e a seleção de registros ainda precisam ser confirmados.
-- O bloco C usa C100. C140/C141 entram somente conforme aplicabilidade do documento e contrato do importador, com no máximo um C140 por documento e C141 por parcela quando o C140 for informado.
+- A saída planejada inclui C100 e um perfil específico de integração Prosoft para C140/C141 relacionados a modelo 55. O perfil depende do layout e dos exemplos do importador; ainda não há gerador implementado nem compatibilidade validada. Esse requisito não representa uma EFD oficial para modelo 55.
 - A etapa contábil deve impedir reaplicação do mesmo lote e dos mesmos lançamentos. Importação com resultado incerto exige reconciliação antes de qualquer repetição.
 
 ## Segurança de dados
@@ -19,7 +19,39 @@ Este repositório contém apenas código, decisões e testes com identificadores
 
 ## Começar
 
-Execute a suíte sintética com Python 3.10 ou superior, sem dependências externas:
+Execute com Python 3.10 ou superior, sem dependências externas, a partir da raiz deste projeto:
+
+    python -m src.local_app --database /caminho/privado/escrituracao.sqlite3 --port 8765
+
+Abra http://127.0.0.1:8765. Em Windows, informe por exemplo um caminho privado no seu perfil de usuário. O servidor aceita somente conexões loopback. Use um banco fora do repositório; ele contém dados originais em texto claro e deve ficar em diretório privado, com proteção e backup do sistema operacional. CNPJ é opcional no cadastro, mas importações sem ele permanecem pendentes de conferência de identidade.
+
+Cadastre uma empresa, defina os períodos de parâmetros e movimentos e importe seu plano pelo formulário JSON. As contas requerem code, description, parent_code (ou null), kind (sintetica/analitica), nature (devedora/credora) e attributes (opcional). Cada nova importação com o mesmo nome cria uma versão, sem alterar a anterior. Mapeamentos exigem destino analítico e preservam versões.
+
+Recebimento XML suporta apenas NF-e 4.00 modelo 55, com cabeçalho e faturas/parcelas. Verifica chave/DV, campos de controle e competência de emissão, mas não assinatura, autorização, esquema XSD ou correção fiscal integral. Competência diferente da emissão exige revisão e não é atribuída automaticamente.
+
+SPED pode ser apenas preservado (padrão) ou analisado com o perfil explícito EFD-ICMS/IPI 020, parcial para 2026: cabeçalho 0000 e C100 regular modelo 55. A tela Conciliação compara os campos disponíveis, vincula ambas as fontes ao mesmo documento e mostra diferenças e localizações, sem escolher valores vencedores. Chave ausente, período/empresa divergente e casos fora do recorte ficam em observações pendentes. Coincidência não representa escrituração validada ou liberação de exportação. C140/C141 são somente preservados como registros; não geram faturas modelo 55 sem especificação Prosoft.
+
+Faturas e parcelas extraídas do XML possuem IDs próprios, ligados ao documento e às observações de arquivo/caminho. Referências iguais agregam fontes; valores conflitantes não sobrescrevem os primeiros. Identificadores de cobrança divergentes ficam pendentes de associação, sem criar títulos/parcelas adicionais por suposição. Em Documentos, “Analisar arquivo já salvo” reutiliza os bytes armazenados e registra a tentativa sem duplicar entidades.
+
+O programa não calcula CBS/IBS, não gera arquivos de importação Prosoft e não transmite dados. Não existe autenticação multiusuário nem pronto uso em rede/produção. Em Documentos, a remoção lógica apresenta o arquivo, documentos dependentes e consequências; exige motivo e confirmação, preserva o original e a auditoria e deixa os documentos vinculados pendentes. Uma prévia desatualizada é recusada. Fontes de documentos vinculados a lotes fechados têm remoção bloqueada. Purga definitiva e restauração permanecem indisponíveis.
+
+Na Conciliação, registre a fonte escolhida, o motivo e a conferência explícita. A decisão tem versão e fingerprint das fontes; mudanças tornam a decisão caduca e mantêm as diferenças visíveis. Em Contabilização local, informe as partidas e os IDs de mapeamentos aprovados/vigentes. O motor exige contas analíticas, valores decimais textuais, datas dos movimentos, equilíbrio por grupo/documento/lote e total correspondente à fonte escolhida. Não escolhe contas ou tratamentos fiscais automaticamente.
+
+Cada prévia reserva um único evento documental por empresa/documento, guarda snapshot imutável e exige revisão antes do fechamento local. Repetições são idempotentes e auditadas; correções criam versões vinculadas. Fechado não é sobrescrito nem recontabilizado: estornos, pagamentos/recebimentos e eventos adicionais ainda não estão implementados. Fechamento local não significa escrituração importada ou homologada no Prosoft. Fluxo e limites: [revisão e motor](docs/revisao-e-motor.md).
+
+Em um lote fechado, use “Preparar evidências do fechamento” e informe o motivo. Os downloads `evidence.json`, `postings.csv` e `manifest.json` preservam o snapshot histórico; a aplicação confere hashes e registra cada disponibilização no histórico. Repetir reutiliza os mesmos arquivos. Esse perfil próprio não é importação Prosoft nem EFD. [Contrato de evidências](docs/evidencias-contabeis.md).
+
+Fatura com valores aritmeticamente divergentes, parcelas sem fatura ou soma das parcelas diferente do líquido ficam pendentes, preservando os valores recebidos. Essas conferências não calculam tributos nem presumem valores ausentes. O normalizador v3 registra também entidades e observações nas novas importações. O esquema 4 adiciona tabelas em transação, sem reescrever originais ou documentos antigos. A indexação de arquivos antigos exige a ação explícita de análise; dados antigos não são liberados automaticamente. Guarde backup privado do SQLite antes de atualizar o programa.
+
+Fluxos A–E, navegação, entidades, permissões e dependências: [mapa funcional completo](docs/mapa-produto.md). Modelo e limites do primeiro incremento: [incremento persistente](docs/incremento-persistente.md).
+
+Escopo de leitura, origem dos perfis, migração e aceite da conciliação: [conciliação documental](docs/conciliacao-documental.md).
+
+Distribuição Windows x86/x64, dependências fixadas, manifestos/checksums, imagem Docker e workflows de release/GHCR/homologação: [instalação e distribuição](docs/distribuicao.md). Os builds precisam de execução e verificação dos artefatos no Actions; definir o workflow não comprova que os binários estão prontos. Os fluxos manuais não publicam nem implantam por este PR. [Critérios para conclusão do produto](docs/criterios-produto.md) distinguem funcionalidades, distribuição e homologação real.
+
+Identidade, favicon e ícone Windows: [identidade visual](docs/identidade-visual.md). Os [insumos já localizados na Library](docs/insumos-localizados.md) incluem plano e pacotes Prosoft; sua transferência ainda não permitiu validar novos leiautes. Não é necessário pedir novamente esses arquivos como se não tivessem sido enviados.
+
+Execute a suíte sintética:
 
     python -m unittest discover -s tests -v
 
