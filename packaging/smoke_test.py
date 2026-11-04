@@ -20,11 +20,13 @@ import tempfile
 import time
 
 
-def request(port, path, *, token=None, data=None, origin=None):
+def request(port, path, *, token=None, data=None, origin=None, session=None):
     conn = http.client.HTTPConnection("127.0.0.1", port, timeout=3)
     headers = {}
     if token:
         headers["X-Local-Token"] = token
+    if session and session.get("cookie"):
+        headers["Cookie"] = session["cookie"]
     body = None
     if data is not None:
         body = json.dumps(data).encode("utf-8")
@@ -32,12 +34,15 @@ def request(port, path, *, token=None, data=None, origin=None):
     try:
         conn.request("POST" if data is not None else "GET", path, body, headers)
         response = conn.getresponse()
+        if session is not None and response.getheader("Set-Cookie"):
+            session["cookie"] = response.getheader("Set-Cookie").split(";",1)[0]
         return response.status, response.read()
     finally:
         conn.close()
 
 
 def stop(process):
+    kernel = ctypes.WinDLL("kernel32", use_last_error=True) if os.name == "nt" else None
     if process.poll() is None:
         if os.name == "nt":
             kernel = ctypes.WinDLL("kernel32", use_last_error=True)
@@ -104,25 +109,34 @@ def run(command):
                     gui = json.loads(status_file.read_text(encoding="utf-8"))
                     assert gui["tk_window"] and gui["tray_window"] and gui["backend_running"], gui
                     if gui["frozen"]: assert not gui["console_window"], "A GUI executable must not create a console"
-                match = re.search(rb'<meta name="local-token" content="([^"]+)"', html)
-                assert match and b"__LOCAL_TOKEN__" not in html, "Missing injected session token"
-                token = match.group(1).decode("ascii")
-                for asset in ("/app.js", "/posting_math.js", "/posting_editor.js", "/style.css", "/assets/symbol.svg", "/assets/icon.svg", "/favicon.ico",
-                              *(f"/assets/icon-{size}.png" for size in (16, 24, 32, 48, 64, 128, 256, 512))):
+                assert b'/portal/app.js' in html, 'Corporate portal missing'
+                session = {}
+                if iteration == 0:
+                    setup_token = (database.parent / 'identity' / 'setup.token').read_text().strip()
+                    code, body = request(port, '/api/v1/setup', data={'token':setup_token, 'name':'Operador sintético', 'email':'smoke@example.test', 'password':'synthetic-password-2026'}, session=session)
+                    assert code == 200, body
+                code, body = request(port, '/api/v1/auth/login', data={'email':'smoke@example.test','password':'synthetic-password-2026'}, session=session)
+                assert code == 200, body
+                token = json.loads(body)['data']['csrf']
+                for asset in ('/portal/app.js','/portal/app.css','/portal/render.js','/portal/vendor/vue.js','/app.js','/posting_math.js','/posting_editor.js','/style.css','/assets/symbol.svg','/assets/icon.svg',
+                              *(f'/assets/icon-{size}.png' for size in (16,24,32,48,64,128,256,512))):
                     code, content = request(port, asset)
                     assert code == 200 and content, asset
-                assert request(port, "/api/companies")[0] == 403
-                assert request(port, "/api/companies", token=token, data={}, origin="https://example.invalid")[0] == 403
+                assert request(port, '/api/companies')[0] == 401
+                assert request(port, '/api/companies', token=token, data={}, origin='https://example.invalid',session=session)[0] == 403
+                assert request(port, '/api/companies', data={},session=session)[0] == 403
                 if iteration == 0:
-                    code, body = request(port, "/api/companies", token=token, data={
-                        "name": "Empresa ficticia de empacotamento", "prosoft_company_code": "SYNTHETIC", "prosoft_plan_code": "TEST",
-                    })
-                    assert code == 201, body
+                    code, body = request(port, '/api/companies', token=token, data={'name':'Empresa ficticia de empacotamento','prosoft_company_code':'SYNTHETIC','prosoft_plan_code':'TEST'},session=session)
+                    assert code == 200, body
                 else:
-                    assert token != old_token, "Token must rotate after restart"
-                    assert request(port, "/api/companies", token=old_token)[0] == 403
-                code, body = request(port, "/api/companies", token=token)
-                assert code == 200 and len(json.loads(body)["data"]) == 1, body
+                    assert token != old_token, 'New login must issue a new session'
+                code, body = request(port, '/api/companies',token=token,session=session)
+                assert code == 200 and len(json.loads(body)['data']) == 1, body
+                code, workspace = request(port, '/workspace',session=session)
+                assert code == 200 and token.encode() in workspace, 'Authenticated workspace missing'
+                code, body = request(port, '/api/v1/auth/logout',data={},token=token,session=session)
+                assert code == 200, body
+                assert request(port, '/api/companies',token=token,session=session)[0] == 401
                 old_token = token
             finally:
                 stop(process)
@@ -133,7 +147,7 @@ def run(command):
                 assert connection.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
             with socket.socket() as probe:
                 assert probe.connect_ex(("127.0.0.1", port)) != 0, "Listener survived process shutdown"
-        print("PASS: static HTTP, token/origin protection, synthetic POST, external SQLite, graceful stop, restart/persistence")
+        print("PASS: corporate login, logout, CSRF/origin, Vue assets, synthetic POST, external SQLite, GUI, restart/persistence")
 
 
 if __name__ == "__main__":

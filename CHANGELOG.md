@@ -1,5 +1,12 @@
 # Histórico de versões
 
+## 0.3.0
+
+- Portal Vue corporativo, login, usuários, perfis, empresas autorizadas, sessões, TOTP, recuperação de senha, SMTP e auditoria.
+- Integração do motor existente por API autenticada, sem alteração das regras contábeis.
+- Administração Windows ampliada e conexão HTTPS a agente Docker isolado, com credencial DPAPI.
+- Builds com dependências fixadas por hash, templates pré-compilados, regressão de navegador e testes de isolamento.
+
 ## 0.2.1
 
 - Fluxo main/develop, SemVer centralizado e pré-releases contínuas.

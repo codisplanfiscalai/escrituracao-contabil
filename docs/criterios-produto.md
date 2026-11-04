@@ -20,7 +20,7 @@ O objetivo é um produto completo de escrituração fiscal e contábil, com dist
 
 Este trabalho ocorre no PR em rascunho, sem merge ou deploy de produção. A definição de workflows não autoriza criar credenciais, ampliar acesso persistente ou expor os dados e o servidor local. Publicação de release/pacote e implantação precisam respeitar o alvo e as autorizações efetivas da operação. Não mudar a audiência ou abrir rede para contornar uma limitação de empacotamento.
 
-O servidor atual é monousuário e loopback, com SQLite privado. Binários e contêineres devem preservar esse comportamento. Acesso remoto/multiusuário requer arquitetura e controle de papéis próprios, ainda não comprovados. Segredos não pertencem ao repositório, aos binários, às camadas de imagem ou aos logs de build.
+O aplicativo Windows oferece serviço local autenticado em loopback. O contêiner executa a mesma API com usuários, perfis e escopo de empresas; o acesso compartilhado usa proxy HTTPS. O armazenamento contábil existente permanece preservado em SQLite privado. A operação real exige a configuração e homologação do ambiente descritas em [portal-corporativo.md](portal-corporativo.md). Segredos não pertencem ao repositório, aos binários, às camadas de imagem ou aos logs de build.
 
 ## Insumos que continuam necessários
 

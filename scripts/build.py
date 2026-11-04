@@ -21,6 +21,8 @@ def run(*args, **kwargs):
 
 def check():
     read_version()
+    run('node', 'frontend/build.mjs', '--check')
+    run('node', '--check', ROOT / 'src/portal/app.js')
     run(sys.executable, '-m', 'unittest', 'discover', '-s', 'tests', '-v')
     run(sys.executable, '-m', 'unittest', 'discover', '-s', 'packaging', '-p', 'test_*.py', '-v')
     run(sys.executable, '-m', 'unittest', 'discover', '-s', 'scripts/ci/tests', '-v')
@@ -36,6 +38,7 @@ def windows(arch, version, install):
     if sys.platform != 'win32':
         raise ValueError('Windows exige execução nativa. Use os jobs x86/x64 da CI.')
     if install:
+        run(sys.executable, '-m', 'pip', 'install', '--only-binary=:all:', '--require-hashes', '-r', 'requirements-server.txt')
         run(sys.executable, '-m', 'pip', 'install', '--only-binary=:all:', '--require-hashes', '-r', 'packaging/requirements-build.txt')
     npm = shutil.which('npm')
     if not npm: raise ValueError('Node/npm não encontrado.')
@@ -50,8 +53,8 @@ def container(version, no_cache):
     if not re.fullmatch(r'[0-9a-f]{40}', sha): raise ValueError('SHA inválido.')
     image = f'escritura-build:{version}'
     cache = ['--no-cache'] if no_cache else []
-    run('docker', 'build', *cache, '--target', 'test', '--tag', 'escritura-tests:local', '.')
-    run('docker', 'build', *cache, '--target', 'final', '--label', f'org.opencontainers.image.version={version}', '--label', f'org.opencontainers.image.revision={sha}', '--tag', image, '.')
+    run('docker', 'build', *cache, '--build-arg', f'APP_VERSION={version}', '--target', 'test', '--tag', 'escritura-tests:local', '.')
+    run('docker', 'build', *cache, '--build-arg', f'APP_VERSION={version}', '--target', 'final', '--label', f'org.opencontainers.image.version={version}', '--label', f'org.opencontainers.image.revision={sha}', '--tag', image, '.')
     run('docker', 'run', '--rm', '--network', 'none', '--read-only', '--cap-drop', 'ALL', '--security-opt', 'no-new-privileges', '--tmpfs', '/tmp:rw,nosuid,nodev,mode=1777', '--tmpfs', '/data:rw,nosuid,nodev,uid=10001,gid=10001,mode=0700', '--entrypoint', 'python', image, 'packaging/smoke_test.py')
     image_id = subprocess.check_output(['docker', 'image', 'inspect', '--format', '{{.Id}}', image], text=True).strip()
     out = ROOT / 'artifacts'; out.mkdir(exist_ok=True)

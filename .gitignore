@@ -35,3 +35,9 @@ release-assets/
 verified-distributions/
 .mypy_cache/
 .ruff_cache/
+
+deploy/installation.env
+**/setup.token
+**/agent.token
+**/master.key
+**/*.dpapi

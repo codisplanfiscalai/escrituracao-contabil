@@ -43,7 +43,7 @@ jobs:
           path: |
             ${{ steps.paths.outputs.pip }}
             ${{ steps.paths.outputs.npm }}
-          key: escritura-windows-${{ matrix.arch }}-deps-${{ hashFiles('packaging/requirements-build.txt', 'packaging/icon-tools/package-lock.json') }}
+          key: escritura-windows-${{ matrix.arch }}-deps-${{ hashFiles('requirements-server.txt', 'packaging/requirements-build.txt', 'packaging/icon-tools/package-lock.json') }}
       - name: Build graphical executable and run native smoke
         env:
           BUILD_VERSION: ${{ inputs.version }}

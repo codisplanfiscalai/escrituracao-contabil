@@ -1,0 +1,15 @@
+name: escritura-local
+services:
+  api:
+    image: ${ESCRITURA_IMAGE:-ghcr.io/codisplanfiscalai/escrituracao-contabil:develop}
+    ports: ['127.0.0.1:8765:8765']
+    environment:
+      ESCRITURA_PUBLIC_URL: http://127.0.0.1:8765
+    volumes: [accounting:/data]
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+volumes:
+  accounting:
