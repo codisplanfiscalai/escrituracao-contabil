@@ -4,6 +4,8 @@ Data: 2026-11-04. Somente dados e identificadores fictícios.
 
 ## Executado localmente
 
+Recorte do primeiro incremento (781a49e). As verificações posteriores constam abaixo.
+
 - Python 3.12: `python -m unittest discover -s tests -v` — 60 testes passaram (8 contratos existentes, 46 persistência/parser, 6 HTTP).
 - `python -m compileall -q src tests` — passou.
 - `node --check src/web/app.js` — passou.
@@ -27,3 +29,13 @@ Nenhum resultado local equivale a validação fiscal oficial ou pronto uso em pr
 - O bloqueio Chromium relatado na etapa anterior pertence ao ambiente anterior; não bloqueou este teste.
 - Não houve migração de esquema, reescrita retroativa de documentos nem purga. O normalizador v2 registra alertas de cobrança nas novas importações. Resultado antigo é preservado; diferença de conteúdo/normalização continua exigindo conferência.
 - Mantidos os limites: SPED apenas recebido, sem conciliação XML × SPED; títulos/parcelas ainda no payload, sem entidades próprias; sem snapshots/motor de lançamentos/exportadores; sem autenticação por função; sem teste Prosoft, PVA, XSD ou validação fiscal oficial.
+
+## Conciliação parcial e entidades de cobrança — 2026-11-04
+
+- Base b416a99 revisada; sua CI (run 41862143155) continuava em fila, sem execução/falha disponível durante este incremento. A aprovação de 781a49e não é atribuída a b416a99.
+- Fluxo, formatos, migração e aceite registrados em docs/conciliacao-documental.md antes de implementar. Guia oficial 3.2.4 e referência oficial de versão 020 consultados; não houve teste com arquivos reais ou Prosoft.
+- 89 testes locais em Python 3.12 passaram: 66 anteriores e 23 adicionais de parser, persistência e HTTP. Cobrem as duas ordens XML/SPED; chave/versão/empresa/período inválidos; valores e datas divergentes; identidade de cobrança ausente, repetida ou alterada; preservação de fontes C140/C141 sem presumir Prosoft; reanálise idempotente; migração 1→2 sem reescrita de originais/documentos; isolamento; persistência; rollback em falha de auditoria; remoção lógica com dependências e prévia desatualizada.
+- compileall, node --check e git diff --check passaram.
+- Chromium real em 1440×1000 e 390×844: cadastro fictício, períodos agosto/setembro, XML com cobrança, SPED apenas recebido, análise do original salvo, documento coincidente, nova fonte com total divergente, valores e linhas de origem, remoção lógica da fonte divergente com IDs de fatura/parcelas, chave ausente na lista de pendências e persistência após recarregar. Sem erros JavaScript ou overflow horizontal da página. Capturas fictícias inspecionadas internamente.
+- Recorte: XML NF-e 4.00/55 e leitura parcial EFD-ICMS/IPI 020/2026 (0000 e C100 regular/55). Sem validação completa dos demais registros, itens, tributos ou arquivo oficial. C140/C141/55 continuam observações pendentes de perfil Prosoft, sem entidades inferidas a partir desses registros.
+- Pendentes: resolução humana persistente das divergências e associações de cobrança ambíguas, formatos reais de planos e outras versões SPED, snapshots, motor contábil, perfis/exportadores Prosoft, papéis, restauração/purga e política de retenção. Nenhuma liberação para exportação, homologação Prosoft, PVA, XSD, assinatura ou apuração CBS/IBS.

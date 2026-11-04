@@ -74,12 +74,18 @@ def dispatch(store, method, route, data):
             return store.list_files(company)
         if route == "file-preview":
             return store.deletion_preview(company, _identifier(_required(data, "file_id"), "file_id"))
+        if route in {"reconciliation", "observations"}:
+            period=data.get("period_id")
+            period=None if period in (None, "") else _identifier(period,"period_id")
+            return store.list_reconciliation(company,period) if route=="reconciliation" else store.list_observations(company,period)
         if route == "documents":
             period = data.get("period_id")
             return store.list_documents(company, None if period in (None, "") else _identifier(period, "period_id"))
         if route == "audit":
             return store.list_audit(company)
     if method == "POST":
+        if route == "file-analysis":
+            return store.index_file(company, _identifier(_required(data, "file_id"), "file_id"), _required(data, "profile"))
         if route == "file-removal":
             return store.delete_file(company, _identifier(_required(data, "file_id"), "file_id"),
                                      _required(data, "reason"), confirmed=data.get("confirmed"),
@@ -115,7 +121,7 @@ def dispatch(store, method, route, data):
             if kind not in ("XML", "SPED"):
                 raise APIError("kind deve ser XML ou SPED.")
             return store.import_file(company, _identifier(_required(data, "period_id"), "period_id"),
-                                     filename, content, kind)
+                                     filename, content, kind, sped_profile=data.get("sped_profile") or None)
     raise APIError("Rota ou método não disponível.", 404)
 
 
@@ -217,7 +223,7 @@ class LocalHandler(BaseHTTPRequestHandler):
                 filename, content_type = ASSETS[parts.path]
                 self._send(200, (WEB_ROOT / filename).read_bytes(), content_type)
                 return
-            routes = {"companies", "periods", "plans", "accounts", "mappings", "files", "documents", "audit", "file-preview", "file-removal"}
+            routes = {"companies", "periods", "plans", "accounts", "mappings", "files", "documents", "audit", "file-preview", "file-removal", "file-analysis", "reconciliation", "observations"}
             route = parts.path.removeprefix("/api/")
             if not parts.path.startswith("/api/") or route not in routes:
                 raise APIError("Página não encontrada.", 404)

@@ -176,6 +176,46 @@ class LocalApplicationTests(unittest.TestCase):
         self.assertEqual(self.api(f"audit?company_id={cid}")[0]["action"],"arquivo_removido_logicamente")
         self.assertEqual(self.request("/api/file-removal","POST",data)[0],400)
 
+    def test_partial_reconciliation_and_saved_source_analysis_over_http(self):
+        from test_persistence import fake_xml, ISSUER
+        from test_reconciliation import fake_sped
+        from src.reconciliation import SPED_PROFILE
+        company=self.api("companies",{"name":"Empresa fictícia da conciliação","prosoft_company_code":"TEST","prosoft_plan_code":"TEST","cnpj":ISSUER})
+        cid=company["id"]
+        period=self.api("periods",{"company_id":cid,"reference_competence":"2026-08","processing_competence":"2026-09"})
+        for kind,content in (("XML",fake_xml()),("SPED",fake_sped())):
+            imported=self.api("files",{"company_id":str(cid),"period_id":str(period["id"]),"filename":"ficticio."+kind.lower(),"kind":kind,"content_base64":base64.b64encode(content).decode()})
+        self.assertEqual(self.api(f"reconciliation?company_id={cid}")[0]["state"],"somente_xml")
+        analysis={"company_id":cid,"file_id":str(imported["id"]),"profile":SPED_PROFILE}
+        self.assertFalse(self.api("file-analysis",analysis)["duplicate"])
+        self.assertTrue(self.api("file-analysis",analysis)["duplicate"])
+        reconciled=self.api(f"reconciliation?company_id={cid}&period_id={period['id']}")
+        self.assertEqual(len(reconciled),1)
+        self.assertEqual(reconciled[0]["state"],"coincidente_no_recorte")
+        self.assertEqual(len(reconciled[0]["invoices"][0]["installments"]),2)
+        self.assertFalse(reconciled[0]["ready_for_export"])
+        rows=self.api(f"observations?company_id={cid}")
+        self.assertTrue(any(row["locator"]=="linha:3" for row in rows))
+        other=self.company()["id"]
+        self.assertEqual(self.api(f"reconciliation?company_id={other}"),[])
+        self.assertEqual(self.request("/api/file-analysis","POST",{**analysis,"company_id":other})[0],400)
+        self.assertEqual(self.request(f"/api/observations?company_id={other}&period_id={period['id']}")[0],400)
+        self.assertEqual(self.request("/api/file-analysis","POST",{**analysis,"profile":"inventado"})[0],400)
+
+    def test_explicit_partial_sped_import_and_pending_records_over_http(self):
+        from test_persistence import ISSUER
+        from test_reconciliation import fake_sped
+        from src.reconciliation import SPED_PROFILE
+        company=self.api("companies",{"name":"Empresa fictícia do perfil","prosoft_company_code":"TEST","prosoft_plan_code":"TEST","cnpj":ISSUER})
+        cid=company["id"]
+        period=self.api("periods",{"company_id":cid,"reference_competence":"2026-08","processing_competence":"2026-09"})
+        imported=self.api("files",{"company_id":cid,"period_id":period["id"],"filename":"ficticio.txt","kind":"SPED","sped_profile":SPED_PROFILE,"content_base64":base64.b64encode(fake_sped(key="")).decode()})
+        self.assertEqual(imported["status"],"pendente")
+        self.assertTrue(imported["analyses"])
+        self.assertEqual(self.api(f"reconciliation?company_id={cid}"),[])
+        rows=self.api(f"observations?company_id={cid}")
+        self.assertTrue(any(row["issues"] for row in rows))
+
 
 if __name__ == "__main__":
     unittest.main()

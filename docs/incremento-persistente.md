@@ -1,5 +1,7 @@
 # Primeiro incremento persistente
 
+Recorte histórico do commit 781a49e. A implementação posterior de conciliação parcial e entidades de cobrança está em [conciliação documental](conciliacao-documental.md); a situação atual consta do README.
+
 ## Fluxos antes da implementação
 
 A documentação original permanece válida. Este incremento transforma cadastro e ingestão em um protótipo local executável, sem envio externo.

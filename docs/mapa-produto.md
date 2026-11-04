@@ -2,6 +2,8 @@
 
 Contexto integral recebido por mensagem em 2026-11-04 após falha de transferência do anexo da Library. Este mapa complementa os fluxos do primeiro incremento e antecede as alterações desta etapa. Repositório próprio, implementação independente; nenhuma cópia do Gerador SPED. Somente dados fictícios nos testes.
 
+Este mapa registra o planejamento e as lacunas anteriores ao incremento de conciliação. Para a implementação posterior de leitura parcial SPED, faturas/parcelas canônicas e observações, consulte [conciliação documental](conciliacao-documental.md) e o README atual.
+
 ## Navegação, atores e permissões
 
 Empresa e períodos → Plano e versões → Mapeamentos e revisão → Documentos e conciliação → Prévia de conversão → Revisão/exportação → Histórico e administração.

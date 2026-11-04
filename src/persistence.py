@@ -11,6 +11,8 @@ from pathlib import Path
 import xml.etree.ElementTree as ET
 
 from .contract_safety import validate_competence
+from .reconciliation import XML_PROFILE, SPED_PROFILE
+from .reconciliation_store import ReconciliationMixin, RECONCILIATION_SCHEMA
 
 MAX_FILE_BYTES = 10 * 1024 * 1024
 NS = {"n": "http://www.portalfiscal.inf.br/nfe"}
@@ -98,8 +100,12 @@ def parse_nfe(content):
         raise ValueError("Chave NF-e inconsistente com os campos ou dígito verificador")
     billing_warnings = []
     billing = None
+    if len(info.findall("n:cobr",NS))>1:
+        raise ValueError("Mais de um grupo de cobrança; exige conferência de estrutura")
     cobr = info.find("n:cobr", NS)
     if cobr is not None:
+        if len(cobr.findall("n:fat",NS))>1:
+            raise ValueError("Mais de uma fatura no XML; exige conferência de estrutura")
         invoice = cobr.find("n:fat", NS)
         def optional(element, name):
             return element.findtext(f"n:{name}", default="", namespaces=NS).strip()
@@ -184,7 +190,7 @@ CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL);
 """
 
 
-class AccountingStore:
+class AccountingStore(ReconciliationMixin):
     def __init__(self, db_path, actor="operador-local"):
         self.actor = _text(actor, "usuário", 100)
         path = Path(db_path).expanduser()
@@ -196,13 +202,20 @@ class AccountingStore:
         self.db.execute("PRAGMA busy_timeout=15000")
         version_table = self.db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='schema_version'").fetchone()
         version = self.db.execute("SELECT version FROM schema_version").fetchone() if version_table else None
-        if version and version[0] != 1:
+        if version and version[0] not in {1, 2}:
             self.close()
             raise ValueError("Versão do banco não suportada; nenhuma migração automática realizada")
-        self.db.executescript(SCHEMA)
-        if not version:
-            self.db.execute("INSERT INTO schema_version VALUES (1)")
-        self.db.commit()
+        try:
+            self.db.executescript("BEGIN IMMEDIATE;\n" + SCHEMA + RECONCILIATION_SCHEMA)
+            if not version:
+                self.db.execute("INSERT INTO schema_version VALUES (2)")
+            elif version[0] == 1:
+                self.db.execute("UPDATE schema_version SET version=2")
+            self.db.commit()
+        except Exception:
+            self.db.rollback()
+            self.close()
+            raise
         if str(db_path) != ":memory:":
             path.chmod(0o600)
 
@@ -344,7 +357,7 @@ class AccountingStore:
         self._company(company_id)
         return [dict(r) for r in self.db.execute("SELECT * FROM mappings WHERE company_id=? ORDER BY id DESC",(company_id,))]
 
-    def import_file(self,company_id,period_id,filename,content,kind):
+    def import_file(self,company_id,period_id,filename,content,kind,sped_profile=None):
         company=self._company(company_id)
         period=self._owned("periods",company_id,period_id)
         filename=_text(filename,"nome de arquivo",255)
@@ -352,6 +365,8 @@ class AccountingStore:
             raise ValueError("Use apenas o nome do arquivo")
         if kind not in {"XML","SPED"} or not isinstance(content,bytes) or not content or len(content)>MAX_FILE_BYTES:
             raise ValueError("Tipo não suportado ou arquivo vazio/maior que 10 MiB")
+        if sped_profile is not None and (kind!="SPED" or sped_profile!=SPED_PROFILE):
+            raise ValueError("Perfil SPED não suportado para este arquivo")
         digest=hashlib.sha256(content).hexdigest()
         metadata={}
         status="validado"
@@ -363,7 +378,7 @@ class AccountingStore:
                     raise ValueError("Competência de emissão diverge dos movimentos; exige revisão manual, nenhum documento criado")
                 if company["cnpj"] and company["cnpj"] not in {payload["issuer"],payload["buyer"]}:
                     raise ValueError("Documento não identifica a empresa cadastrada")
-                metadata={"normalizer":"nfe-4.00-header-billing-v2","company_identity_verified":bool(company["cnpj"])}
+                metadata={"normalizer":XML_PROFILE,"company_identity_verified":bool(company["cnpj"])}
                 if payload["billing_warnings"]:
                     status="pendente"
                     metadata["billing_warnings"]=payload["billing_warnings"]
@@ -402,6 +417,8 @@ class AccountingStore:
             if existing:
                 if existing["status"]=="excluido":
                     raise ValueError("Arquivo foi removido logicamente; restauração exige fluxo próprio")
+                if sped_profile is not None and existing["status"]!="rejeitado":
+                    self._index_source(company,period,self._owned("files",company_id,existing["id"]),sped_profile)
                 self._audit(company_id,"arquivo_repetido",{"id":existing["id"]})
                 result=self._file(company_id,existing["id"])
                 result["duplicate"]=True
@@ -409,18 +426,14 @@ class AccountingStore:
             cur=self.db.execute("INSERT INTO files(company_id,period_id,filename,kind,sha256,size,original,status,metadata,created_at) VALUES(?,?,?,?,?,?,?,?,?,?)",(company_id,period_id,filename,kind,digest,len(content),content,status,_json(metadata),self._now()))
             file_id=cur.lastrowid
             if payload is not None:
-                old=self.db.execute("SELECT * FROM documents WHERE company_id=? AND business_key=?",(company_id,payload["key"])).fetchone()
-                conflict=bool(old and (old["payload"]!=_json(payload) or old["period_id"]!=period["id"]))
-                if old:
-                    document_id=old["id"]
-                else:
-                    doc=self.db.execute("INSERT INTO documents(company_id,period_id,business_key,payload,status,created_at) VALUES(?,?,?,?,?,?)",(company_id,period_id,payload["key"],_json(payload),status,self._now()))
-                    document_id=doc.lastrowid
-                self.db.execute("INSERT INTO document_sources VALUES(?,?,?)",(document_id,file_id,int(conflict)))
-                if conflict:
-                    metadata["error"]="Mesmo documento com conteúdo ou contexto divergente; original mantido"
-                    self.db.execute("UPDATE files SET status='pendente',metadata=? WHERE id=?",(_json(metadata),file_id))
-                    self.db.execute("UPDATE documents SET status='pendente' WHERE id=?",(document_id,))
+                file_row=self._owned("files",company_id,file_id)
+                self._index_source(company,period,file_row,XML_PROFILE,payload)
+            elif kind=="SPED" and status!="rejeitado" and sped_profile is not None:
+                indexed=self._index_source(company,period,self._owned("files",company_id,file_id),sped_profile)
+                current_metadata=self._file(company_id,file_id)["metadata"]
+                current_metadata["analysis"]=indexed
+                current_metadata["warning"]="Leitura parcial para conciliação; sem validação integral ou liberação Prosoft"
+                self.db.execute("UPDATE files SET metadata=? WHERE id=?",(_json(current_metadata),file_id))
             self._audit(company_id,"arquivo_importado",{"id":file_id,"kind":kind,"status":self.db.execute("SELECT status FROM files WHERE id=?",(file_id,)).fetchone()[0],"sha256":digest})
         result=self._file(company_id,file_id)
         result["duplicate"]=False
@@ -433,6 +446,7 @@ class AccountingStore:
             raise ValueError("Arquivo não encontrado para empresa")
         result=dict(row)
         result["metadata"]=json.loads(result["metadata"])
+        result["analyses"]=[dict(r) for r in self.db.execute("SELECT id,profile,status,created_at FROM file_indexings WHERE file_id=? ORDER BY id",(file_id,))]
         return result
 
     def list_files(self,company_id):
@@ -464,6 +478,8 @@ class AccountingStore:
         row=self._file(company_id,file_id)
         docs=[r[0] for r in self.db.execute("SELECT document_id FROM document_sources WHERE file_id=? ORDER BY document_id",(file_id,))]
         preview={"file_id":row["id"],"filename":row["filename"],"document_ids":docs,"status":row["status"],"operation":"remocao_logica","consequence":"Preserva original e auditoria; documentos vinculados ficam pendentes. Purga definitiva indisponível."}
+        preview["invoice_ids"]=[r[0] for r in self.db.execute("SELECT i.id FROM invoices i JOIN document_sources s ON s.document_id=i.document_id WHERE s.file_id=? ORDER BY i.id",(file_id,))]
+        preview["installment_ids"]=[r[0] for r in self.db.execute("SELECT p.id FROM installments p JOIN invoices i ON i.id=p.invoice_id JOIN document_sources s ON s.document_id=i.document_id WHERE s.file_id=? ORDER BY p.id",(file_id,))]
         preview["preview_token"]=hashlib.sha256(_json(preview).encode()).hexdigest()
         return preview
 
@@ -481,5 +497,7 @@ class AccountingStore:
             self.db.execute("UPDATE files SET status='excluido' WHERE id=? AND company_id=?",(file_id,company_id))
             for document_id in preview["document_ids"]:
                 self.db.execute("UPDATE documents SET status='pendente' WHERE id=? AND company_id=?",(document_id,company_id))
-            self._audit(company_id,"arquivo_removido_logicamente",{"id":file_id,"reason":reason,"document_ids":preview["document_ids"]})
+                self.db.execute("UPDATE invoices SET status='pendente' WHERE document_id=?",(document_id,))
+                self.db.execute("UPDATE installments SET status='pendente' WHERE invoice_id IN (SELECT id FROM invoices WHERE document_id=?)",(document_id,))
+            self._audit(company_id,"arquivo_removido_logicamente",{"id":file_id,"reason":reason,"document_ids":preview["document_ids"],"invoice_ids":preview["invoice_ids"],"installment_ids":preview["installment_ids"]})
         return preview
