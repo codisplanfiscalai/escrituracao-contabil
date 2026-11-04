@@ -78,7 +78,10 @@ def main():
                 expect(frame.get_by_label('Período de trabalho',exact=True)).to_have_value(period)
                 expect(frame.get_by_label('Empresa de trabalho',exact=True)).to_be_in_viewport()
                 frame.get_by_role('heading',name='Receber arquivo XML ou SPED').wait_for()
+                page.evaluate('window.scrollTo(0,0)')
                 page.screenshot(path=str(screenshots/'documentos.png'),full_page=True,animations="disabled")
+                expect(frame.get_by_label('Empresa de trabalho',exact=True)).to_have_value('1')
+                expect(frame.get_by_label('Período de trabalho',exact=True)).to_have_value(period)
                 page.get_by_role('link',name='Configurações',exact=True).click()
                 page.get_by_label('Nome de exibição').fill('Escritura · Escritório')
                 page.get_by_role('button',name='Salvar configurações',exact=True).click()
@@ -111,6 +114,12 @@ def main():
                 assert not errors,errors
                 browser.close()
                 print('PASS: setup, login, dashboard, company, users, accounting iframe/context, settings, mobile, client scope/upload; no browser errors')
+        except Exception:
+            try:
+                page.screenshot(path=str(screenshots/'falha.png'),full_page=True)
+                print('Browser errors:',errors)
+            except Exception:pass
+            raise
         finally:
             server.shutdown();thread.join(timeout=10);server.server_close()
 

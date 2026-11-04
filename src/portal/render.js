@@ -348,6 +348,7 @@ var _Vue=Vue; var EscrituraRender=function render(_ctx, _cache) {
                           }), 128))])])]))
                         : (page==='client')
                           ? (_openBlock(), _createElementBlock("section", { key: 7 }, [_createElementVNode("div", { class: "panel padded" }, [_createElementVNode("div", { class: "form-grid" }, [_createElementVNode("label", { class: "field" }, [_createTextVNode("Empresa"), _withDirectives(_createElementVNode("select", {
+                              "aria-label": "Empresa",
                               "onUpdate:modelValue": $event => ((clientCompany) = $event),
                               onChange: loadClient
                             }, [_createElementVNode("option", { value: "" }, "Selecione"), (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(dashboard.companies, (c) => {
@@ -355,7 +356,10 @@ var _Vue=Vue; var EscrituraRender=function render(_ctx, _cache) {
                                 value: String(c.id),
                                 key: c.id
                               }, _toDisplayString(c.name), 9, ["value"]))
-                            }), 128))], 40, ["onUpdate:modelValue", "onChange"]), [[_vModelSelect, clientCompany]])]), _createElementVNode("label", { class: "field" }, [_createTextVNode("Período"), _withDirectives(_createElementVNode("select", { "onUpdate:modelValue": $event => ((clientPeriod) = $event) }, [_createElementVNode("option", { value: "" }, "Selecione"), (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(clientData.periods, (p) => {
+                            }), 128))], 40, ["onUpdate:modelValue", "onChange"]), [[_vModelSelect, clientCompany]])]), _createElementVNode("label", { class: "field" }, [_createTextVNode("Período"), _withDirectives(_createElementVNode("select", {
+                              "aria-label": "Período",
+                              "onUpdate:modelValue": $event => ((clientPeriod) = $event)
+                            }, [_createElementVNode("option", { value: "" }, "Selecione"), (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(clientData.periods, (p) => {
                               return (_openBlock(), _createElementBlock("option", {
                                 value: String(p.id),
                                 key: p.id
@@ -365,7 +369,10 @@ var _Vue=Vue; var EscrituraRender=function render(_ctx, _cache) {
                                   key: 0,
                                   onSubmit: _withModifiers(uploadClient, ["prevent"]),
                                   class: "upload-bar"
-                                }, [_createElementVNode("label", { class: "field" }, [_createTextVNode("Tipo"), _withDirectives(_createElementVNode("select", { "onUpdate:modelValue": $event => ((uploadKind) = $event) }, [_createElementVNode("option", null, "XML"), _createElementVNode("option", null, "SPED")], 8, ["onUpdate:modelValue"]), [[_vModelSelect, uploadKind]])]), _createElementVNode("label", { class: "field grow" }, [_createTextVNode("Documento"), _createElementVNode("input", {
+                                }, [_createElementVNode("label", { class: "field" }, [_createTextVNode("Tipo"), _withDirectives(_createElementVNode("select", {
+                                  "aria-label": "Tipo",
+                                  "onUpdate:modelValue": $event => ((uploadKind) = $event)
+                                }, [_createElementVNode("option", null, "XML"), _createElementVNode("option", null, "SPED")], 8, ["onUpdate:modelValue"]), [[_vModelSelect, uploadKind]])]), _createElementVNode("label", { class: "field grow" }, [_createTextVNode("Documento"), _createElementVNode("input", {
                                   type: "file",
                                   accept: ".xml,.txt,.sped",
                                   onChange: $event => (uploadFile=$event.target.files[0]),
