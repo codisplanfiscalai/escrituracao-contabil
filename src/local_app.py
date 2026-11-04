@@ -285,7 +285,7 @@ class LocalHandler(BaseHTTPRequestHandler):
                 filename, content_type = ASSETS[parts.path]
                 self._send(200, (WEB_ROOT / filename).read_bytes(), content_type)
                 return
-            routes = {"billing-association-preview", "billing-associations", "companies", "periods", "plans", "accounts", "mappings", "files", "documents", "audit", "file-preview", "file-removal", "file-analysis", "reconciliation", "observations", "document-reviews", "accounting-batches", "accounting-review", "accounting-close", "accounting-evidence", "accounting-evidence-file"}
+            routes = {"participants", "participant-review", "fiscal-workspaces", "fiscal-entries", "fiscal-seed", "fiscal-review", "fiscal-period", "billing-association-preview", "billing-associations", "companies", "periods", "plans", "accounts", "mappings", "files", "documents", "audit", "file-preview", "file-removal", "file-analysis", "reconciliation", "observations", "document-reviews", "accounting-batches", "accounting-review", "accounting-close", "accounting-evidence", "accounting-evidence-file"}
             route = parts.path.removeprefix("/api/")
             if not parts.path.startswith("/api/") or route not in routes:
                 raise APIError("Página não encontrada.", 404)

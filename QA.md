@@ -82,3 +82,24 @@ Nenhum resultado local equivale a validação fiscal oficial ou pronto uso em pr
 - `qa/portal_browser.py`: regressão de configuração, login, painel, empresas, usuários, área contábil/contexto, configurações, mobile, escopo/upload do cliente passou.
 - actionlint, node syntax, compileall, diff-check, ícones e smoke do portal local passaram. Nova regressão fiscal incluída no job Portal browser.
 - Não executados neste Linux: aplicativo Windows nativo e DPAPI; a aprovação desses builds depende da CI do novo SHA. Sem execução Prosoft/PVA, validação fiscal integral, NFS-e municipal ou reconferência dos arquivos reais relatados.
+
+
+## Guias integradas e recuperação de rascunhos
+
+Execute `python qa/workspace_navigation.py` com Playwright e Chromium disponíveis.
+A regressão usa apenas empresas e documentos sintéticos em banco temporário.
+Confere a mesma instância do workspace ao alternar atividades e configurações,
+voltar/avançar no navegador, fechar/reabrir uma atividade, rascunhos contábeis
+visuais e JSON separados por empresa/competência, preservação do identificador
+da tentativa, atualização dos dados e recuperação após recarregar a página.
+Simula falha de gravação fiscal: a navegação e a troca de competência devem
+permanecer no contexto anterior, mantendo os campos para uma nova tentativa.
+Confere entradas, saídas e serviços e ausência de transbordamento horizontal
+em 1440, 1024, 768, 390 e 320 pixels. `--screenshots /tmp/escritura-workspace-qa`
+gera capturas sintéticas locais opcionais.
+
+Os rascunhos contábeis usam `sessionStorage` da aba, separados pelo operador
+no portal, e são removidos ao sair explicitamente da conta. Não substituem uma
+prévia gravada no servidor e não são compartilhados entre dispositivos. Caso
+o navegador bloqueie a recuperação, o editor informa que o rascunho permanece
+somente em memória. As guias fiscais continuam versionadas no banco.

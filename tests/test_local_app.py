@@ -60,6 +60,20 @@ class LocalApplicationTests(unittest.TestCase):
         return self.api("companies", {"name": "Empresa Sintética <script>",
                                      "prosoft_company_code": "TEST-01", "prosoft_plan_code": "PL-01"})
 
+    def test_local_workspace_fiscal_routes_and_draft_recovery(self):
+        company = self.company()['id']
+        period = self.api('periods', {'company_id': company, 'reference_competence': '2026-08', 'processing_competence': '2026-09'})['id']
+        query = f'company_id={company}&period_id={period}'
+        self.assertEqual(self.api('participants?' + query), [])
+        self.assertEqual(self.api('fiscal-entries?' + query), [])
+        self.assertEqual(self.api('fiscal-period?' + query)['state'], 'aberto')
+        payload = {'company_id': company, 'period_id': period, 'title': 'Guia sintética', 'data': {'data': {'number': 'FICTICIO'}}, 'request_key': 'synthetic-local-draft'}
+        draft = self.api('fiscal-workspaces', payload)
+        self.assertEqual(self.api('fiscal-workspaces?' + query)[0]['id'], draft['id'])
+        self.stop_server(); self.start_server()
+        self.assertEqual(self.api('fiscal-workspaces?' + query)[0]['data']['data']['number'], 'FICTICIO')
+        self.assertEqual(self.request('/api/fiscal-workspaces?' + query, headers={'X-Local-Token': None})[0], 403)
+
     def test_static_allowlist_token_injection_and_headers(self):
         status, headers, body = self.request("/")
         self.assertEqual(status, 200)
