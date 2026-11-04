@@ -13,3 +13,7 @@ input[type="checkbox"]{display:inline-block;width:auto;min-height:0;margin:0 8px
 .download-actions{display:flex;flex-wrap:wrap;gap:10px;margin:14px 0}
 
 input,select,textarea,.secondary{border-color:#6B8990}
+
+.posting-line{border:1px solid #86A1A6;border-radius:8px;padding:18px;margin:18px 0;min-width:0}.posting-line legend{font-weight:700;color:#064D5D}.posting-grid{display:grid;grid-template-columns:1fr 1fr;gap:0 16px}.posting-grid label:first-child,.posting-grid label:last-child{grid-column:1/-1}.posting-line .help,#posting-totals{overflow-wrap:anywhere}.posting-line select{max-width:100%}@media(max-width:550px){.posting-grid{grid-template-columns:minmax(0,1fr)}.posting-line{padding:12px}}
+
+.billing-association{border-top:1px solid #D8E3E6;margin-top:20px;padding-top:8px}.billing-association p{overflow-wrap:anywhere}.billing-confirm{border-left:3px solid #08A45B;padding-left:14px;margin-top:18px}

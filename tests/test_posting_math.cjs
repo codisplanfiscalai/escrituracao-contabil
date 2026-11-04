@@ -1,0 +1,15 @@
+'use strict';
+const assert=require('node:assert/strict');
+const math=require('../src/web/posting_math.js');
+const line=(document_id,group,side,amount)=>({document_id,group,side,amount});
+assert.equal(math.normalize('0,1'),'0.10');
+assert.equal(math.normalize('9999999999999999.99'),'9999999999999999.99');
+for(const bad of [0.1,'0','-1','1e3','1.234','1,000.00','Infinity',' 1','01','10000000000000000'])assert.throws(()=>math.cents(bad));
+assert.deepEqual(math.summarize([line(1,'a','D','0.10'),line(1,'a','D','0.20'),line(1,'a','C','0.30')]).difference,'0.00');
+const big=math.summarize([line(1,'a','D','9999999999999999.99'),line(1,'a','C','9999999999999999.98')]);
+assert.equal(big.difference,'0.01');assert.equal(big.balanced,false);
+const crossed=math.summarize([line(1,'a','D','10'),line(2,'a','C','10')]);assert.equal(crossed.difference,'0.00');assert.equal(crossed.balanced,false);
+const split=math.summarize([line(1,'a','D','10'),line(1,'b','C','10')]);assert.equal(split.balanced,false);
+assert.equal(math.summarize([line(1,'a','D','10'),line(1,'a','C','10'),line('','a','D','')]).invalid,1);
+assert.equal(math.summarize([]).balanced,false);
+console.log('PASS: decimal strings, exact cents above Number precision, group/document balance and incomplete lines');

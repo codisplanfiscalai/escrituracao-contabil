@@ -264,5 +264,5 @@ class AccountingTests(unittest.TestCase):
             self.assertEqual(db.execute('SELECT version FROM schema_version').fetchone()[0],2)
             self.assertIsNone(db.execute("SELECT name FROM sqlite_master WHERE name='temporary_migration'").fetchone())
         with AccountingStore(legacy) as store:
-            self.assertEqual(store.db.execute('SELECT version FROM schema_version').fetchone()[0],4)
+            self.assertEqual(store.db.execute('SELECT version FROM schema_version').fetchone()[0],5)
             self.assertEqual(store.list_companies()[0]['created_at'],'instante-ficticio')

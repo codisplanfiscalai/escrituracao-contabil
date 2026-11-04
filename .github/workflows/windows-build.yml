@@ -49,6 +49,8 @@ jobs:
         run: python -m unittest discover -s tests -v
       - name: Test distribution integrity and private-package gate
         run: python -m unittest discover -s packaging -p "test_*.py" -v
+      - name: Test exact posting totals in the browser module
+        run: node tests/test_posting_math.cjs
       - name: Build native executable, check PE architecture/icons and smoke test
         run: python packaging/build_windows.py --arch ${{ matrix.arch }}
       - name: Upload verified distribution and checksums

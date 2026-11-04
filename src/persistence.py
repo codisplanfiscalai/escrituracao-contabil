@@ -15,6 +15,7 @@ from .reconciliation import XML_PROFILE, SPED_PROFILE
 from .reconciliation_store import ReconciliationMixin, RECONCILIATION_SCHEMA
 from .accounting_store import AccountingMixin, ACCOUNTING_SCHEMA
 from .evidence_export import EvidenceExportMixin, EVIDENCE_SCHEMA
+from .billing_association import BillingAssociationMixin, BILLING_ASSOCIATION_SCHEMA
 
 MAX_FILE_BYTES = 10 * 1024 * 1024
 NS = {"n": "http://www.portalfiscal.inf.br/nfe"}
@@ -192,7 +193,7 @@ CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL);
 """
 
 
-class AccountingStore(EvidenceExportMixin, AccountingMixin, ReconciliationMixin):
+class AccountingStore(BillingAssociationMixin, EvidenceExportMixin, AccountingMixin, ReconciliationMixin):
     def __init__(self, db_path, actor="operador-local"):
         self.actor = _text(actor, "usuário", 100)
         path = Path(db_path).expanduser()
@@ -204,15 +205,15 @@ class AccountingStore(EvidenceExportMixin, AccountingMixin, ReconciliationMixin)
         self.db.execute("PRAGMA busy_timeout=15000")
         version_table = self.db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='schema_version'").fetchone()
         version = self.db.execute("SELECT version FROM schema_version").fetchone() if version_table else None
-        if version and version[0] not in {1, 2, 3, 4}:
+        if version and version[0] not in {1, 2, 3, 4, 5}:
             self.close()
             raise ValueError("Versão do banco não suportada; nenhuma migração automática realizada")
         try:
-            self.db.executescript("BEGIN IMMEDIATE;\n" + SCHEMA + RECONCILIATION_SCHEMA + ACCOUNTING_SCHEMA + EVIDENCE_SCHEMA)
+            self.db.executescript("BEGIN IMMEDIATE;\n" + SCHEMA + RECONCILIATION_SCHEMA + ACCOUNTING_SCHEMA + EVIDENCE_SCHEMA + BILLING_ASSOCIATION_SCHEMA)
             if not version:
-                self.db.execute("INSERT INTO schema_version VALUES (4)")
-            elif version[0] in {1, 2, 3}:
-                self.db.execute("UPDATE schema_version SET version=4")
+                self.db.execute("INSERT INTO schema_version VALUES (5)")
+            elif version[0] in {1, 2, 3, 4}:
+                self.db.execute("UPDATE schema_version SET version=5")
             self.db.commit()
         except Exception:
             self.db.rollback()

@@ -61,3 +61,14 @@ Nenhum resultado local equivale a validação fiscal oficial ou pronto uso em pr
 - Arquivos contábeis anteriores localizados na Library; bytes ZIP/XLSX não materializados por falha de rede do helper. Ver `docs/insumos-localizados.md`; não declarar leiautes validados.
 - Contêiner: alvo de testes executou 125 testes e smoke; imagem final executou smoke sem rede, sem capacidades e com filesystem somente leitura. Node fixado regenerou/verificou os ícones; actionlint aprovou workflows. Nenhuma publicação GHCR, release ou deployment executada.
 - Resultados finais de jobs/artefatos são registrados no PR e no handoff da revisão, distinguindo execução local/CI/Prosoft.
+
+
+## Editor de partidas, associação de cobrança e integridade HTTP (04/11/2026)
+
+- Editor visual sem digitação de IDs, fontes e mapeamentos vigentes explícitos; BigInt para centavos, totalizadores por documento/grupo, JSON avançado preservado. Contexto diferente limpa rascunho não enviado.
+- Associação de fatura/parcelas XML em relação completa 1:1 com valores e vencimentos coincidentes; prévia vinculada à proposta, confirmação e razão, decisões versionadas no esquema 5. Originais e evidências fechadas preservados; pendências de origem não são dispensadas.
+- Corrigida a rota POST indevida de download de evidência que podia fechar lote revisado: agora retorna 404 sem alterar estado. Regressão HTTP explícita incluída.
+- Corrigida troca de período enquanto carregam dados: ações bloqueadas durante consulta e cards antigos removidos se ela falhar. `qa/browser_context_regression.py` reproduz atraso e falha em Chromium com SQLite fictício; lote anterior permanece revisado.
+- 143 testes da aplicação e 6 das ferramentas aprovados localmente; Node confirma valores acima da precisão de Number, centavos, grupos/documentos separados e entradas incompletas. Compileall, sintaxe dos módulos JS e diff-check aprovados.
+- Chromium real: lançamento por linhas assistidas, valor com vírgula, prévia, ida/volta JSON, troca de empresa, desktop/390px; associação visual com prévia/confirm e nova revisão liberando motor, sem criar títulos/parcelas extras. Sem erro JS ou overflow de página.
+- CI e novos binários devem ser conferidos no commit publicado; resultados finais registrados no PR e handoff. Sem Prosoft, PVA, GHCR ou produção.

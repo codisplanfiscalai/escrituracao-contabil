@@ -193,12 +193,21 @@ class ReconciliationMixin:
         observations = self.list_observations(company_id)
         result = []
         for document in documents:
-            linked = [row for row in observations if row["document_id"] == document["id"]]
+            linked = [dict(row) for row in observations if row["document_id"] == document["id"]]
+            from .billing_association import billing_resolution_map
+            source_snapshot, _ = self._source_snapshot(company_id, document["id"])
+            resolutions = billing_resolution_map(source_snapshot)
+            for row in linked:
+                if row["id"] in resolutions:
+                    row["billing_resolution"] = resolutions[row["id"]]
             active = [row for row in linked if row["file_status"] != "excluido"]
             document_rows = [row for row in active if row["entity_kind"] == "documento"]
             diff = differences(document_rows)
             kinds = {row["source_kind"] for row in document_rows}
-            issues = [{"file_id": row["file_id"], "locator": row["locator"], "messages": row["issues"]} for row in active if row["issues"]]
+            issues = [{"file_id": row["file_id"], "locator": row["locator"], "messages": row["issues"],
+                       "resolved_messages": resolutions.get(row["id"], {}).get("resolved_issues", []),
+                       "unresolved_messages": [message for message in row["issues"] if message not in resolutions.get(row["id"], {}).get("resolved_issues", [])]}
+                      for row in active if row["issues"]]
             periods = {row["period_id"] for row in document_rows}
             if len(periods) > 1:
                 issues.append({"messages": ["Fontes em contextos de período diferentes; exige revisão"]})
@@ -206,14 +215,14 @@ class ReconciliationMixin:
             for invoice in self.db.execute("SELECT * FROM invoices WHERE document_id=? ORDER BY id", (document["id"],)):
                 item = dict(invoice)
                 item["payload"] = json.loads(item["payload"])
-                item["sources"] = [row for row in linked if row["entity_kind"] == "fatura" and row["invoice_id"] == item["id"]]
+                item["sources"] = [row for row in linked if row["entity_kind"] == "fatura" and (row["invoice_id"] == item["id"] or row.get("billing_resolution", {}).get("invoice_id") == item["id"])]
                 invoice_diff = differences([row for row in item["sources"] if row["file_status"] != "excluido"])
                 diff.extend({"entity": "fatura", "entity_id": item["id"], **entry} for entry in invoice_diff)
                 item["installments"] = []
                 for installment in self.db.execute("SELECT * FROM installments WHERE invoice_id=? ORDER BY id", (item["id"],)):
                     part = dict(installment)
                     part["payload"] = json.loads(part["payload"])
-                    part["sources"] = [row for row in linked if row["entity_kind"] == "parcela" and row["installment_id"] == part["id"]]
+                    part["sources"] = [row for row in linked if row["entity_kind"] == "parcela" and (row["installment_id"] == part["id"] or row.get("billing_resolution", {}).get("installment_id") == part["id"])]
                     part_diff = differences([row for row in part["sources"] if row["file_status"] != "excluido"])
                     diff.extend({"entity": "parcela", "entity_id": part["id"], **entry} for entry in part_diff)
                     item["installments"].append(part)
@@ -222,6 +231,7 @@ class ReconciliationMixin:
             result.append({"document_id": document["id"], "business_key": document["business_key"], "period_id": document["period_id"],
                            "source_period_ids": sorted({row["period_id"] for row in linked}),
                            "state": state, "differences": diff, "issues": issues, "sources": linked, "invoices": invoices,
+                           "billing_associations": self.list_billing_associations(company_id, document["id"]),
                            "unindexed_file_ids": [source["file_id"] for source in document["sources"] if source["file_id"] not in {row["file_id"] for row in linked}],
                            "ready_for_export": False, **self._review_status(company_id, document["id"], document["period_id"])})
         return result
