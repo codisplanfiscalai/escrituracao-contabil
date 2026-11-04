@@ -57,7 +57,11 @@ Portal em http://127.0.0.1:8765; token inicial em `identity/setup.token` junto a
 
 Resultados locais no commit de implementação: 182 testes da aplicação; 18 de empacotamento (um DPAPI omitido no Linux); 18 de entrega aprovados. Smoke do portal/persistência, ícones, compileall, matemática Decimal/JS, node syntax, actionlint e diff-check aprovados. Chromium passou nos fluxos fiscal e portal; screenshots desktop e 390 px inspecionados, sem transbordamento horizontal/erros JS. Fixtures inteiramente fictícias.
 
-A CI de Windows x86/x64 e contêiner deve ser conferida no SHA do PR novo. A aprovação da release-base não comprova este incremento. Não houve teste Prosoft/PVA, homologação fiscal, teste real com documentos DIX ou deploy de produção.
+CI confirmada no SHA `aa831a9362852ce3a446d6e6afbca6197b1708c9`: [run 41916458183](https://github.com/codisplanfiscalai/escrituracao-contabil/actions/runs/41916458183), todos os cinco jobs aprovados — Python 3.10/3.12/3.13, workflow lint e Portal browser (inclui regressão fiscal). Este registro documental é posterior àquela execução.
+
+A criação do PR rascunho `feat/fiscal-entry-ledger` → `develop` foi negada pela revisão automática por falta de evidência de autorização explícita para publicar o PR. A branch já estava publicada; o PR não foi criado (consulta confirmou lista vazia), sem execução incerta, merge ou deploy. Histórico autorizado consultado; não houve tentativa por outra ferramenta. Autorização específica foi solicitada e permanece necessária antes de retentar.
+
+A CI de Windows x86/x64 e contêiner deve ser conferida no SHA do PR novo; esses jobs não foram disparados porque o PR está bloqueado. A aprovação da release-base não comprova este incremento. Não houve teste Prosoft/PVA, homologação fiscal, teste real com documentos DIX ou deploy de produção.
 
 Migração 5→6 é aditiva e testada preservando originais. Antes de atualizar um banco operacional, manter backup privado e testar restauração; binário antigo não deve abrir banco migrado de versão maior. Não remover tabelas para simular downgrade de produção.
 
