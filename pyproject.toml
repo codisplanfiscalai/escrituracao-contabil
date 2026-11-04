@@ -1,0 +1,7 @@
+[project]
+name = "prosoft-sped-contabil-integration"
+version = "0.1.0"
+description = "Esqueleto sintético para integração fiscal e contábil com Prosoft"
+requires-python = ">=3.10"
+dependencies = []
+

@@ -1,0 +1,21 @@
+{
+  "run": {
+    "reference_competence": "2026-08",
+    "processing_competence": "2026-09",
+    "state": "SP",
+    "data_mode": "synthetic_only"
+  },
+  "fiscal": {
+    "output_purpose": "prosoft_import_only",
+    "records": ["C100", "C140/C141 when applicable and confirmed by importer"],
+    "transmission_enabled": false,
+    "official_validator_enabled": false
+  },
+  "accounting": {
+    "import_mode": "manual_reviewed_import",
+    "idempotency_manifest": true,
+    "automatic_retry": false,
+    "posting_map_version": "PENDING_APPROVAL"
+  }
+}
+

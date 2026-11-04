@@ -1,0 +1,20 @@
+# Real source files and generated fiscal/accounting outputs never belong in Git.
+data/
+inbox/
+outbox/
+private/
+state/
+logs/
+*.xml
+*.sped
+*.efd
+*.csv
+*.xlsx
+*.xls
+*.db
+.env
+.env.*
+__pycache__/
+*.py[cod]
+.venv/
+
