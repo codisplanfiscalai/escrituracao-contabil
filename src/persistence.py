@@ -13,6 +13,7 @@ import xml.etree.ElementTree as ET
 from .contract_safety import validate_competence
 from .reconciliation import XML_PROFILE, SPED_PROFILE
 from .reconciliation_store import ReconciliationMixin, RECONCILIATION_SCHEMA
+from .accounting_store import AccountingMixin, ACCOUNTING_SCHEMA
 
 MAX_FILE_BYTES = 10 * 1024 * 1024
 NS = {"n": "http://www.portalfiscal.inf.br/nfe"}
@@ -190,7 +191,7 @@ CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL);
 """
 
 
-class AccountingStore(ReconciliationMixin):
+class AccountingStore(AccountingMixin, ReconciliationMixin):
     def __init__(self, db_path, actor="operador-local"):
         self.actor = _text(actor, "usuário", 100)
         path = Path(db_path).expanduser()
@@ -202,15 +203,15 @@ class AccountingStore(ReconciliationMixin):
         self.db.execute("PRAGMA busy_timeout=15000")
         version_table = self.db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='schema_version'").fetchone()
         version = self.db.execute("SELECT version FROM schema_version").fetchone() if version_table else None
-        if version and version[0] not in {1, 2}:
+        if version and version[0] not in {1, 2, 3}:
             self.close()
             raise ValueError("Versão do banco não suportada; nenhuma migração automática realizada")
         try:
-            self.db.executescript("BEGIN IMMEDIATE;\n" + SCHEMA + RECONCILIATION_SCHEMA)
+            self.db.executescript("BEGIN IMMEDIATE;\n" + SCHEMA + RECONCILIATION_SCHEMA + ACCOUNTING_SCHEMA)
             if not version:
-                self.db.execute("INSERT INTO schema_version VALUES (2)")
-            elif version[0] == 1:
-                self.db.execute("UPDATE schema_version SET version=2")
+                self.db.execute("INSERT INTO schema_version VALUES (3)")
+            elif version[0] in {1, 2}:
+                self.db.execute("UPDATE schema_version SET version=3")
             self.db.commit()
         except Exception:
             self.db.rollback()
@@ -480,6 +481,8 @@ class AccountingStore(ReconciliationMixin):
         preview={"file_id":row["id"],"filename":row["filename"],"document_ids":docs,"status":row["status"],"operation":"remocao_logica","consequence":"Preserva original e auditoria; documentos vinculados ficam pendentes. Purga definitiva indisponível."}
         preview["invoice_ids"]=[r[0] for r in self.db.execute("SELECT i.id FROM invoices i JOIN document_sources s ON s.document_id=i.document_id WHERE s.file_id=? ORDER BY i.id",(file_id,))]
         preview["installment_ids"]=[r[0] for r in self.db.execute("SELECT p.id FROM installments p JOIN invoices i ON i.id=p.invoice_id JOIN document_sources s ON s.document_id=i.document_id WHERE s.file_id=? ORDER BY p.id",(file_id,))]
+        preview["closed_batch_ids"]=[r[0] for r in self.db.execute("SELECT DISTINCT b.id FROM accounting_batches b JOIN accounting_batch_documents d ON d.batch_id=b.id JOIN document_sources s ON s.document_id=d.document_id WHERE s.file_id=? AND b.status='fechado' ORDER BY b.id",(file_id,))]
+        preview["removal_blocked"]=bool(preview["closed_batch_ids"])
         preview["preview_token"]=hashlib.sha256(_json(preview).encode()).hexdigest()
         return preview
 
@@ -494,6 +497,8 @@ class AccountingStore(ReconciliationMixin):
                 raise ValueError("Arquivo já removido logicamente")
             if preview_token is not None and preview_token!=preview["preview_token"]:
                 raise ValueError("Prévia desatualizada; confira novamente as dependências")
+            if preview["removal_blocked"]:
+                raise ValueError("Fonte vinculada a lote fechado; remoção bloqueada até fluxo de estorno/ajuste")
             self.db.execute("UPDATE files SET status='excluido' WHERE id=? AND company_id=?",(file_id,company_id))
             for document_id in preview["document_ids"]:
                 self.db.execute("UPDATE documents SET status='pendente' WHERE id=? AND company_id=?",(document_id,company_id))

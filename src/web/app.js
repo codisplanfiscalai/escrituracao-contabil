@@ -2,7 +2,7 @@
 const $ = (selector) => document.querySelector(selector);
 const token = $('meta[name="local-token"]').content;
 let companies = [], current = emptyContext();
-function emptyContext(){return {periods:[],plans:[],mappings:[],files:[],documents:[],audit:[],reconciliation:[],observations:[]};}
+function emptyContext(){return {periods:[],plans:[],mappings:[],files:[],documents:[],audit:[],reconciliation:[],observations:[],batches:[],reviews:[]};}
 let generation = 0;
 let busy = 0;
 let removalPreview = null;
@@ -43,6 +43,10 @@ function render(){
   const company=companies.find(c=>String(c.id)===companyId());
   $('#scope-info').textContent=company?`${company.name} · Empresa Prosoft ${company.prosoft_company_code} · Plano Prosoft ${company.prosoft_plan_code}`:'Cadastre ou selecione uma empresa para começar.';
   renderReconciliation();
+  renderAccounting();
+  fillSelect($('#accounting-plan'),current.plans,'Selecione um plano',p=>`${p.label} · v${p.version} · #${p.id}`);
+  fillSelect($('#accounting-previous'),current.batches.filter(b=>b.status!=='substituido'),'Novo lote',b=>`#${b.id} · v${b.version} · ${b.status}`);
+  table('#review-history',current.reviews);
   setBusy(0);
 }
 async function loadCompanies(selected){companies=await api('companies');fillSelect($('#company'),companies,'Selecione uma empresa',c=>c.name,selected===undefined?companyId():String(selected));await loadContext();}
@@ -56,9 +60,9 @@ async function loadAccounts(){
 async function loadContext(){
   const version=++generation,company=companyId();
   if(!company){current=emptyContext();fillSelect($('#period'),[],'Todos os períodos',()=> '');fillSelect($('#mapping-plan'),[],'Selecione um plano',()=> '');render();await loadAccounts();return;}
-  const responses=await Promise.all(['periods','plans','mappings','files','audit'].map(key=>api(key,{company_id:company})));
+  const responses=await Promise.all(['periods','plans','mappings','files','audit','accounting-batches','document-reviews'].map(key=>api(key,{company_id:company})));
   if(version!==generation || company!==companyId())return;
-  ['periods','plans','mappings','files','audit'].forEach((key,i)=>current[key]=responses[i]);
+  ['periods','plans','mappings','files','audit','batches','reviews'].forEach((key,i)=>current[key]=responses[i]);
   fillSelect($('#period'),current.periods,'Todos os períodos',p=>`Base ${p.reference_competence} · Movimentos ${p.processing_competence}`);
   fillSelect($('#mapping-plan'),current.plans,'Selecione um plano',p=>`${p.label} · v${p.version} · #${p.id}`);
   if(!$('#mapping-plan').value && current.plans.length)$('#mapping-plan').value=String(current.plans[0].id);
@@ -77,7 +81,7 @@ function renderReconciliation(){
     card.append(element('h3',`Documento #${doc.document_id} · ${states[doc.state]||doc.state}`),element('p',`Chave NF-e: ${doc.business_key}`));
     if(doc.unindexed_file_ids.length)card.append(element('p',`Arquivos ainda sem análise: ${doc.unindexed_file_ids.join(', ')}. Use a análise dos arquivos salvos em Documentos.`));
     const sourceArea=element('div');sourceArea.className='table-area';card.append(sourceArea);
-    table(sourceArea,doc.sources.filter(source=>source.entity_kind==='documento').map(source=>({'Arquivo':`#${source.file_id} · ${source.filename}`,'Formato':source.source_kind,'Localização':source.locator,'Período da fonte':source.period_id,'Situação da fonte':source.file_status,'Campos conferidos':Object.fromEntries(Object.entries(source.normalized).filter(([key])=>!['key','content_fingerprint'].includes(key)).map(([key,value])=>[fieldLabels[key]||key,value])),'Pendências':source.issues})));
+    table(sourceArea,doc.sources.filter(source=>source.entity_kind==='documento').map(source=>({'Observação':source.id,'Arquivo':`#${source.file_id} · ${source.filename}`,'Formato':source.source_kind,'Localização':source.locator,'Período da fonte':source.period_id,'Situação da fonte':source.file_status,'Campos conferidos':Object.fromEntries(Object.entries(source.normalized).filter(([key])=>!['key','content_fingerprint'].includes(key)).map(([key,value])=>[fieldLabels[key]||key,value])),'Pendências':source.issues})));
     if(doc.differences.length){card.append(element('h4','Diferenças que exigem conferência'));const diffArea=element('div');diffArea.className='table-area';card.append(diffArea);table(diffArea,doc.differences.flatMap(diff=>diff.values.map(value=>({'Entidade':diff.entity||'documento','Campo':fieldLabels[diff.field]||diff.field,'Arquivo':'#'+value.file_id,'Localização':value.locator,'Valor na origem':value.value}))));}
     if(doc.issues.length){const issue=element('p',doc.issues.map(row=>`${row.file_id?'Arquivo #'+row.file_id+' · ':''}${row.locator||''}: ${row.messages.join('; ')}`).join('\n'));issue.className='error-text';card.append(issue);}
     card.append(element('h4',`Faturas identificadas: ${doc.invoices.length}`));
@@ -86,7 +90,7 @@ function renderReconciliation(){
       const details=element('details'),summary=element('summary','Valores e fontes da fatura'),pre=element('pre',JSON.stringify({valores:invoice.payload,origens:invoice.sources.map(s=>({arquivo:s.file_id,local:s.locator,valores:s.normalized,situacao:s.file_status}))},null,2));details.append(summary,pre);card.append(details);
       const parts=element('div');parts.className='table-area';card.append(parts);table(parts,invoice.installments.map(part=>({'Parcela':`#${part.id} · ${part.reference}`,'Vencimento':part.payload.dVenc,'Valor recebido':part.payload.vDup,'Situação':part.status,'Origens':part.sources.map(s=>({arquivo:s.file_id,local:s.locator,valores:s.normalized,situacao:s.file_status}))})));
     });
-    card.append(element('p','Conferência parcial de fontes. Nenhum lançamento contábil ou arquivo Prosoft foi gerado.'));
+    renderDocumentReview(card,doc);
     area.append(card);
   });
   const pending=current.observations.filter(row=>row.issues.length && (row.entity_kind==='registro'||!row.document_id||(row.entity_kind==='fatura'&&!row.invoice_id)||(row.entity_kind==='parcela'&&!row.installment_id)));
@@ -116,9 +120,9 @@ bindForm('#removal-preview-form',async()=>{
   if(!company || !file)throw new Error('Selecione a empresa e o arquivo.');
   const preview=await api('file-preview',{company_id:company,file_id:file});
   removalPreview={...preview,company_id:company};
-  $('#removal-details').textContent=`Arquivo #${preview.file_id}: ${preview.filename}. Documentos afetados: ${preview.document_ids.length?preview.document_ids.join(', '):'nenhum'}. Faturas: ${preview.invoice_ids.join(', ')||'nenhuma'}. Parcelas: ${preview.installment_ids.join(', ')||'nenhuma'}. ${preview.consequence}`;
-  $('#removal-confirm-form').reset();$('#removal-confirm-form').hidden=false;
-  return {message:'Confira as dependências, informe o motivo e confirme a remoção lógica.'};
+  $('#removal-details').textContent=`Arquivo #${preview.file_id}: ${preview.filename}. Documentos afetados: ${preview.document_ids.length?preview.document_ids.join(', '):'nenhum'}. Faturas: ${preview.invoice_ids.join(', ')||'nenhuma'}. Parcelas: ${preview.installment_ids.join(', ')||'nenhuma'}. ${preview.consequence} ${preview.removal_blocked?'REMOÇÃO BLOQUEADA: lotes fechados '+preview.closed_batch_ids.join(', '):''}`;
+  $('#removal-confirm-form').reset();$('#removal-confirm-form').hidden=preview.removal_blocked;
+  return {message:preview.removal_blocked?'Remoção bloqueada por lote fechado. O snapshot e as fontes serão preservados.':'Confira as dependências, informe o motivo e confirme a remoção lógica.',error:preview.removal_blocked};
 });
 $('#removal-file').addEventListener('change',()=>{removalPreview=null;$('#removal-confirm-form').hidden=true;});
 bindForm('#removal-confirm-form',async form=>{
@@ -133,4 +137,49 @@ $('#company').addEventListener('change',()=>{generation++;current=emptyContext()
 $('#period').addEventListener('change',()=>loadContext().catch(e=>notice(e.message,true)));
 $('#mapping-plan').addEventListener('change',()=>loadAccounts().catch(e=>notice(e.message,true)));
 $('#refresh').addEventListener('click',()=>loadCompanies().then(()=>notice('Dados locais atualizados.')).catch(e=>notice(e.message,true)));
+function labeledControl(form,labelText,tag,name){const label=element('label',labelText),control=element(tag);control.name=name;control.required=true;label.append(control);form.append(label);return control;}
+function confirmedControl(form,text){const label=element('label'),check=element('input');check.type='checkbox';check.required=true;label.append(check,document.createTextNode(' '+text));form.append(label);return check;}
+function localAction(form,handler){form.addEventListener('submit',async event=>{event.preventDefault();if(busy)return;setBusy(1);try{await handler();await loadContext();notice('Decisão registrada localmente. Confira o estado e os bloqueios.');}catch(error){notice(error.message,true);}finally{setBusy(-1);}});}
+function renderDocumentReview(card,doc){
+  card.append(element('h4','Decisão documental'));
+  card.append(element('p',doc.review?`Revisão v${doc.review.version} · ${doc.review.valid?'fontes conferidas ainda vigentes':'CADUCA: fontes alteradas'} · fonte escolhida #${doc.review.chosen_observation_id} · ator local ${doc.review.actor}`:'Nenhuma revisão documental registrada.'));
+  card.append(element('p',doc.readiness_for_accounting?'Documento disponível para prévia contábil explícita. Exportação Prosoft permanece indisponível.':`Bloqueios contábeis: ${doc.accounting_blockers.join('; ')}`));
+  const active=doc.sources.filter(row=>row.entity_kind==='documento'&&row.file_status!=='excluido'&&row.period_id===doc.period_id);
+  if(!active.length)return;
+  const form=element('form');form.dataset.needsCompany='';
+  const select=labeledControl(form,'Fonte escolhida após conferir diferenças','select','chosen_observation_id');option(select,'','Selecione explicitamente uma fonte');
+  active.forEach(row=>option(select,row.id,`Observação #${row.id} · arquivo #${row.file_id} · ${row.filename} · total ${row.normalized.total}`));
+  const reason=labeledControl(form,'Motivo da decisão','textarea','reason');reason.maxLength=2000;reason.rows=2;
+  const checked=confirmedControl(form,'Conferi as fontes e diferenças acima. Esta seleção não associa títulos de identidade desconhecida.');
+  const button=element('button','Registrar nova decisão');button.type='submit';form.append(button);card.append(form);
+  localAction(form,async()=>{if(!checked.checked)throw new Error('Confirme a conferência das fontes.');await api('document-reviews',{company_id:companyId(),document_id:doc.document_id,period_id:doc.period_id,chosen_observation_id:select.value,expected_fingerprint:doc.source_fingerprint,reason:reason.value},'POST');});
+}
+function renderAccounting(){
+  const area=$('#accounting-list');area.replaceChildren();
+  const batches=current.batches.filter(batch=>!periodId()||String(batch.period_id)===periodId());
+  if(!batches.length)area.append(element('p','Nenhuma prévia neste período.'));
+  batches.forEach(batch=>{
+    const card=element('article');card.className='card';card.append(element('h3',`Lote #${batch.id} · v${batch.version} · ${batch.status}`));
+    card.append(element('p',`Débitos ${batch.snapshot.totals.debit} · Créditos ${batch.snapshot.totals.credit} · Anterior ${batch.previous_batch_id||'—'}`));
+    if(batch.current_blockers.length){const warning=element('p',`Conferência atual: ${batch.current_blockers.join('; ')}`);warning.className='error-text';card.append(warning);}
+    if(batch.status==='fechado')card.append(element('p','Snapshot histórico preservado. A conferência atual acima não altera o fechamento registrado.'));
+    const details=element('details'),summary=element('summary','Examinar partidas, contas, versões e fontes do snapshot'),pre=element('pre',JSON.stringify(batch.snapshot,null,2));details.append(summary,pre);card.append(details);
+    card.append(element('p',`Hash do snapshot: ${batch.snapshot_hash}`));
+    if(['previa','revisado'].includes(batch.status)){
+      const form=element('form');form.dataset.needsCompany='';
+      const reason=labeledControl(form,'Motivo da revisão / fechamento local','textarea','reason');reason.rows=2;reason.maxLength=2000;
+      const checked=confirmedControl(form,'Examinei o snapshot e confirmo esta etapa local.');
+      const button=element('button',batch.status==='previa'?'Marcar prévia como revisada':'Fechar lote localmente');button.type='submit';form.append(button);card.append(form);
+      localAction(form,async()=>{if(!checked.checked)throw new Error('Confira o snapshot.');await api(batch.status==='previa'?'accounting-review':'accounting-close',{company_id:companyId(),batch_id:batch.id,snapshot_hash:batch.snapshot_hash,reason:reason.value},'POST');});
+    }
+    area.append(card);
+  });
+}
+bindForm('#accounting-form',async form=>{
+  if(!companyId()||!periodId())throw new Error('Selecione empresa e período de trabalho.');
+  const data=formObject(form);try{data.entries=JSON.parse(data.entries);}catch{throw new Error('Partidas: JSON inválido.');}
+  data.previous_batch_id=data.previous_batch_id||null;
+  const batch=await api('accounting-batches',{...data,company_id:companyId(),period_id:periodId()},'POST');
+  await loadContext();return {message:`Prévia #${batch.id} registrada. Examine o snapshot para revisar e fechar localmente.`};
+});
 loadCompanies().catch(error=>notice(error.message,true));

@@ -10,6 +10,7 @@ from decimal import Decimal
 import hashlib
 from pathlib import Path
 import sqlite3
+from contextlib import closing
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -113,7 +114,7 @@ class StoreTests(unittest.TestCase):
 
     def test_unknown_schema_version_is_rejected_without_mutating_database(self):
         unsupported = Path(self.temp.name) / "versao-ficticia-nao-suportada.sqlite3"
-        with sqlite3.connect(unsupported) as db:
+        with closing(sqlite3.connect(unsupported)) as db, db:
             db.execute("CREATE TABLE schema_version (version INTEGER NOT NULL)")
             db.execute("INSERT INTO schema_version VALUES (999)")
             db.execute("CREATE TABLE sentinel (value TEXT)")
@@ -122,7 +123,7 @@ class StoreTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "Versão do banco não suportada"):
             AccountingStore(unsupported)
         self.assertEqual(unsupported.read_bytes(), before)
-        with sqlite3.connect(unsupported) as db:
+        with closing(sqlite3.connect(unsupported)) as db, db:
             tables = {row[0] for row in db.execute("SELECT name FROM sqlite_master WHERE type='table'")}
             self.assertEqual(tables, {"schema_version", "sentinel"})
             self.assertEqual(db.execute("SELECT value FROM sentinel").fetchone()[0], "registro fictício preservado")

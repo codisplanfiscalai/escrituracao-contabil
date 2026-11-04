@@ -24,7 +24,9 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7 verified 2026-11-04
         with:
-          ref: ${{ inputs.source_ref || github.sha }}
+          # PR packages identify the proposed commit, not GitHub's temporary merge.
+          # This workflow has read-only permissions, no secrets and no publication.
+          ref: ${{ inputs.source_ref || github.event.pull_request.head.sha || github.sha }}
           persist-credentials: false
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7 verified 2026-11-04
         with:

@@ -1,6 +1,6 @@
 # Integração fiscal e contábil Prosoft
 
-**Status:** protótipo local persistente com cadastro multiempresa, planos e mapeamentos versionados, documentos e cobrança NF-e 4.00 e conciliação parcial XML × SPED. Nenhum dado real foi incluído ou enviado. Prosoft ainda não homologado.
+**Status:** produto em desenvolvimento, com aplicação local persistente, cadastro multiempresa, planos e mapeamentos versionados, documentos e cobrança NF-e 4.00, conciliação parcial XML × SPED, revisão persistente e motor de partidas explícitas. Nenhum dado real foi incluído ou enviado. Integração e homologação Prosoft permanecem pendentes.
 
 Este projeto prepara o fluxo entre documentos fiscais, arquivo SPED para importação no Prosoft e lançamentos contábeis com proteção contra duplicidade. Ele não transmite obrigações ao Fisco, não executa o PVA e não grava diretamente no banco de dados do Prosoft.
 
@@ -33,13 +33,19 @@ SPED pode ser apenas preservado (padrão) ou analisado com o perfil explícito E
 
 Faturas e parcelas extraídas do XML possuem IDs próprios, ligados ao documento e às observações de arquivo/caminho. Referências iguais agregam fontes; valores conflitantes não sobrescrevem os primeiros. Identificadores de cobrança divergentes ficam pendentes de associação, sem criar títulos/parcelas adicionais por suposição. Em Documentos, “Analisar arquivo já salvo” reutiliza os bytes armazenados e registra a tentativa sem duplicar entidades.
 
-O programa não calcula CBS/IBS, não gera partidas ou arquivos de importação Prosoft e não transmite dados. Não existe autenticação multiusuário nem pronto uso em rede/produção. Em Documentos, a remoção lógica apresenta o arquivo, documentos dependentes e consequências; exige motivo e confirmação, preserva o original e a auditoria e deixa os documentos vinculados pendentes. Uma prévia desatualizada é recusada. Purga definitiva e restauração permanecem indisponíveis.
+O programa não calcula CBS/IBS, não gera arquivos de importação Prosoft e não transmite dados. Não existe autenticação multiusuário nem pronto uso em rede/produção. Em Documentos, a remoção lógica apresenta o arquivo, documentos dependentes e consequências; exige motivo e confirmação, preserva o original e a auditoria e deixa os documentos vinculados pendentes. Uma prévia desatualizada é recusada. Fontes de documentos vinculados a lotes fechados têm remoção bloqueada. Purga definitiva e restauração permanecem indisponíveis.
 
-Fatura com valores aritmeticamente divergentes, parcelas sem fatura ou soma das parcelas diferente do líquido ficam pendentes, preservando os valores recebidos. Essas conferências não calculam tributos nem presumem valores ausentes. O normalizador v3 registra também entidades e observações nas novas importações. O esquema 2 adiciona tabelas em transação, sem reescrever originais ou documentos antigos. A indexação de arquivos antigos exige a ação explícita de análise; dados antigos não são liberados automaticamente. Guarde backup privado do SQLite antes de atualizar o programa.
+Na Conciliação, registre a fonte escolhida, o motivo e a conferência explícita. A decisão tem versão e fingerprint das fontes; mudanças tornam a decisão caduca e mantêm as diferenças visíveis. Em Contabilização local, informe as partidas e os IDs de mapeamentos aprovados/vigentes. O motor exige contas analíticas, valores decimais textuais, datas dos movimentos, equilíbrio por grupo/documento/lote e total correspondente à fonte escolhida. Não escolhe contas ou tratamentos fiscais automaticamente.
+
+Cada prévia reserva um único evento documental por empresa/documento, guarda snapshot imutável e exige revisão antes do fechamento local. Repetições são idempotentes e auditadas; correções criam versões vinculadas. Fechado não é sobrescrito nem recontabilizado: estornos, pagamentos/recebimentos e eventos adicionais ainda não estão implementados. Fechamento local não significa escrituração importada ou homologada no Prosoft. Fluxo e limites: [revisão e motor](docs/revisao-e-motor.md).
+
+Fatura com valores aritmeticamente divergentes, parcelas sem fatura ou soma das parcelas diferente do líquido ficam pendentes, preservando os valores recebidos. Essas conferências não calculam tributos nem presumem valores ausentes. O normalizador v3 registra também entidades e observações nas novas importações. O esquema 3 adiciona tabelas em transação, sem reescrever originais ou documentos antigos. A indexação de arquivos antigos exige a ação explícita de análise; dados antigos não são liberados automaticamente. Guarde backup privado do SQLite antes de atualizar o programa.
 
 Fluxos A–E, navegação, entidades, permissões e dependências: [mapa funcional completo](docs/mapa-produto.md). Modelo e limites do primeiro incremento: [incremento persistente](docs/incremento-persistente.md).
 
 Escopo de leitura, origem dos perfis, migração e aceite da conciliação: [conciliação documental](docs/conciliacao-documental.md).
+
+Distribuição Windows x86/x64, dependências fixadas, manifestos/checksums, imagem Docker e workflows de release/GHCR/homologação: [instalação e distribuição](docs/distribuicao.md). Os builds precisam de execução e verificação dos artefatos no Actions; definir o workflow não comprova que os binários estão prontos. Os fluxos manuais não publicam nem implantam por este PR. [Critérios para conclusão do produto](docs/criterios-produto.md) distinguem funcionalidades, distribuição e homologação real.
 
 Execute a suíte sintética:
 

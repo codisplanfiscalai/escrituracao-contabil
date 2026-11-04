@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import closing
 import http.client
 import json
 import os
@@ -100,7 +101,9 @@ def run(command):
             finally:
                 stop(process)
             assert database.is_file(), "SQLite was not written outside the installation"
-            with sqlite3.connect(database) as connection:
+            # sqlite3's own context manager commits/rolls back but does NOT close.
+            # Windows cannot delete the temporary database while this handle lives.
+            with closing(sqlite3.connect(database)) as connection:
                 assert connection.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
             with socket.socket() as probe:
                 assert probe.connect_ex(("127.0.0.1", port)) != 0, "Listener survived process shutdown"

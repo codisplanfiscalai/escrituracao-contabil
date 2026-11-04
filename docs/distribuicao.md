@@ -11,8 +11,12 @@ para o Prosoft, e não validam resultados fiscais com dados reais.
 O workflow `Windows distribution` roda em pushes de `main`/`feat/**`, pull
 requests e execução manual. Cada arquitetura usa Python **3.13.17** na arquitetura
 correspondente e PyInstaller **6.22.3**. O build exige Windows; não existe
-compilação cruzada de Linux para Windows neste fluxo. O runner `windows-2022`
-é x64; o smoke x86 usa compatibilidade de 32 bits desse Windows. Isso não
+compilação cruzada de Linux para Windows neste fluxo. No PR, o pacote é criado
+do HEAD exato proposto e esse SHA é registrado no manifesto. Os testes Linux
+de PR continuam verificando o merge temporário produzido pelo GitHub. O job de
+Windows permanece sem segredos, sem publicação e com token somente de leitura.
+O runner `windows-2022` é x64; o smoke x86 usa compatibilidade de 32 bits desse
+Windows. Isso não
 equivale a testar todas as versões/edições do Windows nem um SO Windows x86.
 
 Cada job descobre toda a suíte de testes, instala wheels fixadas por versão e

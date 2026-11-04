@@ -60,6 +60,10 @@ def dispatch(store, method, route, data):
     if route != "companies":
         company = _identifier(_required(data, "company_id"), "company_id")
     if method == "GET":
+        if route == "document-reviews":
+            return store.list_document_reviews(company, data.get("document_id") or None)
+        if route == "accounting-batches":
+            return store.list_accounting_batches(company)
         if route == "companies":
             return store.list_companies()
         if route == "periods":
@@ -84,6 +88,17 @@ def dispatch(store, method, route, data):
         if route == "audit":
             return store.list_audit(company)
     if method == "POST":
+        if route == "document-reviews":
+            return store.save_document_review(company, _required(data, "document_id"), _required(data, "period_id"),
+                                               _required(data, "chosen_observation_id"), _required(data, "expected_fingerprint"),
+                                               _required(data, "reason"))
+        if route == "accounting-batches":
+            return store.create_accounting_batch(company, _required(data, "period_id"), _required(data, "plan_id"),
+                                                 _required(data, "request_key"), _required(data, "entries"),
+                                                 _required(data, "reason"), data.get("previous_batch_id") or None)
+        if route in {"accounting-review", "accounting-close"}:
+            method_call = store.review_accounting_batch if route == "accounting-review" else store.close_accounting_batch
+            return method_call(company, _required(data, "batch_id"), _required(data, "snapshot_hash"), _required(data, "reason"))
         if route == "file-analysis":
             return store.index_file(company, _identifier(_required(data, "file_id"), "file_id"), _required(data, "profile"))
         if route == "file-removal":
@@ -223,7 +238,7 @@ class LocalHandler(BaseHTTPRequestHandler):
                 filename, content_type = ASSETS[parts.path]
                 self._send(200, (WEB_ROOT / filename).read_bytes(), content_type)
                 return
-            routes = {"companies", "periods", "plans", "accounts", "mappings", "files", "documents", "audit", "file-preview", "file-removal", "file-analysis", "reconciliation", "observations"}
+            routes = {"companies", "periods", "plans", "accounts", "mappings", "files", "documents", "audit", "file-preview", "file-removal", "file-analysis", "reconciliation", "observations", "document-reviews", "accounting-batches", "accounting-review", "accounting-close"}
             route = parts.path.removeprefix("/api/")
             if not parts.path.startswith("/api/") or route not in routes:
                 raise APIError("Página não encontrada.", 404)

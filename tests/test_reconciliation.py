@@ -2,6 +2,7 @@
 import json
 from pathlib import Path
 import sqlite3
+from contextlib import closing
 import tempfile
 import unittest
 from unittest.mock import patch
@@ -228,7 +229,7 @@ class ReconciliationTests(unittest.TestCase):
         legacy=Path(self.directory.name)/"legacy-ficticio.sqlite3"
         payload=json.dumps(parse_nfe(fake_xml()))
         original=fake_xml()
-        with sqlite3.connect(legacy) as db:
+        with closing(sqlite3.connect(legacy)) as db, db:
             db.executescript(SCHEMA)
             db.execute("INSERT INTO schema_version VALUES(1)")
             db.execute("INSERT INTO companies VALUES(1,'Fictícia','TEST','TEST',?,'instante-ficticio')",(ISSUER,))
@@ -237,7 +238,7 @@ class ReconciliationTests(unittest.TestCase):
             db.execute("INSERT INTO documents VALUES(1,1,1,?,?,'validado','instante-ficticio')",(fictitious_key(),payload))
             db.execute("INSERT INTO document_sources VALUES(1,1,0)")
         with AccountingStore(legacy) as store:
-            self.assertEqual(store.db.execute("SELECT version FROM schema_version").fetchone()[0],2)
+            self.assertEqual(store.db.execute("SELECT version FROM schema_version").fetchone()[0],3)
             self.assertEqual(store.db.execute("SELECT payload FROM documents").fetchone()[0],payload)
             self.assertEqual(bytes(store.db.execute("SELECT original FROM files").fetchone()[0]),original)
             self.assertEqual(store.list_observations(1),[])

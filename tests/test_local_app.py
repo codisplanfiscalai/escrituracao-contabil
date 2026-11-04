@@ -217,5 +217,57 @@ class LocalApplicationTests(unittest.TestCase):
         self.assertTrue(any(row["issues"] for row in rows))
 
 
+    def accounting_fixture(self):
+        from test_persistence import fake_xml, fake_accounts, ISSUER
+        cid=self.api('companies',{'name':'Contábil fictícia','prosoft_company_code':'T','prosoft_plan_code':'T','cnpj':ISSUER})['id']
+        period=self.api('periods',{'company_id':cid,'reference_competence':'2026-08','processing_competence':'2026-09'})['id']
+        plan=self.api('plans',{'company_id':cid,'label':'Plano fictício','accounts':fake_accounts()})['id']
+        mappings=[self.api('mappings',{'company_id':cid,'plan_id':plan,'source_account':str(index),'target_code':code,'valid_from':'2026-09','state':'aprovado','reason':'Fictício'})['id'] for index,code in enumerate(('1.1.1','2.1'))]
+        self.api('files',{'company_id':cid,'period_id':period,'filename':'ficticio.xml','kind':'XML','content_base64':base64.b64encode(fake_xml()).decode()})
+        doc=self.api(f'reconciliation?company_id={cid}')[0]
+        review={'company_id':str(cid),'period_id':str(period),'document_id':str(doc['document_id']),'chosen_observation_id':str(doc['sources'][0]['id']),'expected_fingerprint':doc['source_fingerprint'],'reason':'Conferência fictícia'}
+        entries=[{'document_id':doc['document_id'],'observation_id':doc['sources'][0]['id'],'group':'doc','date':'2026-09-15','side':side,'amount':'100.30','mapping_id':mapping,'memo':'Histórico fictício'} for side,mapping in zip(('D','C'),mappings)]
+        batch={'company_id':str(cid),'period_id':str(period),'plan_id':str(plan),'request_key':'ficticio-1','entries':entries,'reason':'Prévia fictícia'}
+        return cid,review,batch
+
+    def test_document_review_accounting_close_and_snapshot_over_http(self):
+        cid,review,batch_data=self.accounting_fixture()
+        self.assertTrue(self.api('document-reviews',review)['readiness_for_accounting'])
+        history=self.api(f'document-reviews?company_id={cid}&document_id={review["document_id"]}')
+        self.assertEqual(len(history),1)
+        self.assertEqual(history[0]['actor'],'operador-local')
+        batch=self.api('accounting-batches',batch_data)
+        self.assertEqual(self.api('accounting-batches',batch_data)['id'],batch['id'])
+        transition={'company_id':str(cid),'batch_id':str(batch['id']),'snapshot_hash':batch['snapshot_hash'],'reason':'Conferência fictícia'}
+        self.assertEqual(self.request('/api/accounting-close','POST',transition)[0],400)
+        self.assertEqual(self.api('accounting-review',transition)['status'],'revisado')
+        closed=self.api('accounting-close',transition)
+        self.assertEqual(closed['status'],'fechado')
+        self.assertEqual(closed['snapshot'],batch['snapshot'])
+        rows=self.api(f'accounting-batches?company_id={cid}')
+        self.assertEqual(len(rows),1)
+        self.assertFalse(rows[0]['ready_for_export'])
+        self.assertEqual(rows[0]['current_blockers'],[])
+        self.stop_server();self.start_server()
+        self.assertEqual(self.api(f'accounting-batches?company_id={cid}')[0]['snapshot_hash'],batch['snapshot_hash'])
+
+    def test_accounting_routes_require_tokens_origin_fingerprint_and_company(self):
+        cid,review,batch_data=self.accounting_fixture()
+        for update in ({'expected_fingerprint':'stale'},{'expected_fingerprint':''},{'chosen_observation_id':True},{'reason':''}):
+            self.assertEqual(self.request('/api/document-reviews','POST',{**review,**update})[0],400)
+        self.api('document-reviews',review)
+        batch=self.api('accounting-batches',batch_data)
+        transition={'company_id':cid,'batch_id':batch['id'],'snapshot_hash':batch['snapshot_hash'],'reason':'Teste fictício'}
+        for route,data in (('document-reviews',review),('accounting-batches',batch_data),('accounting-review',transition),('accounting-close',transition)):
+            for headers in ({'X-Local-Token':None},{'Origin':'http://other.invalid'}):
+                self.assertEqual(self.request('/api/'+route,'POST',data,headers=headers)[0],403)
+        other=self.company()['id']
+        for route,data in (('document-reviews',review),('accounting-batches',batch_data),('accounting-review',transition),('accounting-close',transition)):
+            self.assertEqual(self.request('/api/'+route,'POST',{**data,'company_id':other})[0],400)
+        self.assertEqual(self.api(f'accounting-batches?company_id={other}'),[])
+        self.assertEqual(self.api(f'document-reviews?company_id={other}'),[])
+        self.assertEqual(self.request('/api/accounting-review','POST',{**transition,'snapshot_hash':''})[0],400)
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -223,5 +223,5 @@ class ReconciliationMixin:
                            "source_period_ids": sorted({row["period_id"] for row in linked}),
                            "state": state, "differences": diff, "issues": issues, "sources": linked, "invoices": invoices,
                            "unindexed_file_ids": [source["file_id"] for source in document["sources"] if source["file_id"] not in {row["file_id"] for row in linked}],
-                           "ready_for_export": False})
+                           "ready_for_export": False, **self._review_status(company_id, document["id"], document["period_id"])})
         return result
