@@ -1,0 +1,57 @@
+name: Dependency image inventory
+on:
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: Plan is read-only; mirror publishes the locked dependencies
+        type: choice
+        options: [plan, verify, mirror]
+        default: plan
+permissions:
+  contents: read
+jobs:
+  plan:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - run: python scripts/ci/container_images.py plan
+  registry:
+    if: inputs.operation != 'plan' && github.ref == 'refs/heads/develop'
+    needs: plan
+    environment: dependency-images
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    concurrency:
+      group: escritura-dependency-images
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          persist-credentials: false
+      - name: Install registry copier
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y skopeo
+          skopeo --version
+      - name: Verify or explicitly mirror locked images
+        env:
+          OPERATION: ${{ inputs.operation }}
+          GH_TOKEN: ${{ github.token }}
+          REGISTRY_USER: ${{ github.actor }}
+        run: |
+          set -euo pipefail
+          auth_dir=$(mktemp -d)
+          export REGISTRY_AUTH_FILE="$auth_dir/auth.json"
+          trap 'rm -rf "$auth_dir"' EXIT
+          printf '%s' "$GH_TOKEN" | skopeo login --username "$REGISTRY_USER" --password-stdin ghcr.io
+          unset GH_TOKEN
+          if [ "$OPERATION" = mirror ]; then
+            python scripts/ci/container_images.py mirror --publish
+          else
+            python scripts/ci/container_images.py verify --source ghcr
+          fi

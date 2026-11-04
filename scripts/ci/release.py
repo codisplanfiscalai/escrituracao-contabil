@@ -12,6 +12,7 @@ from urllib.parse import quote
 
 from github_api import api, pages, repository
 from version import parse, validate_build, read_version
+from container_smoke import published_smoke
 
 ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(ROOT / 'packaging'))
@@ -118,6 +119,7 @@ def publish(folder, version, sha, channel, owner_type):
     digests = json.loads(subprocess.check_output(['docker', 'image', 'inspect', '--format', '{{json .RepoDigests}}', remote], text=True))
     immutable = next((item for item in digests if item.startswith(image + '@sha256:')), None)
     if not immutable: raise ValueError('Digest publicado não identificado.')
+    published_smoke(immutable, container['image_id'])
     source = folder / f'escritura-{version}-source.zip'
     run('git', 'archive', '--format=zip', f'--prefix=escritura-{version}/', '--output', source.resolve(), sha)
     files = [{'name': p.name, 'size': p.stat().st_size, 'sha256': digest(p)} for p in sorted(folder.iterdir()) if p.is_file() and p.name not in {'release.json', 'SHA256SUMS.txt'}]

@@ -1,0 +1,17 @@
+{
+  "schema": 1,
+  "images": {
+    "python": {
+      "role": "application-base",
+      "upstream": "docker.io/library/python:3.13.17-slim-bookworm@sha256:e32be0e55814a08977501ca863271d9bd02443710db8f2afaf8372e2c4508530",
+      "mirror": "ghcr.io/codisplanfiscalai/escrituracao-contabil-deps/python:3.13.17-slim-bookworm-e32be0e55814",
+      "digest": "sha256:e32be0e55814a08977501ca863271d9bd02443710db8f2afaf8372e2c4508530"
+    },
+    "caddy": {
+      "role": "https-proxy",
+      "upstream": "docker.io/library/caddy:2.10.2-alpine@sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d",
+      "mirror": "ghcr.io/codisplanfiscalai/escrituracao-contabil-deps/caddy:2.10.2-alpine-4c6e91c6ed0e",
+      "digest": "sha256:4c6e91c6ed0e2fa03efd5b44747b625fec79bc9cd06ac5235a779726618e530d"
+    }
+  }
+}
