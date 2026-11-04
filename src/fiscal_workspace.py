@@ -31,7 +31,7 @@ class FiscalWorkspaceMixin:
             raise ValueError('Participante exige CPF/CNPJ; não gerar identificador fictício')
         kind = 'CPF' if len(identity) == 11 else 'CNPJ'
         name = _text(name, 'nome', 500, False)
-        if role not in {'cliente', 'fornecedor', 'prestador', 'tomador', 'emitente', 'destinatario'}:
+        if role not in {'cliente', 'fornecedor', 'prestador', 'tomador', 'emitente', 'destinatario', 'participante'}:
             raise ValueError('Papel do participante não reconhecido')
         row = self.db.execute('SELECT * FROM participants WHERE company_id=? AND identifier_kind=? AND identifier_value=?', (company_id, kind, identity)).fetchone()
         if row is None:

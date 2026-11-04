@@ -74,6 +74,12 @@ def dispatch(store, method, route, data):
     if route != "companies":
         company = _identifier(_required(data, "company_id"), "company_id")
     if method == "GET":
+        if route == "products":
+            return store.list_products(company)
+        if route == "import-batches":
+            return store.list_import_batches(company, data.get("period_id") or None)
+        if route == "import-original":
+            return store.read_import_original(company, _required(data, "item_id"))
         if route == "participants":
             return store.list_participants(company)
         if route == "fiscal-workspaces":
@@ -118,6 +124,10 @@ def dispatch(store, method, route, data):
         if route == "audit":
             return store.list_audit(company)
     if method == "POST":
+        if route == "product-review":
+            return store.review_product(company, _required(data, "product_id"), _required(data, "version"),
+                                        _required(data, "observation_id"), _required(data, "reason"))
+
         if route == "participants":
             return store.save_participant(company, _required(data,"identity"), _required(data,"name"), _required(data,"role"), _required(data,"reason"))
         if route == "participant-review":
@@ -173,6 +183,21 @@ def dispatch(store, method, route, data):
                                       _required(data, "source_account"), _required(data, "target_code"),
                                       _required(data, "valid_from"), valid_to=data.get("valid_to") or None,
                                       state=data.get("state", "rascunho"), reason=data.get("reason", ""))
+        if route == "import-batches":
+            inputs = _required(data, "inputs")
+            if not isinstance(inputs, list) or not 1 <= len(inputs) <= 500:
+                raise APIError("Envie de 1 a 500 arquivos por lote.")
+            decoded = []
+            for item in inputs:
+                if not isinstance(item, dict) or not isinstance(item.get("content_base64"), str):
+                    raise APIError("Cada entrada exige filename e content_base64.")
+                try:
+                    content = base64.b64decode(item["content_base64"], validate=True)
+                except (ValueError, binascii.Error):
+                    raise APIError("Conteúdo base64 inválido no lote.") from None
+                decoded.append({"filename": item.get("filename"), "kind": item.get("kind"), "content": content})
+            return store.import_batch(company, _identifier(_required(data, "period_id"), "period_id"),
+                                      decoded, _required(data, "request_key"), sped_profile=data.get("sped_profile") or None)
         if route == "files":
             encoded = _required(data, "content_base64")
             if not isinstance(encoded, str):
@@ -292,7 +317,7 @@ class LocalHandler(BaseHTTPRequestHandler):
                 filename, content_type = ASSETS[parts.path]
                 self._send(200, (WEB_ROOT / filename).read_bytes(), content_type)
                 return
-            routes = {"participants", "participant-review", "fiscal-workspaces", "fiscal-entries", "fiscal-seed", "fiscal-review", "fiscal-period", "billing-association-preview", "billing-associations", "companies", "periods", "plans", "accounts", "mappings", "files", "documents", "audit", "file-preview", "file-removal", "file-analysis", "reconciliation", "observations", "document-reviews", "accounting-batches", "accounting-review", "accounting-close", "accounting-evidence", "accounting-evidence-file"}
+            routes = {"participants", "participant-review", "fiscal-workspaces", "fiscal-entries", "fiscal-seed", "fiscal-period", "fiscal-review", "products", "product-review", "import-batches", "import-original", "billing-association-preview", "billing-associations", "companies", "periods", "plans", "accounts", "mappings", "files", "documents", "audit", "file-preview", "file-removal", "file-analysis", "reconciliation", "observations", "document-reviews", "accounting-batches", "accounting-review", "accounting-close", "accounting-evidence", "accounting-evidence-file"}
             route = parts.path.removeprefix("/api/")
             routes.update(ACCOUNTING_ROUTES | FINANCE_ROUTES)
             if not parts.path.startswith("/api/") or route not in routes:
@@ -308,7 +333,7 @@ class LocalHandler(BaseHTTPRequestHandler):
                 data = {key: values[0] for key, values in parsed.items()}
             with open_store(self.server.database) as store:
                 result = dispatch(store, self.command, route, data)
-            if route in {"accounting-evidence-file", "accounting-book-file", "finance-file"} and self.command == "GET":
+            if route in {"accounting-evidence-file", "accounting-book-file", "finance-file", "import-original"} and self.command == "GET":
                 # Core accepts only its fixed artifact names, never a client path.
                 self._send(200, result["content"], result["media_type"], attachment=result["name"])
             else:

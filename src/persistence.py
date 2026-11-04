@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import hashlib
+from contextlib import contextmanager
 import json
 import re
 import sqlite3
@@ -21,6 +22,8 @@ from .fiscal_ledger import FiscalLedgerMixin, FISCAL_SCHEMA
 from .fiscal_workspace import FiscalWorkspaceMixin, WORKSPACE_SCHEMA
 from .manual_accounting import ManualAccountingMixin, MANUAL_SCHEMA
 from .accounting_books import AccountingBooksMixin, BOOKS_SCHEMA
+from .batch_import import BatchImportMixin, BATCH_SCHEMA
+from .product_catalog import ProductCatalogMixin, PRODUCT_SCHEMA
 
 MAX_FILE_BYTES = 10 * 1024 * 1024
 NS = {"n": "http://www.portalfiscal.inf.br/nfe"}
@@ -151,8 +154,15 @@ def parse_nfe(content):
             if installments and values["vLiq"] and all(row["vDup"] for row in installments):
                 if sum((Decimal(row["vDup"]) for row in installments), Decimal("0")) != Decimal(values["vLiq"]):
                     billing_warnings.append("Soma das parcelas diverge do líquido da fatura")
+    products = []
+    for index, detail in enumerate(info.findall("n:det", NS), 1):
+        product = detail.find("n:prod", NS)
+        if product is not None:
+            data = {key: product.findtext("n:" + tag, default="", namespaces=NS).strip()
+                    for key, tag in {'code': 'cProd', 'description': 'xProd', 'ncm': 'NCM', 'unit': 'uCom', 'gtin': 'cEAN', 'cest': 'CEST'}.items()}
+            products.append({'locator': f'infNFe/det[{index}]/prod', 'data': data})
     normalized = ET.canonicalize(ET.tostring(info, encoding="unicode"), strip_text=True, rewrite_prefixes=True)
-    return {"key": key, "model": model, "number": number, "series": series, "issued_at": emitted, "competence": emitted[:7], "issuer": issuer, "buyer": buyer, "issuer_name": get("n:emit/n:xNome", False), "buyer_name": get("n:dest/n:xNome", False), "total": _money(get("n:total/n:ICMSTot/n:vNF"), "Total NF-e"), "billing": billing, "billing_warnings": billing_warnings, "content_fingerprint": hashlib.sha256(normalized.encode()).hexdigest()}
+    return {"key": key, "model": model, "number": number, "series": series, "issued_at": emitted, "competence": emitted[:7], "issuer": issuer, "buyer": buyer, "issuer_name": get("n:emit/n:xNome", False), "buyer_name": get("n:dest/n:xNome", False), "total": _money(get("n:total/n:ICMSTot/n:vNF"), "Total NF-e"), "billing": billing, "billing_warnings": billing_warnings, "products": products, "content_fingerprint": hashlib.sha256(normalized.encode()).hexdigest()}
 
 
 SCHEMA = """
@@ -198,7 +208,7 @@ CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL);
 """
 
 
-class AccountingStore(FinanceMixin, AccountingBooksMixin, ManualAccountingMixin, FiscalWorkspaceMixin, FiscalLedgerMixin, BillingAssociationMixin, EvidenceExportMixin, AccountingMixin, ReconciliationMixin):
+class AccountingStore(ProductCatalogMixin, BatchImportMixin, FinanceMixin, AccountingBooksMixin, ManualAccountingMixin, FiscalWorkspaceMixin, FiscalLedgerMixin, BillingAssociationMixin, EvidenceExportMixin, AccountingMixin, ReconciliationMixin):
     def __init__(self, db_path, actor="operador-local"):
         self.actor = _text(actor, "usuário", 100)
         path = Path(db_path).expanduser()
@@ -210,15 +220,15 @@ class AccountingStore(FinanceMixin, AccountingBooksMixin, ManualAccountingMixin,
         self.db.execute("PRAGMA busy_timeout=15000")
         version_table = self.db.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='schema_version'").fetchone()
         version = self.db.execute("SELECT version FROM schema_version").fetchone() if version_table else None
-        if version and version[0] not in {1, 2, 3, 4, 5, 6, 7, 8}:
+        if version and version[0] not in {1, 2, 3, 4, 5, 6, 7, 8, 9}:
             self.close()
             raise ValueError("Versão do banco não suportada; nenhuma migração automática realizada")
         try:
-            self.db.executescript("BEGIN IMMEDIATE;\n" + SCHEMA + RECONCILIATION_SCHEMA + ACCOUNTING_SCHEMA + EVIDENCE_SCHEMA + BILLING_ASSOCIATION_SCHEMA + FISCAL_SCHEMA + WORKSPACE_SCHEMA + MANUAL_SCHEMA + BOOKS_SCHEMA + FINANCE_SCHEMA)
+            self.db.executescript("BEGIN IMMEDIATE;\n" + SCHEMA + RECONCILIATION_SCHEMA + ACCOUNTING_SCHEMA + EVIDENCE_SCHEMA + BILLING_ASSOCIATION_SCHEMA + FISCAL_SCHEMA + WORKSPACE_SCHEMA + MANUAL_SCHEMA + BOOKS_SCHEMA + FINANCE_SCHEMA + BATCH_SCHEMA + PRODUCT_SCHEMA)
             if not version:
-                self.db.execute("INSERT INTO schema_version VALUES (8)")
-            elif version[0] in {1, 2, 3, 4, 5, 6, 7}:
-                self.db.execute("UPDATE schema_version SET version=8")
+                self.db.execute("INSERT INTO schema_version VALUES (9)")
+            elif version[0] in {1, 2, 3, 4, 5, 6, 7, 8}:
+                self.db.execute("UPDATE schema_version SET version=9")
             self.db.commit()
         except Exception:
             self.db.rollback()
@@ -365,7 +375,23 @@ class AccountingStore(FinanceMixin, AccountingBooksMixin, ManualAccountingMixin,
         self._company(company_id)
         return [dict(r) for r in self.db.execute("SELECT * FROM mappings WHERE company_id=? ORDER BY id DESC",(company_id,))]
 
-    def import_file(self,company_id,period_id,filename,content,kind,sped_profile=None):
+    @contextmanager
+    def _import_transaction(self, in_batch):
+        if not in_batch:
+            with self.db:
+                yield
+            return
+        self.db.execute('SAVEPOINT import_one_file')
+        try:
+            yield
+        except Exception:
+            self.db.execute('ROLLBACK TO import_one_file')
+            self.db.execute('RELEASE import_one_file')
+            raise
+        else:
+            self.db.execute('RELEASE import_one_file')
+
+    def import_file(self,company_id,period_id,filename,content,kind,sped_profile=None,*,_in_batch=False):
         company=self._company(company_id)
         period=self._owned("periods",company_id,period_id)
         filename=_text(filename,"nome de arquivo",255)
@@ -385,6 +411,9 @@ class AccountingStore(FinanceMixin, AccountingBooksMixin, ManualAccountingMixin,
                 if company["cnpj"] and company["cnpj"] not in {payload["issuer"],payload["buyer"]}:
                     raise ValueError("Documento não identifica a empresa cadastrada")
                 metadata={"normalizer":XML_PROFILE,"company_identity_verified":bool(company["cnpj"]), "warnings": []}
+                metadata['catalog_profile'] = 'cadastros-origem-v1'
+                metadata['catalog_issues'] = [product['locator'] + ': código ou descrição ausente; cadastro pendente'
+                                               for product in payload['products'] if not product['data']['code'] or not product['data']['description']]
                 if payload["competence"] != period["processing_competence"]:
                     metadata["warnings"].append("Emissão fora da competência de escrituração; conferir entrada/saída e enquadramento.")
                 if not payload["buyer"]:
@@ -422,7 +451,7 @@ class AccountingStore(FinanceMixin, AccountingBooksMixin, ManualAccountingMixin,
             status="rejeitado"
             metadata={"error":str(exc)}
             payload=None
-        with self.db:
+        with self._import_transaction(_in_batch):
             existing=self.db.execute("SELECT id,status FROM files WHERE company_id=? AND period_id=? AND kind=? AND sha256=?",(company_id,period_id,kind,digest)).fetchone()
             if existing:
                 if existing["status"]=="excluido":

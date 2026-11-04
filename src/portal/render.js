@@ -359,47 +359,53 @@ var _Vue=Vue; var EscrituraRender=function render(_ctx, _cache) {
                           ]))
                         }), 128))])])]))
                       : (page==='client')
-                        ? (_openBlock(), _createElementBlock("section", { key: 7 }, [_createElementVNode("div", { class: "panel padded" }, [_createElementVNode("div", { class: "form-grid" }, [_createElementVNode("label", { class: "field" }, [_createTextVNode("Empresa"), _withDirectives(_createElementVNode("select", {
-                            "aria-label": "Empresa",
-                            "onUpdate:modelValue": $event => ((clientCompany) = $event),
-                            onChange: loadClient
-                          }, [_createElementVNode("option", { value: "" }, "Selecione"), (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(dashboard.companies, (c) => {
-                            return (_openBlock(), _createElementBlock("option", {
-                              value: String(c.id),
-                              key: c.id
-                            }, _toDisplayString(c.name), 9, ["value"]))
-                          }), 128))], 40, ["onUpdate:modelValue", "onChange"]), [[_vModelSelect, clientCompany]])]), _createElementVNode("label", { class: "field" }, [_createTextVNode("Período"), _withDirectives(_createElementVNode("select", {
-                            "aria-label": "Período",
-                            "onUpdate:modelValue": $event => ((clientPeriod) = $event)
-                          }, [_createElementVNode("option", { value: "" }, "Selecione"), (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(clientData.periods, (p) => {
-                            return (_openBlock(), _createElementBlock("option", {
-                              value: String(p.id),
-                              key: p.id
-                            }, _toDisplayString(p.reference_competence) + " · processamento " + _toDisplayString(p.processing_competence), 9, ["value"]))
-                          }), 128))], 8, ["onUpdate:modelValue"]), [[_vModelSelect, clientPeriod]])])]), (can('client.upload'))
-                            ? (_openBlock(), _createElementBlock("form", {
-                                key: 0,
-                                onSubmit: _withModifiers(uploadClient, ["prevent"]),
-                                class: "upload-bar"
-                              }, [_createElementVNode("label", { class: "field" }, [_createTextVNode("Tipo"), _withDirectives(_createElementVNode("select", {
-                                "aria-label": "Tipo",
-                                "onUpdate:modelValue": $event => ((uploadKind) = $event)
-                              }, [_createElementVNode("option", null, "XML"), _createElementVNode("option", null, "SPED")], 8, ["onUpdate:modelValue"]), [[_vModelSelect, uploadKind]])]), _createElementVNode("label", { class: "field grow" }, [_createTextVNode("Documento"), _createElementVNode("input", {
-                                type: "file",
-                                accept: ".xml,.txt,.sped",
-                                onChange: $event => (uploadFile=$event.target.files[0]),
-                                required: ""
-                              }, null, 40, ["onChange"])]), _createElementVNode("button", {
-                                class: "btn primary",
-                                disabled: busy||!clientCompany||!clientPeriod
-                              }, "Enviar documento", 8, ["disabled"])], 40, ["onSubmit"]))
-                            : _createCommentVNode("", true)]), _createElementVNode("div", { class: "panel spaced" }, [_createElementVNode("header", { class: "panel-header" }, [_createElementVNode("h2", null, "Arquivos recebidos"), _createElementVNode("span", { class: "badge" }, _toDisplayString(clientData.files.length), 1)]), _createVNode(_component_data_table, {
-                            rows: clientData.files,
-                            columns: {filename:'Arquivo',kind:'Tipo',status:'Situação',created_at:'Recebido em'}
-                          }, null, 8, ["rows", "columns"])]), _createElementVNode("div", { class: "panel spaced" }, [_createElementVNode("header", { class: "panel-header" }, [_createElementVNode("h2", null, "Documentos")]), _createVNode(_component_data_table, {
-                            rows: clientData.documents,
-                            columns: {'payload.number':'Documento','payload.key':'Chave',status:'Situação','payload.total':'Valor'}
-                          }, null, 8, ["rows", "columns"])])]))
+                        ? (_openBlock(), _createElementBlock("section", { key: 7 }, [
+                            _createElementVNode("div", { class: "panel padded" }, [_createElementVNode("div", { class: "form-grid" }, [_createElementVNode("label", { class: "field" }, [_createTextVNode("Empresa"), _withDirectives(_createElementVNode("select", {
+                              "aria-label": "Empresa",
+                              "onUpdate:modelValue": $event => ((clientCompany) = $event),
+                              onChange: loadClient
+                            }, [_createElementVNode("option", { value: "" }, "Selecione"), (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(dashboard.companies, (c) => {
+                              return (_openBlock(), _createElementBlock("option", {
+                                value: String(c.id),
+                                key: c.id
+                              }, _toDisplayString(c.name), 9, ["value"]))
+                            }), 128))], 40, ["onUpdate:modelValue", "onChange"]), [[_vModelSelect, clientCompany]])]), _createElementVNode("label", { class: "field" }, [_createTextVNode("Período"), _withDirectives(_createElementVNode("select", {
+                              "aria-label": "Período",
+                              "onUpdate:modelValue": $event => ((clientPeriod) = $event)
+                            }, [_createElementVNode("option", { value: "" }, "Selecione"), (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(clientData.periods, (p) => {
+                              return (_openBlock(), _createElementBlock("option", {
+                                value: String(p.id),
+                                key: p.id
+                              }, _toDisplayString(p.reference_competence) + " · processamento " + _toDisplayString(p.processing_competence), 9, ["value"]))
+                            }), 128))], 8, ["onUpdate:modelValue"]), [[_vModelSelect, clientPeriod]])])]), (can('client.upload'))
+                              ? (_openBlock(), _createElementBlock("form", {
+                                  key: 0,
+                                  onSubmit: _withModifiers(uploadClient, ["prevent"]),
+                                  class: "upload-bar"
+                                }, [_createElementVNode("label", { class: "field grow" }, [_createTextVNode("Documento"), _createElementVNode("input", {
+                                  type: "file",
+                                  accept: ".xml,.txt,.sped,.zip,.7z,.rar",
+                                  multiple: "",
+                                  onChange: $event => {uploadFile=Array.from($event.target.files);uploadAttempt=null},
+                                  required: ""
+                                }, null, 40, ["onChange"])]), _createElementVNode("button", {
+                                  class: "btn primary",
+                                  disabled: busy||!clientCompany||!clientPeriod
+                                }, "Enviar lote", 8, ["disabled"])], 40, ["onSubmit"]))
+                              : _createCommentVNode("", true)]),
+                            _createElementVNode("div", { class: "panel padded spaced" }, [_createElementVNode("p", null, "Até 10 MiB por envio. ZIP integrado; 7z/RAR dependem do leitor da instalação. Pacotes aninhados, links e criptografia são recusados."), _createVNode(_component_data_table, {
+                              rows: clientImportItems,
+                              columns: {batch_id:'Lote',id:'Origem',parent_id:'Pacote',filename:'Arquivo',file_id:'Arquivo salvo',status:'Situação',details:'Resultado'}
+                            }, null, 8, ["rows", "columns"])]),
+                            _createElementVNode("div", { class: "panel spaced" }, [_createElementVNode("header", { class: "panel-header" }, [_createElementVNode("h2", null, "Arquivos recebidos"), _createElementVNode("span", { class: "badge" }, _toDisplayString(clientData.files.length), 1)]), _createVNode(_component_data_table, {
+                              rows: clientData.files,
+                              columns: {filename:'Arquivo',kind:'Tipo',status:'Situação',created_at:'Recebido em'}
+                            }, null, 8, ["rows", "columns"])]),
+                            _createElementVNode("div", { class: "panel spaced" }, [_createElementVNode("header", { class: "panel-header" }, [_createElementVNode("h2", null, "Documentos")]), _createVNode(_component_data_table, {
+                              rows: clientData.documents,
+                              columns: {'payload.number':'Documento','payload.key':'Chave',status:'Situação','payload.total':'Valor'}
+                            }, null, 8, ["rows", "columns"])])
+                          ]))
                         : (page==='settings')
                           ? (_openBlock(), _createElementBlock("section", {
                               key: 8,

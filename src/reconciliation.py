@@ -10,6 +10,7 @@ LEGACY_XML_PROFILE = "nfe-4.00-header-billing-v3"
 XML_PROFILE = "nfe-nfce-4.00-header-billing-v4"
 XML_PROFILES = {LEGACY_XML_PROFILE, XML_PROFILE}
 SPED_PROFILE = "efd-icms-ipi-020-c100-v2"
+CATALOG_PROFILE = "cadastros-origem-v1"
 
 
 def document_fields(payload):
@@ -76,7 +77,7 @@ def _amount(value):
 
 def parse_sped(content, company_cnpj, processing_competence):
     rows, metadata = read_sped(content)
-    selected = [row for row in rows if row["record"] in {"0000", "C100", "C140", "C141"}]
+    selected = [row for row in rows if row["record"] in {"0000", "0150", "0200", "C100", "C140", "C141"}]
     header_errors = []
     headers = [row for row in rows if row["record"] == "0000"]
     try:
@@ -96,11 +97,17 @@ def parse_sped(content, company_cnpj, processing_competence):
         header_errors.append(str(exc))
     current_document = None
     block_c_open = False
+    block_zero_open = False
     for row in selected:
         row.update(normalized={}, issues=[], parent_line=None)
     selected_by_line = {row["line"]: row for row in selected}
     for original in rows:
         record = original["record"]
+        if record == '0001':
+            block_zero_open = original['fields'] == ['0001', '0']
+        elif record == '0990' or not record.startswith('0'):
+            block_zero_open = False
+
         if record == "C001":
             block_c_open = original["fields"] == ["C001", "0"]
         elif record == "C990" or not record.startswith("C"):
@@ -113,6 +120,26 @@ def parse_sped(content, company_cnpj, processing_competence):
             continue
         row["issues"].extend(header_errors)
         if record == "0000":
+            continue
+        if record in {'0150', '0200'}:
+            if not block_zero_open:
+                row['issues'].append('Cadastro fora do bloco 0 aberto; somente preservação')
+            if row['issues']:
+                continue
+            fields = row['fields']
+            if record == '0150':
+                if len(fields) != 13:
+                    row['issues'].append('0150: quantidade de campos incompatível com o perfil')
+                elif (fields[4] and fields[5]) or (fields[4] and not re.fullmatch(r'[0-9]{14}', fields[4])) or (fields[5] and not re.fullmatch(r'[0-9]{11}', fields[5])):
+                    row['issues'].append('0150: CPF/CNPJ incompatível; nenhum identificador presumido')
+                else:
+                    row['catalog'] = {'identity': fields[4] or fields[5], 'name': fields[2], 'source_code': fields[1]}
+                    if not row['catalog']['identity']:
+                        row['issues'].append('0150: sem CPF/CNPJ; cadastro estrangeiro/local somente preservado')
+            elif len(fields) != 13:
+                row['issues'].append('0200: quantidade de campos incompatível com o perfil')
+            else:
+                row['catalog'] = {'code': fields[1], 'description': fields[2], 'gtin': fields[3], 'unit': fields[5], 'ncm': fields[7], 'cest': fields[12]}
             continue
         if record in {"C140", "C141"}:
             row["parent_line"] = current_document

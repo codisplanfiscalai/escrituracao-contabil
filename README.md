@@ -85,3 +85,7 @@ Leia primeiro docs/escopo-e-aceite.md, docs/fluxo-operacional.md e docs/contabil
 O fluxo integrado inclui lançamentos manuais versionados, livros de movimentos
 com exportações preservadas JSON/CSV e financeiro local de títulos/baixas.
 Consulte [o guia operacional e seus limites](docs/integracao-operacional.md).
+
+## Importação em lote
+
+XML, SPED e pacotes podem ser recebidos em lote com originais preservados, resultados por arquivo e rastreabilidade. Consulte [operação, limites e disponibilidade real de ZIP/7z/RAR](docs/importacao-em-lote.md).

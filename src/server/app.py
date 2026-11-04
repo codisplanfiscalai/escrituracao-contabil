@@ -20,10 +20,10 @@ from ..accounting_api import ACCOUNTING_WRITE, ACCOUNTING_REVIEW
 ROOT = Path(__file__).resolve().parents[2]
 PORTAL = ROOT / 'src' / 'portal'
 COOKIE = 'escritura_session'
-WRITE_ROUTES = {'participants','fiscal-workspaces','fiscal-entries','periods','plans','mappings','files','file-analysis','file-removal','billing-association-preview','billing-associations','document-reviews','accounting-batches'}
-REVIEW_ROUTES = {'participant-review','fiscal-review','fiscal-period','accounting-review','accounting-close','accounting-evidence'}
-CLIENT_GET = {'companies','periods','documents','files','accounting-evidence','accounting-evidence-file'}
-CLIENT_POST = {'files'}
+WRITE_ROUTES = {'import-batches','participants','fiscal-workspaces','fiscal-entries','periods','plans','mappings','files','file-analysis','file-removal','billing-association-preview','billing-associations','document-reviews','accounting-batches'}
+REVIEW_ROUTES = {'product-review','participant-review','fiscal-review','fiscal-period','accounting-review','accounting-close','accounting-evidence'}
+CLIENT_GET = {'import-batches','import-original','companies','periods','documents','files','accounting-evidence','accounting-evidence-file'}
+CLIENT_POST = {'files','import-batches'}
 WRITE_ROUTES.update(ACCOUNTING_WRITE | FINANCE_WRITE)
 REVIEW_ROUTES.update(ACCOUNTING_REVIEW | FINANCE_REVIEW)
 
@@ -236,7 +236,7 @@ def create_app(directory, public_url='http://127.0.0.1:8765', database=None, set
         store=AccountingStore(accounting,actor=user['id'])
         try:result=dispatch(store,request.method,route,body)
         finally:store.close()
-        if route in {'accounting-evidence-file','accounting-book-file','finance-file'} and request.method=='GET':
+        if route in {'accounting-evidence-file','accounting-book-file','finance-file','import-original'} and request.method=='GET':
             return Response(result['content'],media_type=result['media_type'],
                             headers={'Content-Disposition':f'attachment; filename="{result["name"]}"'})
         return answer(result)
