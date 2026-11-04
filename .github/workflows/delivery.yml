@@ -47,7 +47,6 @@ jobs:
   publish:
     name: Publish tested release
     needs: [metadata, tests, windows, container]
-    if: github.event.repository.private == true
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     concurrency:

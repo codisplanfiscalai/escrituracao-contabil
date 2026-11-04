@@ -12,7 +12,7 @@ CI = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(CI))
 from version import bump, build_version, parse, read_version, set_version, validate_build
 from cleanup import select_caches, local_candidates
-from release import verify_container, verify_release_files, digest
+from release import verify_container, verify_release_files, digest, publish
 from github_api import pages
 
 
@@ -79,6 +79,15 @@ class CleanupTests(unittest.TestCase):
 
 
 class ArtifactTests(unittest.TestCase):
+    def test_completed_release_is_idempotent_for_public_and_private_repositories(self):
+        for private in (False, True):
+            with self.subTest(private=private), patch('release.repository', return_value='owner/repo'), patch('release.read_version', return_value='0.2.1'), patch('release.api', side_effect=[{'private': private, 'archived': False}, {'object': {'sha': 'a'*40}}, {'status': 'identical'}]), patch('release.existing_release', return_value=({}, True)), patch('release.run') as command:
+                publish(Path('unused'), '0.2.1', 'a'*40, 'stable', 'User')
+                command.assert_not_called()
+    def test_archived_repository_cannot_publish(self):
+        with patch('release.repository', return_value='owner/repo'), patch('release.read_version', return_value='0.2.1'), patch('release.api', return_value={'archived': True}), patch('release.run') as command:
+            with self.assertRaises(ValueError): publish(Path('unused'), '0.2.1', 'a'*40, 'stable', 'User')
+            command.assert_not_called()
     def test_container_corruption_source_and_version(self):
         with tempfile.TemporaryDirectory() as d:
             root=Path(d); file=root/'container.tar.gz';file.write_bytes(b'synthetic')

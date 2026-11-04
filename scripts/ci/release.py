@@ -70,7 +70,7 @@ def publish(folder, version, sha, channel, owner_type):
     if (channel == 'stable') != ('-dev.' not in version): raise ValueError('Versão incompatível com canal.')
     repo = repository()
     info = api(f'repos/{repo}')
-    if not info or info.get('private') is not True: raise ValueError('A distribuição exige repositório privado.')
+    if not info or info.get('archived'): raise ValueError('Repositório indisponível ou arquivado.')
     branch = 'main' if channel == 'stable' else 'develop'
     ref = api(f'repos/{repo}/git/ref/heads/{branch}')
     # O commit precisa estar contido na branch autorizada; nunca aceitar um SHA externo.
