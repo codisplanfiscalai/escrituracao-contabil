@@ -38,7 +38,7 @@ def seven_zip(name, content):
         bind('archive_entry_set_pathname', None, ptr, ctypes.c_char_p)(entry, name.encode())
         bind('archive_entry_set_size', None, ptr, ctypes.c_int64)(entry, len(content))
         bind('archive_entry_set_filetype', None, ptr, ctypes.c_uint)(entry, stat.S_IFREG)
-        bind('archive_entry_set_perm', None, ptr, ctypes.c_int)(entry, 0o600)
+        bind('archive_entry_set_perm', None, ptr, ctypes.c_ushort if __import__('sys').platform == 'win32' else ctypes.c_uint)(entry, 0o600)
         assert bind('archive_write_header', ctypes.c_int, ptr, ptr)(archive, entry) == 0
         data=ctypes.create_string_buffer(content)
         assert bind('archive_write_data', ctypes.c_ssize_t, ptr, ptr, ctypes.c_size_t)(archive, data, len(content)) == len(content)
@@ -56,9 +56,18 @@ def rar5_data():
     return b"".join(struct.pack("<I", max(0, k*k - 3*k + 1)) for k in range(1, 301))
 
 
-def compressed_rar4():
+def compressed_rar4(regular=True):
     # Official synthetic LZSS regression: test_read_format_rar3_lowdist_reset.rar.uu.
-    return base64.b64decode('UmFyIRoHAM+QcwAADQAAAAAAAABqUXQAgDEA6gEAAEAAAAAD3Dj4bwAAAAAdNREAIAAAAGxvd2Rpc3QtcmVzZXQuYmluERERERERFVVVVWIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZVVVmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmREREREREREVUREVVVVVVVVVVVVVVVVAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJ/IcvkO/1YBERERERERVVVVViIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiImZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmVVVZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZkRERERERERFVERFVVVVVVVVVVVVVVVfIcBQUlRWWFpcXmBiZGZoam3VMQ9ewBABwA=')
+    content = bytearray(base64.b64decode('UmFyIRoHAM+QcwAADQAAAAAAAABqUXQAgDEA6gEAAEAAAAAD3Dj4bwAAAAAdNREAIAAAAGxvd2Rpc3QtcmVzZXQuYmluERERERERFVVVVWIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZVVVmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmREREREREREVUREVVVVVVVVVVVVVVVVAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJ/IcvkO/1YBERERERERVVVVViIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiImZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmVVVZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZkRERERERERFVERFVVVVVVVVVVVVVVVfIcBQUlRWWFpcXmBiZGZoam3VMQ9ewBABwA='))
+    if not regular: return bytes(content)
+    # The upstream regression fixture uses Unix host + DOS attributes (type 0).
+    # Normalize only its regular-file permission field and header CRC; preserve compressed bytes.
+    position = 20  # Signature (7) + main header (13).
+    length = struct.unpack_from("<H", content, position + 5)[0]
+    assert content[position + 2] == 0x74
+    struct.pack_into("<I", content, position + 28, stat.S_IFREG | 0o600)
+    struct.pack_into("<H", content, position, zlib.crc32(content[position+2:position+length]) & 0xffff)
+    return bytes(content)
 
 def rar4_data():
     return bytes(range(40)) + bytes((2,3,4,5,6,7,13,14,15)) + bytes(range(40,55))

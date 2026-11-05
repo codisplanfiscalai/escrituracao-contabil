@@ -22,7 +22,7 @@ def run(executable):
             members = archive_members(packed, kind)
             assert len(members) == 1 and members[0]['content'] == expected, kind
             print(f'PASS frozen {kind}: SHA256 {hashlib.sha256(expected).hexdigest()}')
-        for kind, packed in [('RAR', stored_rar('../escape.xml', b'x')), ('7Z', b'corrupt'), ('RAR', b'corrupt')]:
+        for kind, packed in [('RAR', compressed_rar4(regular=False)), ('RAR', stored_rar('../escape.xml', b'x')), ('7Z', b'corrupt'), ('RAR', b'corrupt')]:
             try: archive_members(packed, kind)
             except ValueError: pass
             else: raise AssertionError('Unsafe/corrupt archive accepted')

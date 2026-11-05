@@ -157,7 +157,9 @@ def _native_members(content, kind):
     next_header = bind('archive_read_next_header', ctypes.c_int, ptr, ctypes.POINTER(ptr))
     pathname = bind('archive_entry_pathname_utf8', ctypes.c_char_p, ptr)
     size = bind('archive_entry_size', ctypes.c_int64, ptr)
-    filetype = bind('archive_entry_filetype', ctypes.c_uint, ptr)
+    # libarchive 3.x declares __LA_MODE_T as unsigned short on Windows.
+    mode_type = ctypes.c_ushort if sys.platform == 'win32' else ctypes.c_uint
+    filetype = bind('archive_entry_filetype', mode_type, ptr)
     symlink = bind('archive_entry_symlink', ctypes.c_char_p, ptr)
     hardlink = bind('archive_entry_hardlink', ctypes.c_char_p, ptr)
     encrypted = bind('archive_entry_is_encrypted', ctypes.c_int, ptr)
