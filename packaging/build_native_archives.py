@@ -22,7 +22,7 @@ def extract(archive, destination):
     with tarfile.open(archive) as tar:
         for member in tar:
             path = Path(member.name)
-            if path.is_absolute() or '..' in path.parts or '\\' in member.name or not (member.isdir() or member.isfile()):
+            if member.name.startswith('/') or ':' in member.name or path.is_absolute() or '..' in path.parts or '\\' in member.name or not (member.isdir() or member.isfile()):
                 raise ValueError('Entrada insegura no pacote de fontes')
             target = destination / path
             if member.isdir(): target.mkdir(parents=True, exist_ok=True)

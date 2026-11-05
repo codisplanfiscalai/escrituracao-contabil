@@ -18,7 +18,7 @@ from src.archive_worker import main as worker_main
 
 class NativeBoundaryTests(unittest.TestCase):
     def test_source_archives_cannot_escape_or_create_links(self):
-        for name, kind in [('../escape',tarfile.REGTYPE), ('/escape',tarfile.REGTYPE),('dir/link',tarfile.SYMTYPE)]:
+        for name, kind in [('../escape',tarfile.REGTYPE), ('/escape',tarfile.REGTYPE), ('C:escape',tarfile.REGTYPE), ('C:/escape',tarfile.REGTYPE), ('\\escape',tarfile.REGTYPE), ('dir/link',tarfile.SYMTYPE)]:
             with tempfile.TemporaryDirectory() as directory:
                 root=Path(directory); source=root/'source.tar'
                 with tarfile.open(source,'w') as tar:
