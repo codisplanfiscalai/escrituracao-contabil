@@ -189,7 +189,7 @@ class BatchTests(unittest.TestCase):
         with patch('src.batch_import.MAX_EXPANDED_BYTES',10):
             with self.assertRaises(ValueError):self.batch([{'filename':'a.xml','content':fake_xml()}])
         with patch('src.archive_reader.sys.platform', 'linux'), patch('src.archive_reader.ctypes.util.find_library',return_value=None):
-            with self.assertRaisesRegex(ValueError,'indisponível'):list(_native_members(b'bad','RAR'))
+            with self.assertRaisesRegex(ValueError,'indisponível'):list(_native_members(stored_rar('safe.txt', b'x'),'RAR'))
         with self.assertRaises(ValueError):list(_native_members(stored_rar('../unsafe.xml',b'x'),'RAR'))
 
     def test_batch_time_budget_preserves_remaining_inputs(self):
