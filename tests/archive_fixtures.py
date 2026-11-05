@@ -54,3 +54,11 @@ def compressed_rar5():
 
 def rar5_data():
     return b"".join(struct.pack("<I", max(0, k*k - 3*k + 1)) for k in range(1, 301))
+
+
+def compressed_rar4():
+    # Official synthetic LZSS regression: test_read_format_rar3_lowdist_reset.rar.uu.
+    return base64.b64decode('UmFyIRoHAM+QcwAADQAAAAAAAABqUXQAgDEA6gEAAEAAAAAD3Dj4bwAAAAAdNREAIAAAAGxvd2Rpc3QtcmVzZXQuYmluERERERERFVVVVWIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZVVVmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmREREREREREVUREVVVVVVVVVVVVVVVVAAECAwQFBgcICQoLDA0ODxAREhMUFRYXGBkaGxwdHh8gISIjJCUmJ/IcvkO/1YBERERERERVVVVViIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiIiImZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmVVVZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZmZkRERERERERFVERFVVVVVVVVVVVVVVVfIcBQUlRWWFpcXmBiZGZoam3VMQ9ewBABwA=')
+
+def rar4_data():
+    return bytes(range(40)) + bytes((2,3,4,5,6,7,13,14,15)) + bytes(range(40,55))

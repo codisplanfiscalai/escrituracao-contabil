@@ -206,6 +206,8 @@ def archive_members(content, kind, timeout=ARCHIVE_TIMEOUT):
                                     timeout=max(0.1, min(ARCHIVE_TIMEOUT, timeout)), check=False)
         except subprocess.TimeoutExpired as exc:
             raise ValueError('Pacote excede tempo máximo de leitura (20 segundos)') from exc
+        except OSError as exc:
+            raise ValueError('Leitor isolado indisponível nesta instalação') from exc
         if result.returncode or output.stat().st_size > OUTPUT_BYTES:
             raise ValueError('Pacote 7z/RAR recusado: leitor indisponível, formato incompatível, corrupção ou limite de segurança')
         members, total = [], 0

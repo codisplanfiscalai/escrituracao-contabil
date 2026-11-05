@@ -50,6 +50,10 @@ class NativeBoundaryTests(unittest.TestCase):
             with self.subTest(case=content[:30]), patch('src.archive_reader.subprocess.run',side_effect=child):
                 with self.assertRaises(ValueError): archive_members(b'x'*100,'RAR')
 
+    def test_blocked_worker_creation_is_an_explicit_rejection(self):
+        with patch('src.archive_reader.subprocess.run', side_effect=OSError('synthetic policy denial')):
+            with self.assertRaisesRegex(ValueError, 'indisponível'): archive_members(b'synthetic','RAR')
+
     def test_worker_is_not_given_archive_names_as_output_paths(self):
         def child(command, **kwargs):
             self.assertEqual(command[-3],'RAR')

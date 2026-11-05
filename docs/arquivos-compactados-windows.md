@@ -10,7 +10,7 @@ As fontes são os releases dos projetos oficiais: [libarchive 3.8.11](https://gi
 
 A licença principal de libarchive permite redistribuição de binários sob BSD-2-Clause com preservação dos avisos. Seu `COPYING` também registra arquivos BSD-3-Clause, domínio público e arquivos com opção CC0/OpenSSL/Apache; os avisos completos dos arquivos C/H acompanham o pacote. A biblioteca liblzma de XZ usa 0BSD; os scripts GPL e o getopt LGPL das ferramentas XZ não entram neste build. Não são usados UnRAR, SDK proprietário RAR ou binários de terceiros não oficiais. O código de leitura RAR de libarchive mantém seus próprios avisos permissivos.
 
-A distribuição inclui `_internal/src/native/archive.dll`, `native-manifest.json` e `licenses/` com os `COPYING`, `COPYING.0BSD` e avisos por arquivo de libarchive. Os manifestos registram fontes, hashes, arquitetura e imports da DLL. O verificador dos ZIPs baixados confere novamente a presença e os hashes das licenças, DLL e metadados, além da arquitetura e GUI do executável. A fixture sintética RAR5 é derivada do corpus oficial de libarchive; sua atribuição está em `archive-fixture-license.txt`.
+A distribuição inclui `_internal/src/native/archive.dll`, `native-manifest.json` e `licenses/` com os `COPYING`, `COPYING.0BSD` e avisos por arquivo de libarchive. Os manifestos registram fontes, hashes, arquitetura e imports da DLL. O verificador dos ZIPs baixados confere novamente a presença e os hashes das licenças, DLL e metadados, além da arquitetura e GUI do executável. As fixtures sintéticas RAR4 LZSS e RAR5 são derivadas do corpus oficial de libarchive; sua atribuição está em `archive-fixture-license.txt`.
 
 ## Fronteiras de segurança
 
@@ -25,11 +25,11 @@ O Job Object controla recursos; não é uma sandbox de segurança nem remove os 
 
 ## Testes e formatos
 
-O build nativo existente x86/x64 passa a compilar as fontes oficiais, rodar as suítes e empacotar a DLL/licenças. Além do smoke gráfico/tray/HTTP, `packaging/archive_smoke.py` chama o EXE congelado e exige bytes idênticos para 7z LZMA, RAR4 armazenado e RAR5 comprimido, com rejeição de pacote corrompido e caminho inseguro. O teste RAR5 compara uma sequência sintética de 300 inteiros de 32 bits, não documentos ou dados privados.
+O build nativo existente x86/x64 passa a compilar as fontes oficiais, rodar as suítes e empacotar a DLL/licenças. Além do smoke gráfico/tray/HTTP, `packaging/archive_smoke.py` chama o EXE congelado e exige bytes idênticos para 7z LZMA, RAR4 armazenado/comprimido LZSS e RAR5 comprimido, com rejeição de pacote corrompido e caminho inseguro. O teste RAR5 compara uma sequência sintética de 300 inteiros de 32 bits, não documentos ou dados privados.
 
 As suítes locais verificam o leitor real disponível, recusa por tempo, ausência de biblioteca, criptografia/links/caminhos, bombas ZIP, falha de limites do SO, saída inválida/excessiva do filho e preservação da importação em lote. A CI também verifica os ZIPs efetivamente baixados. Executar testes Linux não comprova o EXE; os resultados Windows x86/x64 devem ser relatados separadamente dos checks locais.
 
-O perfil não homologa todos os formatos de 7z/RAR. Não se promete suporte a senhas, volumes múltiplos, todos os filtros BCJ/arquiteturas, arquivos sólidos ou recuperação de arquivos danificados. O build mínimo inclui LZMA/LZMA2 e o leitor RAR nativo; não inclui bibliotecas opcionais para Deflate/BZip2/Zstd em 7z. RAR4 comprimido exige caracterização adicional antes de ser declarado homologado. Uma variante não atendida é recusada, com o pacote original preservado e os demais arquivos do lote mantidos.
+O perfil não homologa todos os formatos de 7z/RAR. Não se promete suporte a senhas, volumes múltiplos, todos os filtros BCJ/arquiteturas, arquivos sólidos ou recuperação de arquivos danificados. O build mínimo inclui LZMA/LZMA2 e o leitor RAR nativo; não inclui bibliotecas opcionais para Deflate/BZip2/Zstd em 7z. O smoke RAR4 comprimido cobre uma sequência sintética LZSS de 64 bytes; outros métodos/filtros permanecem fora da caracterização. Uma variante não atendida é recusada, com o pacote original preservado e os demais arquivos do lote mantidos.
 
 ## Reconstrução e operação
 

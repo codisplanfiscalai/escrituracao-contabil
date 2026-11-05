@@ -28,13 +28,13 @@ Repetir o mesmo identificador de tentativa com os mesmos arquivos, ordem, nomes,
 | Pacotes adicionais | Não há extração recursiva; pacotes aninhados são preservados e rejeitados para importação automática |
 | Recursos não contemplados | Criptografia/senhas, volumes múltiplos e diretório ZIP64 não fazem parte deste perfil |
 
-O leitor ZIP confere e percorre o diretório central antes de criar objetos dos membros, e confere tamanhos/CRC durante a leitura. Nenhum nome de membro é usado para criar arquivos no disco. O leitor 7z/RAR envia os dados por memória para libarchive em um processo Python separado; sua saída usa um arquivo temporário privado, sem nomes fornecidos pelo pacote. Quando um pacote nativo é recusado, membros parcialmente lidos não são importados.
+O leitor ZIP confere e percorre o diretório central antes de criar objetos dos membros, e confere tamanhos/CRC durante a leitura. Nenhum nome de membro é usado para criar arquivos no disco. O leitor 7z/RAR usa libarchive em processo separado. Entrada e saída usam arquivos temporários privados com nomes fixos, e os membros são lidos em memória; nenhum nome fornecido pelo pacote vira caminho de extração. Quando um pacote nativo é recusado, membros parcialmente lidos não são importados.
 
 ## Disponibilidade dos formatos
 
 - **ZIP:** leitor da biblioteca padrão; testado com compressão DEFLATE e modo armazenado.
 - **7z:** leitor opcional libarchive, testado neste ambiente Linux com pacote 7z sintético criado por libarchive. Não representa homologação de todos os métodos de compressão, arquivos sólidos ou variantes.
-- **RAR:** leitor opcional libarchive, testado neste ambiente Linux com RAR4 sintético em modo armazenado. A frente Windows acrescenta caracterização de RAR5 comprimido com sequência sintética; a declaração de suporte no EXE depende da CI nativa. RAR4 comprimido e outras variantes permanecem sujeitos aos limites documentados.
+- **RAR:** leitor opcional libarchive, testado neste ambiente Linux com RAR4 sintético em modo armazenado. A frente Windows acrescenta caracterização de RAR5 comprimido com sequência sintética; a declaração de suporte no EXE depende da CI nativa. A distribuição Windows também caracteriza uma sequência RAR4 LZSS sintética; outras variantes permanecem sujeitas aos limites documentados.
 - **Executável Windows congelado:** o incremento de distribuição inclui libarchive/liblzma oficiais e leitor isolado no próprio EXE GUI, com limites de recursos e DLL por arquitetura. O aceite depende do smoke nativo x86/x64 dos pacotes reais. Consulte [7z/RAR Windows](arquivos-compactados-windows.md) para licenças, variantes testadas e limitações. Nenhum leitor precisa ser instalado na estação.
 
 Ausência de libarchive, corrupção, método incompatível, criptografia ou limite de segurança produzem rejeição explícita com o pacote original preservado. Não se declara suporte apenas pela extensão ou pela presença de uma biblioteca.
