@@ -106,7 +106,7 @@ somente em memória. As guias fiscais continuam versionadas no banco.
 
 ## Integração operacional
 
-`python qa/integrated_flow.py` executa o percurso real de cadastro, XML, fiscal,
+`python qa/integrated_flow.py` executa o percurso real de cadastro, lote misto ZIP/XML com erro individual e originais, fiscal,
 contabilização documental/manual, livros, download por hash e financeiro no portal
 autenticado e no HTTP local, sempre com base sintética temporária. A conexão das
 telas usa as mesmas APIs dos aplicativos distribuídos. Inclui edição e estorno

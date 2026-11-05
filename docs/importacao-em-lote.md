@@ -47,7 +47,7 @@ A leitura parcial SPED preserva as linhas e acrescenta observação dos registro
 
 A primeira representação do produto é preservada. Novas descrições, unidades ou classificações divergentes ficam pendentes; o operador pode escolher uma observação de origem, informar motivo e confirmar a revisão pela tela. A revisão exige a versão vigente, registra o antes/depois e mantém as observações. Sem código não há identidade fabricada; a observação e o aviso no arquivo continuam registrados. Sem descrição o cadastro fica pendente. A revisão não verifica a validade tributária dos campos.
 
-Para arquivos antigos já analisados, selecione **Cadastros de origem · terceiros e produtos · v1** em “Analisar arquivo já salvo”. Esse perfil lê o original e registra análise adicional, preservando as análises fiscais anteriores. A migração aditiva do banco para versão 7 cria as novas tabelas sem reinterpretar automaticamente os documentos históricos.
+Para arquivos antigos já analisados, selecione **Cadastros de origem · terceiros e produtos · v1** em “Analisar arquivo já salvo”. Esse perfil lê o original e registra análise adicional, preservando as análises fiscais anteriores. A migração integrada do banco para versão 9 (a frente isolada usava versão 7) cria as novas tabelas sem reinterpretar automaticamente os documentos históricos.
 
 ## Contrato das APIs
 

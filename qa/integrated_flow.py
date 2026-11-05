@@ -17,7 +17,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tests"))
 from src.persistence import AccountingStore
 from src.local_app import LocalServer
 from src.server.runtime import PortalServer
-from test_persistence import fake_xml, fake_accounts, BUYER
+from test_persistence import fake_accounts, BUYER
+from test_product_catalog import product_xml
+from test_batch_import import zip_bytes
 from playwright.sync_api import sync_playwright, expect
 
 
@@ -104,11 +106,11 @@ def run(mode):
                     expect(frame.locator("#" + panel)).to_be_visible()
                     idle()
 
-                def submit(form):
+                def submit(form, allow_partial=False):
                     form.locator("button[type=submit]").click()
                     idle()
                     status = frame.locator("#status")
-                    if status.is_visible():
+                    if status.is_visible() and not allow_partial:
                         assert "error" not in (
                             status.get_attribute("class") or ""
                         ), status.inner_text()
@@ -143,15 +145,36 @@ def run(mode):
                     form.locator("[name=reason]").fill("Mapeamento sintético conferido")
                     submit(form)
                 nav("imports")
+                packed = zip_bytes([("pasta/nfe-sintetica.xml", product_xml())])
                 frame.locator("#upload-file").set_input_files(
-                    {
-                        "name": "nfe-sintetica.xml",
-                        "mimeType": "text/xml",
-                        "buffer": fake_xml(),
-                    }
+                    [
+                        {
+                            "name": "fontes-sinteticas.zip",
+                            "mimeType": "application/zip",
+                            "buffer": packed,
+                        },
+                        {
+                            "name": "invalido.xml",
+                            "mimeType": "text/xml",
+                            "buffer": b"<broken",
+                        },
+                    ]
                 )
-                submit(frame.locator("#file-form"))
+                submit(frame.locator("#file-form"), allow_partial=True)
+                expect(frame.locator("#status")).to_contain_text(
+                    "1 entrada(s) rejeitada(s)"
+                )
                 expect(frame.locator("#metric-documents")).to_have_text("1")
+                expect(frame.locator("#products-list")).to_contain_text(
+                    "Produto inteiramente fictício"
+                )
+                frame.locator("#import-batches-list > details > summary").first.click()
+                with page.expect_download() as info:
+                    frame.locator("#import-batches-list button").first.click()
+                assert Path(info.value.path()).read_bytes() == packed
+                expect(frame.locator("#import-batches-list")).to_contain_text(
+                    "invalido.xml"
+                )
                 nav("fiscal")
                 frame.locator("#fiscal-source").select_option("1")
                 frame.locator("#fiscal-prepare").click()
@@ -354,7 +377,7 @@ def run(mode):
             print(
                 "PASS "
                 + mode
-                + ": UI company/period/chart/mappings → XML → fiscal review → document review → documentary/manual edit/close/reversal → books JSON/hash/download → partial/full settlement/reversal/cancellation/CSV; persisted SQLite; responsive; no JS errors",
+                + ": UI company/period/chart/mappings → mixed ZIP/XML batch/original/catalog → fiscal review → document review → documentary/manual edit/close/reversal → books JSON/hash/download → partial/full settlement/reversal/cancellation/CSV; persisted SQLite; responsive; no JS errors",
                 flush=True,
             )
         finally:
