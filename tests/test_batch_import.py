@@ -176,11 +176,13 @@ class BatchTests(unittest.TestCase):
         content=fake_sped()
         body={'company_id':self.company,'period_id':self.period,'request_key':'api-ficticia','inputs':[
             {'filename':'a.txt','content_base64':base64.b64encode(content).decode()}],'sped_profile':SPED_PROFILE}
-        batch=dispatch(self.store,'POST','import-batches',body)
+        receipt=dispatch(self.store,'POST','source-receive',body)
+        source=receipt['items'][0]
+        self.store.organize_source(self.company,source['input_id'],self.store.save_work_cycle(self.company,'2026-09','2026-09',None,'Teste')['id'],source['snapshot_hash'],'Teste',SPED_PROFILE)
         self.assertTrue(self.store.list_files(self.company)[0]['analyses'])
-        self.assertEqual(dispatch(self.store,'GET','import-batches',{'company_id':self.company})[0]['id'],batch['id'])
+        self.assertEqual(dispatch(self.store,'GET','source-inbox',{'company_id':self.company})[0]['input_id'],source['input_id'])
         body['inputs'][0]['content_base64']='@@@'
-        with self.assertRaises(APIError):dispatch(self.store,'POST','import-batches',body)
+        with self.assertRaises(APIError):dispatch(self.store,'POST','source-receive',body)
 
     @unittest.skipUnless(ctypes.util.find_library('archive'),'libarchive unavailable')
     def test_real_7z_and_stored_rar4(self):

@@ -126,7 +126,7 @@ class IntegrationMigrationTests(unittest.TestCase):
                         migrated.db.execute(
                             "SELECT version FROM schema_version"
                         ).fetchone()[0],
-                        9,
+                        10,
                     )
                     self.assertEqual(migrated.list_periods(company)[0]["id"], period)
                     self.assertEqual(

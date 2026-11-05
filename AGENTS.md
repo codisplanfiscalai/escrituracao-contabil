@@ -1,6 +1,6 @@
 # Escritura - regras de continuidade
 
-- Responder em português do Brasil e preservar as funções existentes.
+- Responder em português do Brasil. Preservar tecnologias e recursos gerais úteis; por instrução explícita do usuário em 05/11/2026, repensar e substituir os processos fiscais/contábeis anteriores, com migração e preservação dos dados. Não usar a preservação do fluxo antigo como requisito.
 - Branches de trabalho partem de develop; PRs de implementação retornam a develop.
 - Main recebe promoção de develop com título release(patch|minor|major): descrição. Não fazer merge automático.
 - VERSION e pyproject.toml devem coincidir; nunca mover tags publicadas ou substituir artefatos estáveis.

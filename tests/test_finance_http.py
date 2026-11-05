@@ -1,66 +1,31 @@
-"""Financeiro também funciona no servidor HTTP local sem serviços externos."""
-
+"""Source intake without a period, immutable originals and explicit organizing."""
+import base64
 import unittest
-import test_local_app as helpers
+import test_accounting_http as helpers
+from test_persistence import fake_xml
+from test_batch_import import zip_bytes
 
+class IntakeLocalTests(unittest.TestCase):
+    for method in ['setUp','tearDown','start_server','stop_server','request','api','company']:
+        locals()[method]=getattr(helpers.AccountingHTTPTests,method)
 
-class FinanceLocalTests(unittest.TestCase):
-    setUp = helpers.LocalApplicationTests.setUp
-    tearDown = helpers.LocalApplicationTests.tearDown
-    start_server = helpers.LocalApplicationTests.start_server
-    stop_server = helpers.LocalApplicationTests.stop_server
-    request = helpers.LocalApplicationTests.request
-    api = helpers.LocalApplicationTests.api
-    company = helpers.LocalApplicationTests.company
-
-    def test_title_settlement_csv_and_restart(self):
-        company = self.company()["id"]
-        period = self.api(
-            "periods",
-            {
-                "company_id": company,
-                "reference_competence": "2026-08",
-                "processing_competence": "2026-09",
-            },
-        )["id"]
-        body = {
-            "company_id": company,
-            "period_id": period,
-            "direction": "pagar",
-            "reference": "Ref",
-            "counterparty": "Sintético",
-            "due_date": "2026-09-20",
-            "amount": "100.30",
-            "reason": "Teste",
-            "request_key": "local-title",
-        }
-        title = self.api("finance-titles", body)
-        self.assertEqual(
-            self.request(
-                "/api/finance-titles", "POST", body, headers={"X-Local-Token": None}
-            )[0],
-            403,
-        )
-        title = self.api(
-            "finance-settlements",
-            {
-                "company_id": company,
-                "title_id": title["id"],
-                "amount": "40.10",
-                "paid_date": "2026-09-20",
-                "reference": "B1",
-                "reason": "Teste",
-                "request_key": "local-paid",
-                "snapshot_hash": title["snapshot_hash"],
-            },
-        )
-        self.assertEqual(title["balance"], "60.20")
-        status, headers, content = self.request(
-            f"/api/finance-file?company_id={company}&period_id={period}"
-        )
-        self.assertEqual(status, 200, content)
-        self.assertIn("attachment;", headers["Content-Disposition"])
-        self.assertIn(b"60.20", content)
-        self.stop_server()
-        self.start_server()
-        self.assertEqual(self.api(f"finance-titles?company_id={company}"), [title])
+    def test_receive_retry_bad_base64_original_and_decision(self):
+        company=self.company()['id'];content=zip_bytes([('ok.xml',fake_xml()),('bad.xml',b'broken')])
+        body={'company_id':company,'request_key':'synthetic-receipt','inputs':[{'filename':'pack.zip','content_base64':base64.b64encode(content).decode()}]}
+        receipt=self.api('source-receive',body)
+        self.assertEqual(self.api(f'periods?company_id={company}'),[])
+        self.assertEqual(len(receipt['items']),3)
+        self.assertTrue(self.api('source-receive',body)['duplicate'])
+        package=next(r for r in receipt['items'] if r['filename']=='pack.zip')
+        status,headers,original=self.request(f'/api/source-original?company_id={company}&input_id={package["input_id"]}')
+        self.assertEqual(status,200);self.assertEqual(original,content);self.assertIn('attachment;',headers['Content-Disposition'])
+        body['inputs'][0]['content_base64']='@@@'
+        self.assertEqual(self.request('/api/source-receive','POST',body)[0],400)
+        source=next(r for r in receipt['items'] if r['filename']=='ok.xml')
+        cycle=self.api('work-cycles',{'company_id':company,'reference_competence':'2026-08','competence':'2026-09','reason':'Teste'})
+        self.api('source-organize',{'company_id':company,'input_id':source['input_id'],'cycle_id':cycle['id'],'snapshot_hash':source['snapshot_hash'],'reason':'Identificado e organizado'})
+        self.assertEqual(len(self.api(f'documents?company_id={company}')),1)
+        impact=self.api(f'source-impact?company_id={company}&input_id={source["input_id"]}')
+        self.assertEqual(impact['protected'],[])
+        self.api('source-remove',{'company_id':company,'input_id':source['input_id'],'impact_hash':impact['impact_hash'],'reason':'Correção sintética','confirmed':True})
+        self.assertEqual(self.api(f'source-inbox?company_id={company}')[1]['evidence']['state'],'descartado')
