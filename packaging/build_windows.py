@@ -46,6 +46,7 @@ def main():
         "--icon", str(assets / "icon.ico"),
         "--add-data", f"{ROOT / 'src' / 'web' / 'index.html'}:src/web",
         "--add-data", f"{ROOT / 'src' / 'web' / 'app.js'}:src/web",
+        "--add-data", f"{ROOT / 'src' / 'web' / 'integrated_workspace.js'}:src/web",
         "--add-data", f"{ROOT / 'src' / 'web' / 'posting_math.js'}:src/web",
         "--add-data", f"{ROOT / 'src' / 'web' / 'posting_editor.js'}:src/web",
         "--add-data", f"{ROOT / 'src' / 'web' / 'style.css'}:src/web",

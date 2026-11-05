@@ -247,7 +247,7 @@ class BillingAssociationTests(unittest.TestCase):
             self.assertEqual(db.execute('SELECT version FROM schema_version').fetchone()[0],4)
             self.assertIsNone(db.execute("SELECT name FROM sqlite_master WHERE name='failed_billing'").fetchone())
         self.s=AccountingStore(self.path)
-        self.assertEqual(self.s.db.execute('SELECT version FROM schema_version').fetchone()[0],6)
+        self.assertEqual(self.s.db.execute('SELECT version FROM schema_version').fetchone()[0],9)
         self.assertEqual(self.originals(),before)
         self.assertEqual(self.s.list_document_reviews(self.c)[0],review)
         self.assertEqual(self.s._batch(self.c,closed['id']),closed)

@@ -39,9 +39,13 @@ jobs:
       source_sha: ${{ needs.metadata.outputs.sha }}
       version: ${{ needs.metadata.outputs.version }}
   container:
+    permissions:
+      contents: read
+      packages: read
     needs: metadata
     uses: ./.github/workflows/container.yml
     with:
+      base_source: ${{ vars.ESCRITURA_BASE_SOURCE || 'upstream' }}
       source_sha: ${{ needs.metadata.outputs.sha }}
       version: ${{ needs.metadata.outputs.version }}
   publish:

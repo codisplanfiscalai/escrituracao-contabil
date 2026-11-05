@@ -77,7 +77,7 @@ def main():
                 expect(frame.get_by_label('Empresa de trabalho',exact=True)).to_have_value('1')
                 expect(frame.get_by_label('Período de trabalho',exact=True)).to_have_value(period)
                 expect(frame.get_by_label('Empresa de trabalho',exact=True)).to_be_in_viewport()
-                frame.get_by_role('heading',name='Receber arquivo XML ou SPED').wait_for()
+                frame.get_by_role('heading',name='Receber XML, SPED e pacotes em lote').wait_for()
                 page.evaluate('window.scrollTo(0,0)')
                 page.screenshot(path=str(screenshots/'documentos.png'),full_page=True,animations="disabled")
                 expect(frame.get_by_label('Empresa de trabalho',exact=True)).to_have_value('1')
@@ -109,13 +109,12 @@ def main():
                 page.get_by_role('link',name='Portal do cliente',exact=True).click()
                 page.get_by_role('heading',name='Portal do cliente',exact=True).wait_for()
                 page.get_by_label('Período',exact=True).select_option(period)
-                page.get_by_label('Tipo',exact=True).select_option('SPED')
                 page.get_by_label('Documento',exact=True).set_input_files({'name':'amostra-sintetica.txt','mimeType':'text/plain','buffer':b'|0000|DADOS SINTETICOS PARA PRESERVACAO|\r\n'})
-                with page.expect_response(lambda response:response.url.endswith('/api/v1/client/files') and response.request.method=='POST') as uploaded:
-                    page.get_by_role('button',name='Enviar documento',exact=True).click()
+                with page.expect_response(lambda response:response.url.endswith('/api/v1/client/import-batches') and response.request.method=='POST') as uploaded:
+                    page.get_by_role('button',name='Enviar lote',exact=True).click()
                 assert uploaded.value.status==200,uploaded.value.text()
-                page.get_by_role('status').filter(has_text='Documento recebido e origem preservada.').wait_for()
-                page.get_by_role('cell',name='amostra-sintetica.txt',exact=True).wait_for()
+                page.get_by_role('status').filter(has_text='Lote #').wait_for()
+                page.get_by_role('cell',name='amostra-sintetica.txt',exact=True).first.wait_for()
                 page.screenshot(path=str(screenshots/'cliente.png'),full_page=True,animations="disabled")
                 assert not errors,errors
                 browser.close()

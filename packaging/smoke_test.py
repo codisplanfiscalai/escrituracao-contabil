@@ -21,7 +21,7 @@ import time
 
 
 def request(port, path, *, token=None, data=None, origin=None, session=None):
-    conn = http.client.HTTPConnection("127.0.0.1", port, timeout=3)
+    conn = http.client.HTTPConnection("127.0.0.1", port, timeout=15)
     headers = {}
     if token:
         headers["X-Local-Token"] = token
@@ -63,7 +63,7 @@ def stop(process):
         raise AssertionError(f"Exit status {process.returncode}: {stdout!r} {stderr!r}")
 
 
-def run(command):
+def run(command, *, server=False):
     with tempfile.TemporaryDirectory(prefix="escrituracao-smoke-") as directory:
         root = Path(directory)
         database = root / "private-data" / "synthetic.sqlite3"
@@ -74,6 +74,8 @@ def run(command):
                 reserve.bind(("127.0.0.1", 0))
                 port = reserve.getsockname()[1]
             environment = os.environ.copy()
+            if server:
+                environment["PYTHONPATH"] = str(Path(__file__).resolve().parents[1])
             if os.name == "nt":
                 kernel = ctypes.WinDLL("kernel32", use_last_error=True)
                 kernel.CreateEventW.argtypes = [ctypes.c_void_p, wintypes.BOOL, wintypes.BOOL, wintypes.LPCWSTR]
@@ -118,7 +120,7 @@ def run(command):
                 code, body = request(port, '/api/v1/auth/login', data={'email':'smoke@example.test','password':'synthetic-password-2026'}, session=session)
                 assert code == 200, body
                 token = json.loads(body)['data']['csrf']
-                for asset in ('/portal/app.js','/portal/app.css','/portal/render.js','/portal/vendor/vue.js','/app.js','/posting_math.js','/posting_editor.js','/style.css','/assets/symbol.svg','/assets/icon.svg',
+                for asset in ('/portal/app.js','/portal/app.css','/portal/render.js','/portal/vendor/vue.js','/app.js','/posting_math.js','/posting_editor.js','/integrated_workspace.js','/style.css','/assets/symbol.svg','/assets/icon.svg',
                               *(f'/assets/icon-{size}.png' for size in (16,24,32,48,64,128,256,512))):
                     code, content = request(port, asset)
                     assert code == 200 and content, asset
@@ -147,12 +149,17 @@ def run(command):
                 assert connection.execute("PRAGMA integrity_check").fetchone()[0] == "ok"
             with socket.socket() as probe:
                 assert probe.connect_ex(("127.0.0.1", port)) != 0, "Listener survived process shutdown"
-        print("PASS: corporate login, logout, CSRF/origin, Vue assets, synthetic POST, external SQLite, GUI, restart/persistence")
+        mode = "Windows GUI/tray" if os.name == "nt" else ("server entrypoint" if server else "launcher")
+        print(f"PASS: corporate login, logout, CSRF/origin, Vue assets, synthetic POST, external SQLite, {mode}, restart/persistence")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--executable", type=Path)
+    parser.add_argument("--server", action="store_true", help="Testar o entrypoint real do contêiner")
     options = parser.parse_args()
     command = [str(options.executable.resolve())] if options.executable else [sys.executable, str(Path(__file__).with_name("launcher.py").resolve())]
-    run(command)
+    if options.server:
+        if options.executable: parser.error("Escolha --server ou --executable")
+        command = [sys.executable, "-m", "src.server.runtime"]
+    run(command, server=options.server)

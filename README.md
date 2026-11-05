@@ -5,6 +5,7 @@ Portal corporativo de organização contábil com aplicativo Windows gráfico, a
 - [Portal, primeiro acesso e instalação](docs/portal-corporativo.md)
 - [Fluxo main/develop, builds, releases e limpeza](docs/fluxo-desenvolvimento.md)
 - [Arquitetura e preservação funcional](docs/arquitetura-consolidada.md)
+- [Windows offline, Docker e dependências GHCR](docs/distribuicao-offline-ghcr.md)
 
 
 **Windows gráfico:** abra o EXE para administrar a aplicação pela janela e pelo ícone na área de notificação, sem terminal. Fechar/ESC recolhe a janela; Sair encerra o serviço.
@@ -80,3 +81,11 @@ Leia primeiro docs/escopo-e-aceite.md, docs/fluxo-operacional.md e docs/contabil
 - [Guia Prático EFD-ICMS/IPI, versão 3.1.6](https://sped.rfb.gov.br/estatico/38/22C37BE2CE82F67C1A161538F27551C2D8E7E9/Guia%20Pr%C3%A1tico%20EFD%20-%20Vers%C3%A3o%203.1.6.pdf), referência oficial de registros e hierarquia. A versão aplicável em produção deve ser reconfirmada antes do uso.
 - [Alterdata/Prosoft: F677 — geração do registro C100 e filhos](https://novoajuda.alterdata.com.br/prosoft/f677-sped-fiscal-geracao-registro-c100-e-filhos-prosoft-fiscal), referência do próprio fornecedor. A documentação informa C140/C141 para faturas do modelo 01 e alerta para evitar duplicidade nas notas desdobradas. A versão instalada e o contrato efetivo do importador precisam ser testados.
 
+
+O fluxo integrado inclui lançamentos manuais versionados, livros de movimentos
+com exportações preservadas JSON/CSV e financeiro local de títulos/baixas.
+Consulte [o guia operacional e seus limites](docs/integracao-operacional.md).
+
+## Importação em lote
+
+XML, SPED e pacotes podem ser recebidos em lote com originais preservados, resultados por arquivo e rastreabilidade. Consulte [operação, limites e disponibilidade real de ZIP/7z/RAR](docs/importacao-em-lote.md).
