@@ -3,6 +3,7 @@
 from .accounting_store import identifier
 
 WORK_GET = {
+    "work-archived-tabs",
     "work-attempt",
     "source-history",
     "source-impact",
@@ -116,6 +117,12 @@ def dispatch_work(store, method, route, data):
             return store.get_work_operation(company, req("operation_id"))
         if route == "work-policies":
             return store.work_policies(company)
+        if route == "work-archived-tabs":
+            return [
+                t
+                for t in store.work_tabs(company, req("cycle_id"), True)
+                if t["closed"]
+            ]
         if route == "work-tabs":
             return store.work_tabs(company, req("cycle_id"))
         if route == "work-books":

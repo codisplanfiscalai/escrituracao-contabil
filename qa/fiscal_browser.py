@@ -64,5 +64,15 @@ def main():
             book=store.work_books(s['company'],int(october))
             assert all(r['closing']=='0.00' for r in book['trial_balance']),book['trial_balance']
             assert len(book['fiscal_book'])==0
-        print('PASS: plano CSV com atributos e original; referência e movimentos distintos; serviço manual com ISS informado; versão/conferência/escrituração; livro fiscal; estorno vinculado em outra competência')
+        # Earlier persistent fiscal guides remain consultable and can be resumed,
+        # preserving original fields rather than silently discarding them.
+        with AccountingStore(s['path'],actor='operador-local') as store:
+            period=store._work_cycle(s['company'],int(october))['period_id']
+            store.save_fiscal_workspace(s['company'],period,'Guia anterior sintética',{'data':{'operation':'servico_tomado','model':'SERVICO','number':'LEGADO-42','posting_date':'2026-10-01','issued_date':'2026-09-30','total':'12.30'}},'legacy-guide-ui')
+        page.get_by_role('button',name='Atualizar',exact=True).click();idle()
+        nav('Histórico')
+        page.locator('section:visible').get_by_label('Motivo',exact=True).fill('Retomada explícita da guia antiga')
+        page.get_by_role('button',name='Retomar como operação',exact=True).click();idle()
+        expect(page.get_by_label('Número',exact=True)).to_have_value('LEGADO-42')
+        print('PASS: plano CSV com atributos e original; referência e movimentos distintos; serviço manual com ISS informado; versão/conferência/escrituração; livro fiscal; estorno vinculado em outra competência; retomada de guia fiscal antiga')
 if __name__=='__main__':main()

@@ -1174,7 +1174,9 @@ class WorkStoreMixin:
                 (company_id, cycle["id"]),
             )
         ]
+        legacy = self.work_legacy(company_id, cycle_id)
         counts = {
+            "legacy_pending": sum(r["can_resume"] for r in legacy),
             "documents": len(documents),
             "open_forms": len(open_forms),
             "pending_documents": len(pending),
@@ -1207,10 +1209,20 @@ class WorkStoreMixin:
             "counts": counts,
             "next_action": next_action,
             "policies": self.work_policies(company_id),
-            "legacy": self.work_legacy(company_id, cycle_id),
+            "legacy": legacy,
             "snapshot_hash": digest(
                 {
                     "cycle": cycle,
+                    "legacy": [
+                        (
+                            r["kind"],
+                            r["id"],
+                            r["state"],
+                            r["snapshot_hash"],
+                            r["operation_id"],
+                        )
+                        for r in legacy
+                    ],
                     "evidence": [(r["input_id"], r["snapshot_hash"]) for r in evidence],
                     "forms": [(r["id"], r["version"]) for r in open_forms],
                     "sources": [
@@ -1273,6 +1285,32 @@ class WorkStoreMixin:
                         "snapshot": data.get("snapshot") or data.get("data"),
                     }
                 )
+        for row in self.db.execute(
+            "SELECT * FROM fiscal_workspaces WHERE company_id=? AND actor=? ORDER BY id",
+            (company_id, self.actor),
+        ):
+            if row["period_id"] not in ids:
+                continue
+            data = dict(row)
+            data["data"] = json.loads(data["data"])
+            linked = self.db.execute(
+                "SELECT operation_id FROM work_legacy_links WHERE kind='guia_fiscal' AND source_id=?",
+                (row["id"],),
+            ).fetchone()
+            result.append(
+                {
+                    "kind": "guia_fiscal",
+                    "id": row["id"],
+                    "state": "encerrada" if row["closed"] else "rascunho",
+                    "version": row["version"],
+                    "snapshot_hash": digest(data),
+                    "operation_id": linked["operation_id"] if linked else None,
+                    "can_resume": not linked
+                    and not row["closed"]
+                    and cycle["state"] == "aberta",
+                    "snapshot": data,
+                }
+            )
         return result
 
     def resume_work_legacy(
@@ -1320,6 +1358,57 @@ class WorkStoreMixin:
                     }
                     for line in snapshot["entries"]
                 ]
+            elif kind == "guia_fiscal":
+                raw = selected["snapshot"]["data"]
+                fields = (
+                    raw.get("data")
+                    if isinstance(raw.get("data"), dict)
+                    else (
+                        raw.get("fields")
+                        if isinstance(raw.get("fields"), dict)
+                        else raw
+                    )
+                )
+                document_id = raw.get("document_id") or fields.get("document_id")
+                payload = self.prepare_work_operation(
+                    company_id,
+                    cycle_id,
+                    document_id=document_id,
+                    observation_id=raw.get("observation_id"),
+                )
+                payload["reference"] = selected["snapshot"]["title"]
+                keys = {
+                    "operation",
+                    "model",
+                    "number",
+                    "series",
+                    "key",
+                    "issued_date",
+                    "entry_date",
+                    "posting_date",
+                    "issuer",
+                    "buyer",
+                    "total",
+                    "notes",
+                    "participant_id",
+                    "service_code",
+                    "municipality",
+                    "iss_base",
+                    "iss_amount",
+                }
+                payload["fiscal"].update({k: v for k, v in fields.items() if k in keys})
+                payload["notes"] = raw.get("notes", fields.get("notes", ""))
+                payload["legacy_workspace"] = {
+                    "id": identifier(source_id),
+                    "version": selected["version"],
+                    "snapshot_hash": expected_hash,
+                    "original": raw,
+                }
+                for line in payload["entries"]:
+                    line.update(
+                        date=payload["fiscal"].get("posting_date", ""),
+                        amount=payload["fiscal"].get("total", ""),
+                    )
             else:
                 old = (
                     self.get_fiscal_entry(company_id, source_id)
@@ -1605,10 +1694,10 @@ class WorkStoreMixin:
                     )
                 if (
                     overview["counts"]["rejected_inputs"]
-                    and acknowledge_errors is not True
-                ):
+                    or overview["counts"]["legacy_pending"]
+                ) and acknowledge_errors is not True:
                     raise ValueError(
-                        "Reconheça os arquivos rejeitados para encerrar o recorte."
+                        "Reconheça os arquivos rejeitados e rascunhos anteriores não retomados antes de encerrar o recorte."
                     )
                 if not self.db.execute(
                     "SELECT 1 FROM work_balance_starts WHERE company_id=? AND competence<=?",

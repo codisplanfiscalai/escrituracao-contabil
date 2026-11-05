@@ -33,7 +33,7 @@ Percurso: selecionar empresa → receber e identificar fontes sem exigir compet�
 
 ## Migração e retirada do fluxo anterior
 
-Migração aditiva, transacional: cria o novo modelo e referências de legado, sem reescrever originais, partidas fechadas, livros exportados ou baixas. Rascunhos anteriores podem ser retomados de forma explícita; registros fechados são somente consultados e entram nos livros históricos. O frontend operacional anterior é substituído. Endpoints antigos de escrituração deixam de aceitar novas gravações, mantendo consultas históricas necessárias. Testes de comportamento antigo não constituem requisito para manter o processo rejeitado.
+Migração aditiva, transacional: cria o novo modelo e referências de legado, sem reescrever originais, partidas fechadas, livros exportados ou baixas. Rascunhos anteriores de lançamentos e de guias fiscais pertencentes ao operador podem ser retomados de forma explícita; registros fechados são somente consultados e entram nos livros históricos. O frontend operacional anterior é substituído. Endpoints antigos de escrituração deixam de aceitar novas gravações, mantendo consultas históricas necessárias. Testes de comportamento antigo não constituem requisito para manter o processo rejeitado.
 
 ## Material e dependências
 
@@ -51,7 +51,7 @@ Verificar com fontes sintéticas: competência-base distinta; XML/SPED do mesmo 
 - `source_evidence.py`: caixa de entrada e revisões imutáveis `source-evidence/2`, decisão de competência separada, originais e análise técnica reaproveitados, retirada lógica com prévia e proteção de efeitos fechados.
 - `work_domain.py` / `work_store.py`: competência, políticas, ficha única, versões, conferência, efetivação atômica, parcelas/títulos, liquidação e estorno no mesmo livro, abertura e encerramento.
 - `work_books.py`: snapshots, saldos, continuidade, fiscal e financeiro por competência, pacote operacional preservado e verificável. Estados financeiros antigos sem competência econômica são sinalizados.
-- `frontend/templates/workbench.html` / `src/web/workbench.js`: nova interface operacional; substitui o frontend anterior. Recursos do portal abrem em guias, iframe mantém a instância, contexto de cliente é independente e rascunhos contábeis ficam no banco com controle de versão.
+- `frontend/templates/workbench.html` / `src/web/workbench.js`: nova interface operacional; substitui o frontend anterior. Recursos do portal abrem em guias, iframe mantém a instância, contexto de cliente é independente e rascunhos contábeis ficam no banco com controle de versão. Guias encerradas podem ser reabertas pelo Histórico.
 - `work_api.py`: APIs novas, permissões de escrita/conferência e HTTP 410 nos escritores antigos. Os métodos antigos permanecem internos para leitura/migração e seus testes históricos.
 
 O fechamento é mensal e local. Não representa apuração, encerramento anual das contas de resultado, retificação de obrigação transmitida ou homologação de leiaute. Plano completo em PDF continua dependente de perfil de extração comprovado; a importação implementada usa CSV explícito. Mudança de plano conserva contas e saldos por versão, sem converter contas automaticamente.

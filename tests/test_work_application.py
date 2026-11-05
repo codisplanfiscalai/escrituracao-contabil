@@ -677,6 +677,63 @@ class WorkApplicationTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "fonte"):
             self.s.prepare_work_operation(company, cycle["id"], docs[0]["id"])
 
+    def test_persistent_legacy_fiscal_guides_remain_owned_and_resumable(self):
+        raw = {
+            "data": {
+                "operation": "servico_tomado",
+                "model": "SERVICO",
+                "number": "PENDENTE-ANTERIOR",
+                "issued_date": "2026-08-30",
+                "posting_date": "2026-09-01",
+                "total": "12.30",
+                "notes": "Texto ainda incompleto",
+            },
+            "reason": "Rascunho anterior",
+            "ui_only": {"preservar": "original"},
+        }
+        old = self.s.save_fiscal_workspace(
+            self.c, self.cycle["period_id"], "Guia anterior", raw, "legacy-fiscal-tab"
+        )
+        item = next(
+            r
+            for r in self.s.work_legacy(self.c, self.cycle["id"])
+            if r["kind"] == "guia_fiscal"
+        )
+        self.assertEqual(item["snapshot"]["data"], raw)
+        with AccountingStore(self.path, actor="outro-operador") as other:
+            self.assertFalse(
+                any(
+                    r["kind"] == "guia_fiscal"
+                    for r in other.work_legacy(self.c, self.cycle["id"])
+                )
+            )
+        resumed = self.s.resume_work_legacy(
+            self.c,
+            self.cycle["id"],
+            "guia_fiscal",
+            old["id"],
+            item["snapshot_hash"],
+            "Retomar rascunho",
+            "resume-legacy-tab",
+        )
+        self.assertEqual(resumed["payload"]["fiscal"]["number"], "PENDENTE-ANTERIOR")
+        self.assertEqual(resumed["payload"]["legacy_workspace"]["original"], raw)
+        self.assertFalse(resumed["validation"]["ready"])
+        self.assertEqual(
+            self.s.list_fiscal_workspaces(self.c, self.cycle["period_id"])[0]["data"],
+            raw,
+        )
+        with self.assertRaises(ValueError):
+            self.s.resume_work_legacy(
+                self.c,
+                self.cycle["id"],
+                "guia_fiscal",
+                old["id"],
+                item["snapshot_hash"],
+                "Não duplicar",
+                "resume-legacy-tab-2",
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

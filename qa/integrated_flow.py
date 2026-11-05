@@ -57,7 +57,7 @@ def run(mode):
                     idle()
                     if mode=='portal':page.locator('.sidebar').get_by_role('link',name=label,exact=True).click()
                     else:frame.locator('.work-nav').get_by_role('button',name=label,exact=True).click()
-                    expected={'Recepção':'Recepção e caixa de entrada','Livros e relatórios':'Livros e relatórios','Encerramento':'Encerramento da competência'}
+                    expected={'Recepção':'Recepção e caixa de entrada','Livros e relatórios':'Livros e relatórios','Encerramento':'Encerramento da competência','Histórico':'Histórico preservado e migração','Histórico contábil':'Histórico preservado e migração'}
                     expect(frame.get_by_role('heading',name=expected.get(label,label),exact=True)).to_be_visible()
                     idle()
                 def post():
@@ -93,6 +93,10 @@ def run(mode):
                 frame.locator('.draft-tabs').get_by_role('button',name='Manual / ajuste',exact=False).click()
                 expect(frame.locator('#operation-reference')).to_have_value('Rascunho persistente sem valor')
                 # Close incomplete tab: draft preserved, no fake ledger movement.
+                frame.locator('.draft-tabs').get_by_role('button',name='Manual / ajuste',exact=False).locator('span').click();idle()
+                nav('Histórico contábil' if mode=='portal' else 'Histórico')
+                frame.get_by_role('button',name='Reabrir guia',exact=True).click();idle()
+                expect(frame.locator('#operation-reference')).to_have_value('Rascunho persistente sem valor')
                 frame.locator('.draft-tabs').get_by_role('button',name='Manual / ajuste',exact=False).locator('span').click();idle()
                 nav('Financeiro')
                 frame.get_by_role('button',name='Preparar liquidação',exact=True).first.click()

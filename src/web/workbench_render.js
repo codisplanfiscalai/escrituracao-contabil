@@ -685,7 +685,7 @@ var _Vue=Vue; var WorkRender=function render(_ctx, _cache) {
         _createElementVNode("p", null, "Encerre depois de resolver documentos e versões pendentes e declarar a abertura. A reabertura mantém o histórico e exige motivo."),
         _createVNode(_component_data_table, {
           rows: overview?[overview.counts]:[],
-          columns: {pending_documents:'Documentos pendentes',drafts:'Rascunhos',reviewed:'Conferidos não escriturados',posted:'Escriturados',rejected_inputs:'Origens rejeitadas'}
+          columns: {pending_documents:'Documentos pendentes',drafts:'Rascunhos',reviewed:'Conferidos não escriturados',posted:'Escriturados',rejected_inputs:'Origens rejeitadas',legacy_pending:'Rascunhos anteriores não retomados',open_forms:'Guias incompletas abertas'}
         }, null, 8, ["rows", "columns"]),
         _createElementVNode("form", { onSubmit: _withModifiers(closeCycle, ["prevent"]) }, [_createElementVNode("label", null, [_createTextVNode("Motivo"), _withDirectives(_createElementVNode("input", {
           "onUpdate:modelValue": $event => ((closing.reason) = $event),
@@ -693,10 +693,17 @@ var _Vue=Vue; var WorkRender=function render(_ctx, _cache) {
         }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, closing.reason]])]), _createElementVNode("label", null, [_withDirectives(_createElementVNode("input", {
           type: "checkbox",
           "onUpdate:modelValue": $event => ((closing.acknowledge_errors) = $event)
-        }, null, 8, ["onUpdate:modelValue"]), [[_vModelCheckbox, closing.acknowledge_errors]]), _createTextVNode(" Conferi e reconheço os arquivos rejeitados do recorte")]), _createElementVNode("button", { disabled: busy||!cycle }, _toDisplayString(cycle?.state==='encerrada'?'Reabrir com motivo':'Encerrar competência'), 9, ["disabled"])], 40, ["onSubmit"])
+        }, null, 8, ["onUpdate:modelValue"]), [[_vModelCheckbox, closing.acknowledge_errors]]), _createTextVNode(" Conferi e reconheço os arquivos rejeitados e rascunhos anteriores não retomados deste recorte")]), _createElementVNode("button", { disabled: busy||!cycle }, _toDisplayString(cycle?.state==='encerrada'?'Reabrir com motivo':'Encerrar competência'), 9, ["disabled"])], 40, ["onSubmit"])
       ], 512), [[_vShow, page==='closing']]),
       _withDirectives(_createElementVNode("section", { class: "card" }, [
         _createElementVNode("h1", null, "Histórico preservado e migração"),
+        _createElementVNode("h2", null, "Guias encerradas deste operador"),
+        (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(archivedTabs, (t) => {
+          return (_openBlock(), _createElementBlock("article", { class: "inset" }, [_createElementVNode("b", null, _toDisplayString(t.title), 1), _createElementVNode("small", null, _toDisplayString(t.updated_at) + " · " + _toDisplayString(t.data.payload?.reference||'Rascunho preservado'), 1), _createElementVNode("button", {
+            onClick: $event => (reopenTab(t)),
+            disabled: busy
+          }, "Reabrir guia", 8, ["onClick", "disabled"])]))
+        }), 256)),
         _createElementVNode("p", null, "Registros do processo anterior permanecem consultáveis. Movimentos fechados integram os livros sem serem recriados. Rascunhos retomáveis abrem uma operação para nova conferência."),
         (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(overview?.legacy||[], (r) => {
           return (_openBlock(), _createElementBlock("article", { class: "inset" }, [
