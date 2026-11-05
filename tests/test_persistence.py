@@ -19,8 +19,8 @@ import xml.etree.ElementTree as ET
 from src.persistence import AccountingStore, MAX_FILE_BYTES, parse_nfe
 
 
-ISSUER = "00000000000191"  # Deliberately fictitious test identifier.
-BUYER = "00000000000272"  # Deliberately fictitious test identifier.
+ISSUER = "0" * 14  # Deliberately non-registrable marker, not an institutional CNPJ.
+BUYER = "1" * 14  # Deliberately non-registrable marker; identity authenticity is not tested.
 NS = "http://www.portalfiscal.inf.br/nfe"
 
 
@@ -367,7 +367,7 @@ class StoreTests(unittest.TestCase):
         self.assertEqual(self.import_xml()["status"], "validado")
 
     def test_company_identity_mismatch_rejects_and_missing_cnpj_is_pending(self):
-        mismatch = self.store.create_company("Outra fictícia", "EMPRESA-C", "PLANO-C", "00000000000353")
+        mismatch = self.store.create_company("Outra fictícia", "EMPRESA-C", "PLANO-C", "2" * 14)
         no_cnpj = self.store.create_company("Sem identificação fictícia", "EMPRESA-D", "PLANO-D")
         for company, expected in ((mismatch, "rejeitado"), (no_cnpj, "pendente")):
             period = self.store.create_period(company["id"], "2026-08", "2026-09")

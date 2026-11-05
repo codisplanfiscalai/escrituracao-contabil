@@ -44,8 +44,8 @@ class PortalTests(unittest.TestCase):
         for path in ('/api/companies','/api/v1/users','/workspace','/api/v1/dashboard'):
             self.assertEqual(outsider.get(path).status_code,401,path)
         self.assertEqual(outsider.get('/').status_code,200)
-        self.assertEqual(outsider.get('/app.js?name=../../identity.sqlite3').status_code,200)
-        self.assertIn('const $',outsider.get('/app.js?name=../../identity.sqlite3').text)
+        self.assertEqual(outsider.get('/workbench.js?name=../../identity.sqlite3').status_code,200)
+        self.assertIn('const clone',outsider.get('/workbench.js?name=../../identity.sqlite3').text)
         self.assertEqual(outsider.get('/api/v1/status',headers={'Host':'evil.example'}).status_code,403)
         self.assertEqual(self.post('auth/logout',{},headers={'Origin':'https://evil.example'}).status_code,403)
         self.assertEqual(self.post('auth/logout',{},headers={'Origin':'http://127.0.0.1:8765'}).status_code,403)

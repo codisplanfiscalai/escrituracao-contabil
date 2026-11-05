@@ -120,7 +120,7 @@ def run(command, *, server=False):
                 code, body = request(port, '/api/v1/auth/login', data={'email':'smoke@example.test','password':'synthetic-password-2026'}, session=session)
                 assert code == 200, body
                 token = json.loads(body)['data']['csrf']
-                for asset in ('/portal/app.js','/portal/app.css','/portal/render.js','/portal/vendor/vue.js','/app.js','/posting_math.js','/posting_editor.js','/integrated_workspace.js','/style.css','/assets/symbol.svg','/assets/icon.svg',
+                for asset in ('/portal/app.js','/portal/app.css','/portal/render.js','/portal/vendor/vue.js','/workbench.js','/workbench_render.js','/workbench.css','/assets/symbol.svg','/assets/icon.svg',
                               *(f'/assets/icon-{size}.png' for size in (16,24,32,48,64,128,256,512))):
                     code, content = request(port, asset)
                     assert code == 200 and content, asset

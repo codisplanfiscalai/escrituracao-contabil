@@ -1,8 +1,7 @@
-"""Fluxo contábil sintético pela API HTTP local, incluindo arquivos binários."""
+"""Replacement ledger through the private HTTP boundary; frozen downloads and scope."""
 import unittest
 import test_local_app as helpers
 from test_persistence import fake_accounts
-
 
 class AccountingHTTPTests(unittest.TestCase):
     setUp=helpers.LocalApplicationTests.setUp
@@ -13,36 +12,48 @@ class AccountingHTTPTests(unittest.TestCase):
     api=helpers.LocalApplicationTests.api
     company=helpers.LocalApplicationTests.company
 
-    def test_manual_edit_review_close_books_export_and_download(self):
+    def fixture(self):
         company=self.company()['id']
-        period=self.api('periods',{'company_id':company,'reference_competence':'2026-08','processing_competence':'2026-09'})['id']
         plan=self.api('plans',{'company_id':company,'label':'Plano sintético','accounts':fake_accounts()})['id']
-        accounts=self.api(f'accounts?company_id={company}&plan_id={plan}')
-        ids={row['code']:row['id'] for row in accounts}
-        lines=[dict(date='2026-09-15',group='grupo',side=side,amount='10.00',account_id=ids[code],memo='Histórico sintético')
-               for side,code in (('D','1.1.1'),('C','2.1'))]
-        body={'company_id':company,'period_id':period,'plan_id':plan,'entries':lines,'reference':'Ref sintética','reason':'Teste','request_key':'http-1'}
-        first=self.api('manual-journals',body)
-        self.assertEqual(len(self.api(f'manual-journals?company_id={company}&period_id={period}')),1)
-        transition={'company_id':company,'journal_id':first['journal_id'],'snapshot_hash':first['snapshot_hash'],'reason':'Teste'}
-        self.assertEqual(self.request('/api/manual-close','POST',transition)[0],400)
-        self.assertEqual(self.request('/api/manual-review','POST',transition,headers={'X-Local-Token':None})[0],403)
-        self.api('manual-review',transition);self.api('manual-close',transition)
-        query=f'company_id={company}&period_id={period}&plan_id={plan}'
-        book=self.api('accounting-books?'+query)
-        export=self.api('accounting-book-exports',{'company_id':company,'period_id':period,'plan_id':plan,'book_hash':book['book_hash'],'reason':'Teste'})
-        for artifact in export['artifacts']:
-            status,headers,content=self.request(f'/api/accounting-book-file?company_id={company}&export_id={export["id"]}&name={artifact["name"]}')
-            self.assertEqual(status,200,content)
+        cycle=self.api('work-cycles',{'company_id':company,'reference_competence':'2026-08','competence':'2026-09','plan_id':plan,'reason':'Teste'})['id']
+        accounts={r['code']:r['id'] for r in self.api(f'accounts?company_id={company}&plan_id={plan}')}
+        p=self.api(f'work-prepare?company_id={company}&cycle_id={cycle}')
+        p['reference']='Sintético';p['fiscal'].update(posting_date='2026-09-15',total='10.00')
+        for l,code in zip(p['entries'],['1.1.1','2.1']):l.update(account_id=accounts[code],amount='10.00',date='2026-09-15',memo='Sintético')
+        return company,cycle,p
+
+    def test_manual_review_post_export_scope_and_restart(self):
+        company,cycle,p=self.fixture();scope={'company_id':company,'cycle_id':cycle}
+        draft=self.api('work-operations',{**scope,'payload':p,'reason':'Teste','request_key':'http-1'})
+        transition={'company_id':company,'operation_id':draft['operation_id'],'snapshot_hash':draft['snapshot_hash'],'reason':'Teste'}
+        self.assertEqual(self.request('/api/work-post','POST',transition)[0],400)
+        self.assertEqual(self.request('/api/work-review','POST',transition,headers={'X-Local-Token':None})[0],403)
+        self.api('work-review',transition);posted=self.api('work-post',transition)
+        self.assertTrue(posted['validation']['ready'])
+        book=self.api(f'work-books?company_id={company}&cycle_id={cycle}')
+        export=self.api('work-exports',{**scope,'snapshot_hash':book['snapshot_hash'],'reason':'Teste'})
+        import hashlib
+        for f in export['files']:
+            status,headers,content=self.request(f'/api/work-export-file?company_id={company}&export_id={export["id"]}&name={f["name"]}')
+            self.assertEqual(status,200,content);self.assertEqual(hashlib.sha256(content).hexdigest(),f['sha256'])
             self.assertIn('attachment;',headers['Content-Disposition'])
-            self.assertEqual(len(content),artifact['size'])
-            self.assertEqual(headers['X-Content-Type-Options'],'nosniff')
-        self.assertEqual(len(self.api(f'accounting-book-exports?company_id={company}')),1)
+        self.stop_server();self.start_server()
+        self.assertEqual(self.api(f'work-operation?company_id={company}&operation_id={draft["operation_id"]}')['state'],'escriturado')
         other=self.company()['id']
-        self.assertEqual(self.request(f'/api/accounting-book-file?company_id={other}&export_id={export["id"]}&name=books.json')[0],400)
-        self.assertEqual(self.request(f'/api/accounting-book-file?company_id={company}&export_id={export["id"]}&name=../private')[0],400)
-        bad={**body,'company_id':True}
-        self.assertEqual(self.request('/api/manual-journals','POST',bad)[0],400)
+        self.assertEqual(self.request(f'/api/work-export-file?company_id={other}&export_id={export["id"]}&name=escrituracao.json')[0],400)
+        self.assertEqual(self.request(f'/api/work-export-file?company_id={company}&export_id={export["id"]}&name=../private')[0],400)
 
+    def test_old_writers_retired_without_removing_history(self):
+        company=self.company()['id']
+        from src.work_api import RETIRED_WRITES
+        for route in RETIRED_WRITES:
+            self.assertEqual(self.request('/api/'+route,'POST',{'company_id':company})[0],410,route)
+        for route in ['files','import-batches','manual-journals','fiscal-entries','finance-titles','accounting-batches']:
+            self.assertEqual(self.api(route+'?company_id='+str(company)),[],route)
 
-if __name__ == '__main__':unittest.main()
+    def test_durable_operator_tab_isolation_and_cas(self):
+        company,cycle,_=self.fixture();scope={'company_id':company,'cycle_id':cycle}
+        tab=self.api('work-tabs',{**scope,'title':'Ficha incompleta','data':{'payload':{'reference':'Rascunho'}}})
+        self.stop_server();self.start_server()
+        self.assertEqual(self.api(f'work-tabs?company_id={company}&cycle_id={cycle}')[0]['data']['payload']['reference'],'Rascunho')
+        self.assertEqual(self.request('/api/work-tabs','POST',{**scope,'tab_id':tab['id'],'expected_version':0,'title':'Conflito','data':{}})[0],400)
