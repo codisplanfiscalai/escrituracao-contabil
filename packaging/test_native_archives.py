@@ -12,7 +12,7 @@ from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from build_native_archives import extract
-from src.archive_reader import archive_members, native_library
+from src.archive_reader import archive_members, native_library, check_native_header
 from src.archive_worker import main as worker_main
 
 
@@ -49,6 +49,15 @@ class NativeBoundaryTests(unittest.TestCase):
                 return subprocess.CompletedProcess(command,0)
             with self.subTest(case=content[:30]), patch('src.archive_reader.subprocess.run',side_effect=child):
                 with self.assertRaises(ValueError): archive_members(b'x'*100,'RAR')
+
+    def test_rar_main_headers_refuse_multipart_and_header_encryption(self):
+        signature = b'Rar!\x1a\x07\x00'
+        for flags in (1, 0x80, 0x81):
+            packed = signature + b'xx' + b'\x73' + flags.to_bytes(2,'little') + b'\0'*12
+            with self.assertRaises(ValueError): check_native_header(packed, 'RAR')
+        for flags in (1, 2, 3):
+            packed = b'Rar!\x1a\x07\x01\x00' + b'xxxx' + bytes((3,1,0,flags))
+            with self.assertRaises(ValueError): check_native_header(packed,'RAR')
 
     def test_blocked_worker_creation_is_an_explicit_rejection(self):
         with patch('src.archive_reader.subprocess.run', side_effect=OSError('synthetic policy denial')):

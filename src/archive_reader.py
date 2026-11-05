@@ -111,7 +111,40 @@ def native_library():
     return library
 
 
+def check_native_header(content, kind):
+    """Reject multipart/encrypted RAR main headers before invoking native code."""
+    if kind == '7Z':
+        if not content.startswith(b'7z\xbc\xaf\x27\x1c'): raise ValueError('Cabeçalho 7z inválido')
+        return
+    if content.startswith(b'Rar!\x1a\x07\x00'):
+        if len(content) < 20 or content[9] != 0x73: raise ValueError('Cabeçalho RAR inválido')
+        if struct.unpack_from('<H', content, 10)[0] & 0x0081:
+            raise ValueError('RAR multipartes ou criptografado não suportado')
+        return
+    if not content.startswith(b'Rar!\x1a\x07\x01\x00'): raise ValueError('Cabeçalho RAR inválido')
+    position = 12  # Signature + header CRC32. Native reader checks the CRC.
+    def vint():
+        nonlocal position
+        value = 0
+        for shift in range(0, 63, 7):
+            if position >= len(content): break
+            byte = content[position]; position += 1
+            value |= (byte & 0x7f) << shift
+            if not byte & 0x80: return value
+        raise ValueError('Cabeçalho RAR5 inválido')
+    header_size = vint()
+    end = position + header_size
+    if end > len(content) or vint() != 1: raise ValueError('Cabeçalho RAR5 inválido ou criptografado')
+    flags = vint()
+    if flags & 1: vint()  # Extra area size.
+    if flags & 2: raise ValueError('Dados inesperados no cabeçalho principal')
+    archive_flags = vint()
+    if position > end or archive_flags & 3:
+        raise ValueError('RAR5 multipartes não suportado')
+
+
 def _native_members(content, kind):
+    check_native_header(content, kind)
     lib = ctypes.CDLL(native_library())
     def bind(name, result, *args):
         fn = getattr(lib, name); fn.restype = result; fn.argtypes = args

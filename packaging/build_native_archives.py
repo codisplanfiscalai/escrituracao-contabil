@@ -85,6 +85,7 @@ def build(arch):
                 'WIN32_XMLLITE','PCREPOSIX','PCRE2POSIX','LIBGCC','CNG','TAR','CPIO','CAT','UNZIP','XATTR','ACL','ICONV','TEST']
     run('cmake', '-S', paths['libarchive'], '-B', base/'libarchive', *generator, *common,
         '-DBUILD_SHARED_LIBS=ON', '-DBUILD_TESTING=OFF', '-DMSVC_USE_STATIC_CRT=ON',
+        '-DPOSIX_REGEX_LIB=NONE',
         '-DENABLE_LZMA=ON', f'-DLIBLZMA_LIBRARY={prefix / "lib/lzma.lib"}',
         f'-DLIBLZMA_INCLUDE_DIR={prefix / "include"}', *[f'-DENABLE_{option}=OFF' for option in disabled])
     cache = (base/'libarchive/config.h').read_text()
