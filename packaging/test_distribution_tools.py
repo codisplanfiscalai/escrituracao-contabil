@@ -32,10 +32,20 @@ class CombinedReleaseTests(unittest.TestCase):
                 files = {"EscrituracaoContabil.exe": bytes(executable)}
                 files.update({"_internal/src/web/assets/" + p.name: p.read_bytes()
                               for p in ASSETS.iterdir() if p.is_file()})
+                native_files = {'archive.dll': bytes(executable),
+                                **{'licenses/' + name: b'Synthetic license notice' for name in (
+                                    'libarchive-COPYING.txt','xz-COPYING.txt','xz-COPYING.0BSD.txt','libarchive-source-notices.txt')}}
+                native_meta = {'architecture': architecture,
+                               'sources': json.loads((Path(__file__).parent/'native-archives.lock.json').read_text())['sources'],
+                               'files': {path: hashlib.sha256(data).hexdigest() for path,data in native_files.items()}}
+                native_raw = json.dumps(native_meta).encode()
+                native_files['native-manifest.json'] = native_raw
+                files.update({'_internal/src/native/' + path: data for path,data in native_files.items()})
                 name = f"escritura-windows-{architecture}"
                 manifest = {
                     "name": name, "source_sha": sha, "architecture": architecture,
                     "smoke_test": "passed", "windows_subsystem": "GUI",
+                    "native_archives": {"version":"3.8.11", "smoke_test":"passed", "manifest_sha256":hashlib.sha256(native_raw).hexdigest()},
                     "identity": {"name": "Escritura", "embedded_pe_icons": "verified",
                                  "icon_sha256": hashlib.sha256((ASSETS / "icon.ico").read_bytes()).hexdigest(),
                                  "icons_manifest_sha256": hashlib.sha256((ASSETS / "icons-manifest.json").read_bytes()).hexdigest()},

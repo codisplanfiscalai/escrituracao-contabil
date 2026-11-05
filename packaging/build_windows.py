@@ -32,6 +32,11 @@ def main():
     out = ROOT / "dist" / args.arch
     if out.exists():
         parser.error(f"Output already exists; remove only the previous build directory: {out}")
+    native = ROOT / "build/native" / args.arch / "package"
+    native_meta = json.loads((native / "native-manifest.json").read_text(encoding="utf-8"))
+    if native_meta["architecture"] != args.arch: raise ValueError("DLL de arquitetura incorreta")
+    for filename, digest in native_meta["files"].items():
+        if hashlib.sha256((native / filename).read_bytes()).hexdigest() != digest: raise ValueError("Dependência nativa alterada")
     assets = ROOT / "src" / "web" / "assets"
     icon_images = verify_assets(assets)
     asset_names = ["symbol.svg", "icon.svg", "icon.ico", "symbol-512.png", "icons-manifest.json",
@@ -51,6 +56,9 @@ def main():
         "--add-data", f"{ROOT / 'src' / 'web' / 'posting_editor.js'}:src/web",
         "--add-data", f"{ROOT / 'src' / 'web' / 'style.css'}:src/web",
         *asset_args,
+        "--add-binary", f"{native / 'archive.dll'}:src/native",
+        "--add-data", f"{native / 'licenses'}:src/native/licenses",
+        "--add-data", f"{native / 'native-manifest.json'}:src/native",
         "--add-data", f"{ROOT / 'src' / 'portal'}:src/portal",
         "--add-data", f"{build_metadata}:src",
         "--collect-submodules", "src",
@@ -73,6 +81,7 @@ def main():
     verify_pe(exe, icon_images)
     print("Verified Escritura PE icon resources: 16, 24, 32, 48, 64, 128, 256 px")
     subprocess.run([sys.executable, str(ROOT / "packaging" / "smoke_test.py"), "--executable", str(exe)], check=True)
+    subprocess.run([sys.executable, str(ROOT / "packaging/archive_smoke.py"), "--executable", str(exe)], check=True)
     shutil.copy2(ROOT / "docs" / "distribuicao.md", bundle / "DISTRIBUICAO.md")
     shutil.copytree(ROOT / "docs", bundle / "docs")
     shutil.copy2(ROOT / "docs" / "portal-corporativo.md", bundle / "portal-corporativo.md")
@@ -87,6 +96,7 @@ def main():
                 "identity": {"name": "Escritura", "icon_sha256": hashlib.sha256((assets / "icon.ico").read_bytes()).hexdigest(),
                              "icons_manifest_sha256": hashlib.sha256((assets / "icons-manifest.json").read_bytes()).hexdigest(),
                              "embedded_pe_icons": "verified"},
+                "native_archives": {"version": "3.8.11", "smoke_test": "passed", "manifest_sha256": hashlib.sha256((native / "native-manifest.json").read_bytes()).hexdigest()},
                 "status": "prototype-not-homologated", "smoke_test": "passed", "files": files}
     (bundle / "manifest.json").write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")
     artifacts = ROOT / "artifacts"

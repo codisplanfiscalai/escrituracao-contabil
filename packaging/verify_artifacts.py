@@ -49,6 +49,25 @@ def verify(directory, source_sha):
             assert machine == {"x86": 0x14C, "x64": 0x8664}[manifest["architecture"]], "Wrong PE architecture"
             assert struct.unpack_from("<H", executable, offset + 24 + 68)[0] == 2, "Console executable is not allowed"
             assert manifest.get("windows_subsystem") == "GUI"
+            native = manifest['native_archives']
+            assert native['smoke_test'] == 'passed' and native['version'] == '3.8.11'
+            prefix = 'EscrituracaoContabil/_internal/src/native/'
+            raw = zipped.read(prefix + 'native-manifest.json')
+            assert hashlib.sha256(raw).hexdigest() == native['manifest_sha256']
+            metadata = json.loads(raw)
+            assert metadata['architecture'] == manifest['architecture']
+            lock = json.loads((Path(__file__).parent/'native-archives.lock.json').read_text(encoding='utf-8'))
+            assert metadata['sources'] == lock['sources'], 'Unexpected native sources'
+            required = {'archive.dll', 'licenses/libarchive-COPYING.txt', 'licenses/xz-COPYING.txt',
+                        'licenses/xz-COPYING.0BSD.txt', 'licenses/libarchive-source-notices.txt'}
+            assert set(metadata['files']) == required, 'Missing native dependency/license files'
+            for path, digest in metadata['files'].items():
+                assert hashlib.sha256(zipped.read(prefix + path)).hexdigest() == digest
+            library = zipped.read(prefix + 'archive.dll')
+            assert library[:2] == b'MZ'
+            dll_offset = struct.unpack_from('<I', library, 0x3C)[0]
+            assert library[dll_offset:dll_offset+4] == b'PE\0\0'
+            assert struct.unpack_from('<H', library, dll_offset+4)[0] == machine, 'Wrong native DLL architecture'
             identity = manifest["identity"]
             assert identity["name"] == "Escritura" and identity["embedded_pe_icons"] == "verified"
             assets = "EscrituracaoContabil/_internal/src/web/assets/"

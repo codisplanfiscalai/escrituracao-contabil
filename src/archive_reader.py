@@ -6,7 +6,8 @@ import ctypes
 import ctypes.util
 import io
 import json
-from pathlib import PurePosixPath
+import os
+from pathlib import Path, PurePosixPath
 import re
 import stat
 import struct
@@ -93,11 +94,25 @@ def _zip_members(content):
                 yield {'name': name, 'error': 'Entrada insegura, criptografada, corrompida ou acima dos limites'}
 
 
-def _native_members(content, kind):
-    library = ctypes.util.find_library('archive')
+def native_library():
+    if sys.platform == 'win32':
+        # Absolute bundled path only; never search CWD/PATH for native code.
+        directory = Path(__file__).resolve().parent / 'native'
+        if not getattr(sys, 'frozen', False) and os.getenv('ESCRITURA_LIBARCHIVE_DIR'):
+            directory = Path(os.environ['ESCRITURA_LIBARCHIVE_DIR']).resolve()
+        library = directory / 'archive.dll'
+        if not library.is_file():
+            raise ValueError('Leitor libarchive indisponível nesta instalação Windows')
+        library = str(library)
+    else:
+        library = ctypes.util.find_library('archive')
     if not library:
         raise ValueError('Leitor libarchive indisponível para 7z/RAR nesta instalação')
-    lib = ctypes.CDLL(library)
+    return library
+
+
+def _native_members(content, kind):
+    lib = ctypes.CDLL(native_library())
     def bind(name, result, *args):
         fn = getattr(lib, name); fn.restype = result; fn.argtypes = args
         return fn
@@ -165,44 +180,51 @@ def _native_members(content, kind):
 
 
 def archive_members(content, kind, timeout=ARCHIVE_TIMEOUT):
-    """Native decoding runs in a private, time-limited child, without shell/tools."""
+    """Decode in a bounded child; no archive-controlled filesystem extraction."""
     if kind == 'ZIP':
         try:
             return list(_zip_members(content))
         except (OSError, ValueError, zipfile.BadZipFile) as exc:
             raise ValueError('ZIP inválido ou acima dos limites') from exc
-    if getattr(sys, 'frozen', False):
-        raise ValueError('Leitor isolado 7z/RAR indisponível neste executável; use ZIP ou arquivos avulsos')
-    with tempfile.TemporaryFile() as output:
+    if kind not in {'7Z', 'RAR'} or len(content) > MAX_MEMBER_BYTES:
+        raise ValueError('Formato ou tamanho de pacote inválido')
+    from src.archive_limits import OUTPUT_BYTES
+    with tempfile.TemporaryDirectory(prefix='escritura-reader-') as directory:
+        source, output = Path(directory) / 'input', Path(directory) / 'output'
+        source.write_bytes(content)
+        output.touch(mode=0o600, exist_ok=False)
+        frozen = getattr(sys, 'frozen', False)
+        command = [sys.executable, '--archive-worker'] if frozen else [sys.executable, '-m', 'src.archive_worker']
+        environment = os.environ.copy()
+        if not frozen:
+            environment['PYTHONPATH'] = str(Path(__file__).resolve().parents[1])
         try:
-            result = subprocess.run([sys.executable, __file__, kind], input=content, stdout=output,
-                                    stderr=subprocess.DEVNULL, timeout=max(0.1, min(ARCHIVE_TIMEOUT, timeout)), check=False)
+            result = subprocess.run([*command, kind, str(source), str(output)],
+                                    stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                                    stderr=subprocess.DEVNULL, env=environment,
+                                    creationflags=0x08000000 if sys.platform == 'win32' else 0,
+                                    timeout=max(0.1, min(ARCHIVE_TIMEOUT, timeout)), check=False)
         except subprocess.TimeoutExpired as exc:
             raise ValueError('Pacote excede tempo máximo de leitura (20 segundos)') from exc
-        output.seek(0)
-        if result.returncode:
+        if result.returncode or output.stat().st_size > OUTPUT_BYTES:
             raise ValueError('Pacote 7z/RAR recusado: leitor indisponível, formato incompatível, corrupção ou limite de segurança')
-        members = []
-        for line in output:
-            value = json.loads(line)
-            value['content'] = base64.b64decode(value['content'], validate=True)
-            members.append(value)
+        members, total = [], 0
+        budget = min(MAX_EXPANDED_BYTES, len(content) * MAX_RATIO)
+        try:
+            with output.open('rb') as handle:
+                while True:
+                    line = handle.readline(2 * MAX_MEMBER_BYTES + 20000)
+                    if not line: break
+                    if not line.endswith(b'\n') or len(members) >= MAX_MEMBERS:
+                        raise ValueError('Saída do leitor acima dos limites')
+                    value = json.loads(line)
+                    if set(value) != {'name', 'content'}: raise ValueError('Saída inválida')
+                    safe_member(value['name'])
+                    data = base64.b64decode(value['content'], validate=True)
+                    total += len(data)
+                    if len(data) > MAX_MEMBER_BYTES or total > budget:
+                        raise ValueError('Saída do leitor acima dos limites')
+                    members.append({'name': value['name'], 'content': data})
+        except (ValueError, TypeError, KeyError, UnicodeError) as exc:
+            raise ValueError('Saída do leitor inválida ou acima dos limites') from exc
         return members
-
-
-if __name__ == '__main__':
-    try:
-        # Native libraries cannot allocate unlimited memory, CPU or output on POSIX.
-        if sys.platform != 'win32':
-            import resource
-            resource.setrlimit(resource.RLIMIT_AS, (768 * 1024 * 1024,) * 2)
-            resource.setrlimit(resource.RLIMIT_CPU, (ARCHIVE_TIMEOUT,) * 2)
-            resource.setrlimit(resource.RLIMIT_FSIZE, (150 * 1024 * 1024,) * 2)
-        source = sys.stdin.buffer.read(MAX_MEMBER_BYTES + 1)
-        if len(source) > MAX_MEMBER_BYTES or sys.argv[1] not in {'7Z', 'RAR'}:
-            raise ValueError('Entrada inválida')
-        for member in _native_members(source, sys.argv[1]):
-            member['content'] = base64.b64encode(member['content']).decode('ascii')
-            print(json.dumps(member, ensure_ascii=True), flush=True)
-    except Exception:
-        sys.exit(1)

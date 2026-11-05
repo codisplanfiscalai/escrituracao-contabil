@@ -34,8 +34,8 @@ O leitor ZIP confere e percorre o diretório central antes de criar objetos dos 
 
 - **ZIP:** leitor da biblioteca padrão; testado com compressão DEFLATE e modo armazenado.
 - **7z:** leitor opcional libarchive, testado neste ambiente Linux com pacote 7z sintético criado por libarchive. Não representa homologação de todos os métodos de compressão, arquivos sólidos ou variantes.
-- **RAR:** leitor opcional libarchive, testado neste ambiente Linux com RAR4 sintético em modo armazenado. RAR comprimido e RAR5 não foram homologados nesta entrega.
-- **Executável Windows congelado:** 7z/RAR são recusados explicitamente, pois o processo isolado não está empacotado. ZIP e arquivos avulsos permanecem disponíveis. Esta frente não altera a distribuição nem instala leitores no equipamento do usuário.
+- **RAR:** leitor opcional libarchive, testado neste ambiente Linux com RAR4 sintético em modo armazenado. A frente Windows acrescenta caracterização de RAR5 comprimido com sequência sintética; a declaração de suporte no EXE depende da CI nativa. RAR4 comprimido e outras variantes permanecem sujeitos aos limites documentados.
+- **Executável Windows congelado:** o incremento de distribuição inclui libarchive/liblzma oficiais e leitor isolado no próprio EXE GUI, com limites de recursos e DLL por arquitetura. O aceite depende do smoke nativo x86/x64 dos pacotes reais. Consulte [7z/RAR Windows](arquivos-compactados-windows.md) para licenças, variantes testadas e limitações. Nenhum leitor precisa ser instalado na estação.
 
 Ausência de libarchive, corrupção, método incompatível, criptografia ou limite de segurança produzem rejeição explícita com o pacote original preservado. Não se declara suporte apenas pela extensão ou pela presença de uma biblioteca.
 

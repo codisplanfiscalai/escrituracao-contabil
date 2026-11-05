@@ -14,6 +14,8 @@ O aplicativo administra o portal autenticado local em 127.0.0.1. A aba Servidor 
 
 PyInstaller usa `--windowed`. O build valida o subsystem PE GUI, arquitetura e ícones. O teste nativo abre a janela, cria a infraestrutura do tray, confere ausência de console no EXE, inicia o serviço, grava dados fictícios, encerra e reinicia. A disponibilidade visual do ícone depende da sessão do Windows; execução em runner não substitui homologação em todas as edições do sistema. EXEs ainda não possuem assinatura Authenticode.
 
+O pacote inclui também o [leitor 7z/RAR Windows](arquivos-compactados-windows.md), compilado de fontes oficiais por arquitetura, com licenças e processo isolado sob limites. ZIP e arquivos avulsos mantêm os caminhos anteriores.
+
 ## Identidade Escritura e ícones reproduzíveis
 
 `src/web/assets/icon.svg` e `symbol.svg` são os originais fornecidos. O gerador

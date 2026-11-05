@@ -14,7 +14,8 @@ from unittest.mock import patch
 import zipfile
 import zlib
 
-from src.archive_reader import archive_members, safe_member, _native_members
+from src.archive_reader import archive_members, safe_member, _native_members, native_library
+from archive_fixtures import stored_rar, seven_zip, compressed_rar5, rar5_data
 from src.local_app import dispatch, APIError
 from src.persistence import AccountingStore
 from src.reconciliation import SPED_PROFILE
@@ -30,43 +31,6 @@ def zip_bytes(entries, compression=zipfile.ZIP_DEFLATED):
     return stream.getvalue()
 
 
-def stored_rar(name, content):
-    """Create a tiny RAR4 stored member from documented binary header fields."""
-    def header(raw):
-        return struct.pack('<H', zlib.crc32(raw) & 0xffff) + raw
-    encoded = name.encode('ascii')
-    main = header(struct.pack('<BHHHI', 0x73, 0, 13, 0, 0))
-    file = header(struct.pack('<BHHIIBIIBBHI', 0x74, 0x8000, 32 + len(encoded), len(content), len(content),
-                              3, zlib.crc32(content), 0, 20, 0x30, len(encoded), stat.S_IFREG | 0o600) + encoded)
-    end = header(struct.pack('<BHH', 0x7b, 0, 7))
-    return b'Rar!\x1a\x07\x00' + main + file + content + end
-
-
-def seven_zip(name, content):
-    """Create a 7z in memory with libarchive; the application only reads it."""
-    lib = ctypes.CDLL(ctypes.util.find_library('archive'))
-    ptr = ctypes.c_void_p
-    def bind(name, result, *args):
-        fn = getattr(lib, name); fn.restype=result; fn.argtypes=args; return fn
-    archive = bind('archive_write_new', ptr)()
-    entry = bind('archive_entry_new', ptr)()
-    output = ctypes.create_string_buffer(1024 * 1024)
-    used = ctypes.c_size_t()
-    try:
-        assert bind('archive_write_set_format_7zip', ctypes.c_int, ptr)(archive) == 0
-        assert bind('archive_write_open_memory', ctypes.c_int, ptr, ptr, ctypes.c_size_t, ctypes.POINTER(ctypes.c_size_t))(archive, output, len(output), ctypes.byref(used)) == 0
-        bind('archive_entry_set_pathname', None, ptr, ctypes.c_char_p)(entry, name.encode())
-        bind('archive_entry_set_size', None, ptr, ctypes.c_int64)(entry, len(content))
-        bind('archive_entry_set_filetype', None, ptr, ctypes.c_uint)(entry, stat.S_IFREG)
-        bind('archive_entry_set_perm', None, ptr, ctypes.c_int)(entry, 0o600)
-        assert bind('archive_write_header', ctypes.c_int, ptr, ptr)(archive, entry) == 0
-        data=ctypes.create_string_buffer(content)
-        assert bind('archive_write_data', ctypes.c_ssize_t, ptr, ptr, ctypes.c_size_t)(archive, data, len(content)) == len(content)
-        assert bind('archive_write_close', ctypes.c_int, ptr)(archive) == 0
-        return output.raw[:used.value]
-    finally:
-        bind('archive_entry_free', None, ptr)(entry)
-        bind('archive_write_free', ctypes.c_int, ptr)(archive)
 
 
 class BatchTests(unittest.TestCase):
@@ -182,7 +146,7 @@ class BatchTests(unittest.TestCase):
         body['inputs'][0]['content_base64']='@@@'
         with self.assertRaises(APIError):dispatch(self.store,'POST','import-batches',body)
 
-    @unittest.skipUnless(ctypes.util.find_library('archive'),'libarchive unavailable')
+    @unittest.skipUnless(__import__('sys').platform == 'win32' or ctypes.util.find_library('archive'),'libarchive unavailable')
     def test_real_7z_and_stored_rar4(self):
         original=fake_xml()
         for suffix,packed in [('7z',seven_zip('pasta/a.xml',original)),('rar',stored_rar('a.xml',original))]:
@@ -194,6 +158,11 @@ class BatchTests(unittest.TestCase):
                 self.assertEqual(self.store.read_import_original(self.company,child['id'])['content'],original)
         self.assertEqual(len(self.store.list_documents(self.company)),1)
 
+    @unittest.skipUnless(__import__('sys').platform == 'win32' or ctypes.util.find_library('archive'), 'libarchive unavailable')
+    def test_real_compressed_rar5_synthetic_integer_sequence(self):
+        members = archive_members(compressed_rar5(), 'RAR')
+        self.assertEqual(members, [{'name': 'test.bin', 'content': rar5_data()}])
+
     def test_native_backend_timeout_absence_and_corruption_are_explicit(self):
         with patch('src.archive_reader.subprocess.run',side_effect=subprocess.TimeoutExpired('reader',20)):
             with self.assertRaisesRegex(ValueError,'20 segundos'):archive_members(b'bad','7Z')
@@ -201,8 +170,9 @@ class BatchTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,'indisponível'):archive_members(b'bad','RAR')
         for kind in ('7Z','RAR'):
             with self.assertRaises(ValueError):archive_members(b'bad',kind)
-        with patch('src.archive_reader.sys.frozen',True,create=True):
-            with self.assertRaisesRegex(ValueError,'executável'):archive_members(b'bad','7Z')
+        with patch('src.archive_reader.sys.frozen',True,create=True), patch('src.archive_reader.subprocess.run', return_value=subprocess.CompletedProcess([],1)) as run:
+            with self.assertRaises(ValueError): archive_members(b'bad','7Z')
+            self.assertIn('--archive-worker', run.call_args.args[0])
 
     def test_zip_crc_forged_directory_and_size_limits(self):
         packed=bytearray(zip_bytes([('a.xml',fake_xml())],zipfile.ZIP_STORED))
@@ -218,7 +188,7 @@ class BatchTests(unittest.TestCase):
             self.assertIn('error',archive_members(packed,'ZIP')[0])
         with patch('src.batch_import.MAX_EXPANDED_BYTES',10):
             with self.assertRaises(ValueError):self.batch([{'filename':'a.xml','content':fake_xml()}])
-        with patch('src.archive_reader.ctypes.util.find_library',return_value=None):
+        with patch('src.archive_reader.sys.platform', 'linux'), patch('src.archive_reader.ctypes.util.find_library',return_value=None):
             with self.assertRaisesRegex(ValueError,'indisponível'):list(_native_members(b'bad','RAR'))
         with self.assertRaises(ValueError):list(_native_members(stored_rar('../unsafe.xml',b'x'),'RAR'))
 

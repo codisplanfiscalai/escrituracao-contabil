@@ -3,6 +3,7 @@ import argparse
 import gzip
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
 import shutil
@@ -42,6 +43,8 @@ def windows(arch, version, install):
     if install:
         run(sys.executable, '-m', 'pip', 'install', '--only-binary=:all:', '--require-hashes', '-r', 'requirements-server.txt')
         run(sys.executable, '-m', 'pip', 'install', '--only-binary=:all:', '--require-hashes', '-r', 'packaging/requirements-build.txt')
+    run(sys.executable, 'packaging/build_native_archives.py', '--arch', arch)
+    os.environ['ESCRITURA_LIBARCHIVE_DIR'] = str(ROOT / 'build/native' / arch / 'package')
     npm = shutil.which('npm')
     if not npm: raise ValueError('Node/npm não encontrado.')
     run(npm, 'ci', '--prefix', 'packaging/icon-tools', '--ignore-scripts', '--no-audit', '--no-fund')
