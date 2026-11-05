@@ -485,12 +485,53 @@ window.IntegratedWorkspace = (() => {
     $("#manual-form").addEventListener("input", save);
     $("#finance-form").addEventListener("input", save);
     $("#manual-plan").addEventListener("change", async () => {
-      save();
+      const request = ++manualGeneration,
+        company = companyId(),
+        plan = $("#manual-plan").value;
+      const accountControls = () => [
+        ...document.querySelectorAll(".manual-line [data-key=account_id]"),
+      ];
+      setBusy(1);
       try {
-        await restoreManual(drafts[scope].manual);
+        save();
+        accountControls().forEach((control) => (control.disabled = true));
+        const resolved = plan
+          ? await api("accounts", { company_id: company, plan_id: plan })
+          : [];
+        if (
+          request !== manualGeneration ||
+          company !== companyId() ||
+          plan !== $("#manual-plan").value
+        )
+          return;
+        accounts = resolved;
+        // Refresh only account choices. Keep fields typed while the request was pending.
+        accountControls().forEach((control) => {
+          fillSelect(
+            control,
+            accounts.filter((account) => account.kind === "analitica"),
+            "Selecione a conta",
+            (account) => account.code + " · " + account.description,
+          );
+          control.disabled = false;
+        });
         save();
       } catch (e) {
-        notice(e.message, true);
+        if (request === manualGeneration) {
+          accounts = [];
+          accountControls().forEach((control) => {
+            fillSelect(
+              control,
+              [],
+              "Contas indisponíveis; selecione o plano novamente",
+              () => "",
+            );
+            control.disabled = false;
+          });
+          notice(e.message, true);
+        }
+      } finally {
+        setBusy(-1);
       }
     });
     $("#manual-add").onclick = () => {

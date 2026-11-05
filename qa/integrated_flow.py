@@ -107,6 +107,12 @@ def run(mode):
                     idle()
 
                 def submit(form, allow_partial=False):
+                    invalid = form.locator(
+                        "input:invalid,select:invalid,textarea:invalid"
+                    ).evaluate_all(
+                        "nodes => nodes.map(n => ({name:n.name,field:n.dataset.key || n.dataset.field,value:n.value,message:n.validationMessage}))"
+                    )
+                    assert not invalid, f"Formulário incompleto: {invalid}"
                     form.locator("button[type=submit]").click()
                     idle()
                     status = frame.locator("#status")
@@ -219,7 +225,26 @@ def run(mode):
                     submit(review)
                     expect(frame.locator("#accounting-list h3")).to_contain_text(state)
                 manual = frame.locator("#manual-form")
+                held = []
+                pattern = "**/api/accounts?*"
+                page.route(pattern, lambda route: held.append(route))
                 manual.locator("[name=plan_id]").select_option("1")
+                expect(frame.locator("main")).to_have_attribute("aria-busy", "true")
+                line = manual.locator(".manual-line").first
+                line.locator("[data-key=memo]").fill(
+                    "Histórico durante consulta de contas"
+                )
+                line.locator("[data-key=amount]").fill("0,30")
+                line.locator("[data-key=date]").fill("2026-09-16")
+                assert len(held) == 1
+                held[0].continue_()
+                page.unroute(pattern)
+                idle()
+                expect(line.locator("[data-key=memo]")).to_have_value(
+                    "Histórico durante consulta de contas"
+                )
+                expect(line.locator("[data-key=amount]")).to_have_value("0,30")
+                expect(line.locator("[data-key=date]")).to_have_value("2026-09-16")
                 manual.locator("[name=reference]").fill("Lançamento livre sintético")
                 manual.locator("[name=reason]").fill("Registro manual sintético")
                 for index, (side, account) in enumerate([("D", "3"), ("C", "5")]):
