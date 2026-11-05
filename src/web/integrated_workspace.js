@@ -6,7 +6,8 @@ window.IntegratedWorkspace = (() => {
     accounts = [],
     books = null,
     version = 0,
-    manualGeneration = 0;
+    manualGeneration = 0,
+    restoringManual = false;
   const storage =
     "escritura:integrated-drafts:v1:" +
     (window.frameElement?.dataset.owner || "local");
@@ -33,17 +34,19 @@ window.IntegratedWorkspace = (() => {
     const f = $("#manual-form"),
       finance = $("#finance-form");
     drafts[scope] = {
-      manual: {
-        ...formObject(f),
-        lines: [...document.querySelectorAll(".manual-line")].map((row) =>
-          Object.fromEntries(
-            [...row.querySelectorAll("[data-key]")].map((c) => [
-              c.dataset.key,
-              c.value,
-            ]),
-          ),
-        ),
-      },
+      manual: restoringManual
+        ? drafts[scope]?.manual || blank()
+        : {
+            ...formObject(f),
+            lines: [...document.querySelectorAll(".manual-line")].map((row) =>
+              Object.fromEntries(
+                [...row.querySelectorAll("[data-key]")].map((c) => [
+                  c.dataset.key,
+                  c.value,
+                ]),
+              ),
+            ),
+          },
       finance: formObject(finance),
     };
     try {
@@ -108,27 +111,39 @@ window.IntegratedWorkspace = (() => {
   }
   async function restoreManual(value) {
     const request = ++manualGeneration,
-      company = companyId();
-    const f = $("#manual-form");
-    for (const key of [
-      "plan_id",
-      "reference",
-      "reason",
-      "request_key",
-      "journal_id",
-      "expected_version",
-    ])
-      f.elements[key].value =
-        value[key] || (key === "expected_version" ? "0" : "");
-    const resolvedAccounts = value.plan_id
-      ? await api("accounts", {
-          company_id: companyId(),
-          plan_id: value.plan_id,
-        })
-      : [];
-    if (request !== manualGeneration || company !== companyId()) return;
-    accounts = resolvedAccounts;
-    lines(value.lines || defaultLines());
+      company = companyId(),
+      f = $("#manual-form");
+    restoringManual = true;
+    f.querySelectorAll("input,select,textarea,button").forEach(
+      (control) => (control.disabled = true),
+    );
+    try {
+      const resolvedAccounts = value.plan_id
+        ? await api("accounts", { company_id: company, plan_id: value.plan_id })
+        : [];
+      if (request !== manualGeneration || company !== companyId()) return;
+      accounts = resolvedAccounts;
+      // Publish the version and its lines together, after the account request completes.
+      for (const key of [
+        "plan_id",
+        "reference",
+        "reason",
+        "request_key",
+        "journal_id",
+        "expected_version",
+      ])
+        f.elements[key].value =
+          value[key] || (key === "expected_version" ? "0" : "");
+      lines(value.lines || defaultLines());
+    } finally {
+      if (request === manualGeneration) {
+        restoringManual = false;
+        f.querySelectorAll("input,select,textarea,button").forEach(
+          (control) => (control.disabled = false),
+        );
+        setBusy(0);
+      }
+    }
   }
   async function download(route, query, name, expected) {
     const response = await fetch(
@@ -432,11 +447,11 @@ window.IntegratedWorkspace = (() => {
       manual: blank(),
       finance: { request_key: crypto.randomUUID() },
     };
-    await restoreManual(draft.manual);
     const f = $("#finance-form");
     f.reset();
     for (const [key, value] of Object.entries(draft.finance))
       if (f.elements[key]) f.elements[key].value = value;
+    await restoreManual(draft.manual);
     if (!companyId()) {
       renderManual([]);
       renderFinance([]);

@@ -263,9 +263,20 @@ def run(mode):
                     "Lançamento livre sintético"
                 )
                 submit(manual)
+                held = []
+                page.route(pattern, lambda route: held.append(route))
                 frame.get_by_role(
                     "button", name="Editar lançamento manual", exact=True
                 ).click()
+                expect(manual.locator("[name=reference]")).to_be_disabled()
+                expect(
+                    manual.locator(".manual-line [data-key=amount]").first
+                ).to_be_disabled()
+                assert len(held) == 1
+                held[0].continue_()
+                page.unroute(pattern)
+                idle()
+                expect(manual.locator("[name=reference]")).to_be_enabled()
                 expect(manual.locator("[name=expected_version]")).to_have_value("1")
                 manual.locator("[name=reference]").fill(
                     "Lançamento livre sintético corrigido"
