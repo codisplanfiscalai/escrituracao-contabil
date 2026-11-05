@@ -1,6 +1,7 @@
 """Application service for the redesigned competence → operation → books journey."""
 
 import copy
+import hashlib
 import json
 from decimal import Decimal
 from .accounting_store import amount, digest, dump, identifier
@@ -41,6 +42,12 @@ class WorkStoreMixin:
         reference, competence = _month(reference), _month(competence)
         reason = _text(reason, "motivo", 2000)
         plan_id = identifier(plan_id) if plan_id else None
+        if expected_version is not None and (
+            type(expected_version) is not int or expected_version < 1
+        ):
+            raise ValueError(
+                "Versão esperada da competência deve ser inteiro positivo; booleanos não são versões."
+            )
         with self.db:
             self.db.execute("BEGIN IMMEDIATE")
             self._company(company_id)
@@ -121,6 +128,26 @@ class WorkStoreMixin:
             ):
                 return {"kind": "fiscal", "id": entry["id"]}
         return None
+
+    def _verify_work_originals(self, company_id, document_id):
+        """Verify immutable proof bytes at review/post, without rewriting history."""
+        if document_id is None:
+            return
+        self._owned("documents", company_id, document_id)
+        for row in self.db.execute(
+            "SELECT f.id,f.original,f.sha256,f.size FROM files f JOIN document_sources s ON s.file_id=f.id WHERE s.document_id=? AND f.company_id=? AND f.status!='excluido'",
+            (document_id, company_id),
+        ):
+            content = bytes(row["original"])
+            if (
+                len(content) != row["size"]
+                or hashlib.sha256(content).hexdigest() != row["sha256"]
+            ):
+                raise ValueError(
+                    "Integridade do original divergente no arquivo #"
+                    + str(row["id"])
+                    + "; confira a cópia preservada antes de escriturar."
+                )
 
     def _work_source(self, company_id, document_id):
         from .reconciliation import differences
@@ -936,6 +963,8 @@ class WorkStoreMixin:
                     raise ValueError(
                         "; ".join(issue["message"] for issue in validation["issues"])
                     )
+            if target == "revisado":
+                self._verify_work_originals(company_id, revision["document_id"])
             self.db.execute(
                 "UPDATE work_revisions SET state=?,review_actor=?,review_reason=?,reviewed_at=? WHERE id=?",
                 (target, self.actor, reason, self._now(), revision["id"]),
@@ -977,6 +1006,7 @@ class WorkStoreMixin:
                 raise ValueError(
                     "; ".join(issue["message"] for issue in validation["issues"])
                 )
+            self._verify_work_originals(company_id, revision["document_id"])
             if revision["document_id"] and self._work_legacy_document_reservation(
                 company_id, revision["document_id"]
             ):

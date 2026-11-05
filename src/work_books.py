@@ -16,10 +16,15 @@ class WorkBooksMixin:
         reversals = {}
         cancellations = {}
         for row in self.db.execute(
-            "SELECT r.payload,c.competence FROM work_revisions r JOIN work_operations o ON o.id=r.operation_id JOIN work_cycles c ON c.id=o.cycle_id WHERE o.company_id=? AND r.state='escriturado'",
+            "SELECT r.payload,r.snapshot_hash,c.competence FROM work_revisions r JOIN work_operations o ON o.id=r.operation_id JOIN work_cycles c ON c.id=o.cycle_id WHERE o.company_id=? AND r.state='escriturado'",
             (company_id,),
         ):
-            p = json.loads(row["payload"])
+            try:
+                p = json.loads(row["payload"])
+            except (ValueError, TypeError):
+                raise ValueError("Snapshot financeiro histórico alterado.") from None
+            if digest(p) != row["snapshot_hash"]:
+                raise ValueError("Snapshot financeiro histórico alterado.")
             if p.get("reverse_settlement"):
                 reversals[p["reverse_settlement"]["settlement_id"]] = row["competence"]
             for item in p.get("cancel_titles", []):

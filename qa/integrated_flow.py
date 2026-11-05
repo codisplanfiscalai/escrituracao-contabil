@@ -78,6 +78,8 @@ def run(mode):
                 post()
                 # Opening is an explicit declaration, not an inferred zero.
                 frame.get_by_role('button',name='Saldos iniciais',exact=True).click();idle()
+                expect(frame.locator('.operation fieldset tbody input[type=date]')).to_have_count(2)
+                assert frame.locator('.operation fieldset tbody input[type=date]').evaluate_all('(nodes)=>nodes.map(n=>n.value)')==['2026-09-01','2026-09-01']
                 frame.locator('#operation-reference').fill('Abertura sintética zero')
                 frame.get_by_label('Confirmo que os saldos iniciais são zero',exact=True).check();post()
                 # Incomplete form survives tab switches and a complete browser reload.

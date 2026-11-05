@@ -41,3 +41,15 @@ deploy/installation.env
 **/agent.token
 **/master.key
 **/*.dpapi
+
+# Private reference packages and installation credentials must stay outside Git.
+*.pdf
+*.zip
+*.7z
+*.rar
+*.pem
+*.key
+*.pfx
+*.p12
+*.token
+*.dpapi

@@ -7,6 +7,7 @@ A jornada foi reformulada: **receber → identificar e organizar → escriturar 
 - [Novo domínio, migração, regras e limites](docs/reformulacao-fiscal-contabil.md)
 - [Validação executada e diferenças concretas](docs/validacao-reformulacao.md)
 - [Auditoria de todos os recursos e caminhos de navegação](docs/auditoria-navegacao-guias.md)
+- [Revisão de integridade, dados e contexto de build](docs/revisao-local-pre-publicacao.md)
 - [Portal, primeiro acesso e instalação](docs/portal-corporativo.md)
 - [Windows offline, Docker e dependências](docs/distribuicao-offline-ghcr.md)
 - [Branches, builds e releases](docs/fluxo-desenvolvimento.md)

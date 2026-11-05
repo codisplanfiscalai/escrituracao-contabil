@@ -734,6 +734,190 @@ class WorkApplicationTests(unittest.TestCase):
                 "resume-legacy-tab-2",
             )
 
+    def test_opening_requires_consistent_zero_and_date_of_all_lines(self):
+        p = self.s.prepare_work_operation(
+            self.c, self.cycle["id"], operation="abertura"
+        )
+        p.update(reference="Abertura", opening_zero=True, entries=[])
+        p["fiscal"].update(total="100.00", posting_date="2026-09-01")
+        o = self.save(p)
+        self.assertFalse(
+            o["validation"]["ready"],
+            "Abertura declarada zero não pode conter total não zero",
+        )
+        p.update(
+            opening_zero=False,
+            entries=[
+                {
+                    "account_id": self.ids[code],
+                    "side": side,
+                    "date": "2026-09-02",
+                    "amount": "100.00",
+                    "group": "abertura",
+                    "memo": "Abertura informada",
+                }
+                for side, code in [("D", "1.1.1"), ("C", "2.1")]
+            ],
+        )
+        o = self.save(p)
+        self.assertFalse(
+            o["validation"]["ready"],
+            "Partidas da abertura devem representar o início do mês",
+        )
+        for line in p["entries"]:
+            line["date"] = "2026-09-01"
+        valid = self.post(self.save(p))
+        self.assertEqual(valid["state"], "escriturado")
+        book = self.s.work_books(self.c, self.cycle["id"])
+        self.assertEqual(
+            {r["code"]: r["opening"] for r in book["trial_balance"]},
+            {"1.1.1": "100.00", "2.1": "-100.00"},
+        )
+        self.assertEqual(book["totals"]["debit"], "0.00")
+
+    def test_settlement_date_must_match_ledger_event(self):
+        recognized = self.post(self.save(self.document()))
+        policy = self.s.save_work_policy(
+            self.c,
+            self.plan,
+            "pagamento",
+            "2026-08",
+            "Liquidação",
+            self.ids["2.1"],
+            self.ids["1.1.1"],
+            "Teste",
+            True,
+        )
+        p = self.s.prepare_work_settlement(
+            self.c,
+            self.cycle["id"],
+            recognized["titles"][0]["id"],
+            policy["id"],
+            "10.10",
+            "2026-09-20",
+            "Parcial",
+        )
+        for line in p["entries"]:
+            line["date"] = "2026-09-19"
+        o = self.save(p)
+        self.assertFalse(
+            o["validation"]["ready"],
+            "Baixa e suas partidas precisam ter a mesma data econômica",
+        )
+        with self.assertRaises(ValueError):
+            self.s.review_work_operation(
+                self.c,
+                o["operation_id"],
+                o["snapshot_hash"],
+                "Não conferir datas divergentes",
+            )
+        self.assertEqual(
+            self.s._finance_title(self.c, recognized["titles"][0]["id"])["balance"],
+            "40.10",
+        )
+
+    def test_cycle_version_rejects_boolean_without_mutation(self):
+        with self.assertRaises(ValueError):
+            self.s.save_work_cycle(
+                self.c, "2026-07", "2026-09", self.plan, "Versão inválida", True
+            )
+        self.assertEqual(self.s._work_cycle(self.c, self.cycle["id"]), self.cycle)
+
+    def test_repeated_original_cannot_silently_restore_withdrawn_normalization(self):
+        self.document()
+        source = self.s.source_inbox(self.c)[0]
+        impact = self.s.source_impact(self.c, source["input_id"])
+        self.s.remove_source(
+            self.c,
+            source["input_id"],
+            impact["impact_hash"],
+            "Retirada explícita",
+            True,
+        )
+        receipt = self.s.receive_sources(
+            self.c,
+            [{"filename": "repetido.xml", "content": fake_xml()}],
+            "new-receipt-same-bytes",
+        )
+        repeated = receipt["items"][0]
+        with self.assertRaisesRegex(ValueError, "retirad|excluíd|excluid|removid"):
+            self.s.organize_source(
+                self.c,
+                repeated["input_id"],
+                self.cycle["id"],
+                repeated["snapshot_hash"],
+                "Nova tentativa",
+            )
+        self.assertEqual(
+            self.s._source_revision(self.c, repeated["input_id"])["snapshot_hash"],
+            repeated["snapshot_hash"],
+        )
+        self.assertEqual(self.s.list_files(self.c)[0]["status"], "excluido")
+        self.assertEqual(
+            self.s.source_original(self.c, repeated["input_id"])["content"], fake_xml()
+        )
+
+    def test_corrupt_original_blocks_effect_after_review(self):
+        o = self.save(self.document())
+        o = self.s.review_work_operation(
+            self.c, o["operation_id"], o["snapshot_hash"], "Conferido"
+        )
+        with self.s.db:
+            self.s.db.execute(
+                "UPDATE files SET original=? WHERE company_id=?",
+                (b"corrompido para teste", self.c),
+            )
+        with self.assertRaisesRegex(ValueError, "original|integridade|Hash"):
+            self.s.post_work_operation(
+                self.c,
+                o["operation_id"],
+                o["snapshot_hash"],
+                "Tentativa após corrupção",
+            )
+        self.assertEqual(
+            self.s.db.execute("SELECT COUNT(*) FROM work_movements").fetchone()[0], 0
+        )
+        self.assertEqual(self.s.list_finance_titles(self.c), [])
+        self.assertEqual(
+            self.s._work_revision(self.c, o["operation_id"])["state"], "revisado"
+        )
+
+    def test_past_financial_book_rejects_corrupt_future_snapshot(self):
+        recognized = self.post(self.save(self.document()))
+        october = self.s.save_work_cycle(
+            self.c, "2026-09", "2026-10", self.plan, "Outubro"
+        )
+        policy = self.s.save_work_policy(
+            self.c,
+            self.plan,
+            "pagamento",
+            "2026-09",
+            "Liquidação",
+            self.ids["2.1"],
+            self.ids["1.1.1"],
+            "Teste",
+            True,
+        )
+        p = self.s.prepare_work_settlement(
+            self.c,
+            october["id"],
+            recognized["titles"][0]["id"],
+            policy["id"],
+            "10.10",
+            "2026-10-20",
+            "Parcial",
+        )
+        paid = self.post(self.save(p, cycle=october))
+        payload = copy.deepcopy(paid["payload"])
+        payload["reference"] = "alterado sem atualizar o hash"
+        with self.s.db:
+            self.s.db.execute(
+                "UPDATE work_revisions SET payload=? WHERE id=?",
+                (json.dumps(payload), paid["id"]),
+            )
+        with self.assertRaisesRegex(ValueError, "Snapshot|snapshot"):
+            self.s.work_books(self.c, self.cycle["id"])
+
 
 if __name__ == "__main__":
     unittest.main()

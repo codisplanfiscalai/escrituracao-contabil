@@ -51,6 +51,7 @@ def windows(arch, version, install):
 
 
 def container(version, no_cache, base_source="upstream", proxy_ca=None):
+    run(sys.executable, 'scripts/check_container_context.py')
     sha = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=ROOT, text=True).strip()
     if not re.fullmatch(r'[0-9a-f]{40}', sha): raise ValueError('SHA inválido.')
     image = f'escritura-build:{version}'

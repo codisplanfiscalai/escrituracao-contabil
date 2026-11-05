@@ -114,6 +114,11 @@ def check_operation(payload, cycle, accounts, source=None):
             "fiscal.posting_date", "A data deve pertencer à competência de movimentos."
         )
     opening_zero = operation == "abertura" and payload.get("opening_zero") is True
+    if opening_zero and fiscal.get("total") not in ("0", "0.0", "0.00"):
+        issue(
+            "fiscal.total",
+            "Abertura confirmada como zero exige valor total zero explícito.",
+        )
     total = "0.00" if opening_zero else money(fiscal.get("total"), "fiscal.total")
     if operation in {"entrada", "saida", "servico_tomado", "servico_prestado"}:
         text(fiscal.get("number"), "fiscal.number", 100)
@@ -211,6 +216,16 @@ def check_operation(payload, cycle, accounts, source=None):
             line_date = day(line.get("date"), path + ".date")
             if line_date and line_date[:7] != cycle["competence"]:
                 issue(path + ".date", "Data fora da competência dos movimentos.")
+            if (
+                line_date
+                and posted
+                and operation in ("abertura", "pagamento", "recebimento")
+                and line_date != posted
+            ):
+                issue(
+                    path + ".date",
+                    "Partidas de abertura ou liquidação devem usar a data econômica da operação.",
+                )
             if value and side in ("D", "C"):
                 groups.setdefault(
                     (line_date, group), {"D": Decimal(0), "C": Decimal(0)}

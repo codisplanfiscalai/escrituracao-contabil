@@ -1,6 +1,6 @@
 # Reformulação do domínio fiscal e contábil
 
-Diretriz explícita do usuário em 05/11/2026: substituir os processos fiscais/contábeis anteriores; conservar tecnologias, guias e recursos gerais úteis e preservar os dados. Esta diretriz supera as decisões anteriores que exigiam preservar o fluxo de domínio. Branch local parte de develop e85c425. Não há autorização de publicação.
+Diretriz explícita do usuário em 05/11/2026: substituir os processos fiscais/contábeis anteriores; conservar tecnologias, guias e recursos gerais úteis e preservar os dados. Esta diretriz supera as decisões anteriores que exigiam preservar o fluxo de domínio. Branch local parte de develop e85c425. A publicação da branch e o PR foram autorizados expressamente após a revisão de dados; merge/release continuam não autorizados.
 
 ## Problema e novo percurso
 
