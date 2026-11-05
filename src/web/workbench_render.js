@@ -50,16 +50,34 @@ var _Vue=Vue; var WorkRender=function render(_ctx, _cache) {
           class: _normalizeClass({active:page===r.id})
         }, _toDisplayString(r.label), 11, ["onClick"]))
       }), 256))]),
+      (!embedded)
+        ? (_openBlock(), _createElementBlock("nav", {
+            key: 0,
+            class: "resource-tabs",
+            "aria-label": "Guias de recursos"
+          }, [(_openBlock(true), _createElementBlock(_Fragment, null, _renderList(resourceTabs, (id) => {
+            return (_openBlock(), _createElementBlock("div", {
+              key: id,
+              class: _normalizeClass({active:page===id})
+            }, [_createElementVNode("button", {
+              onClick: $event => (navigate(id)),
+              "aria-current": page===id?'page':undefined
+            }, _toDisplayString(resources.find(r=>r.id===id)?.label), 9, ["onClick", "aria-current"]), _createElementVNode("button", {
+              onClick: $event => (closeResource(id)),
+              "aria-label": 'Fechar recurso '+resources.find(r=>r.id===id)?.label
+            }, "×", 8, ["onClick", "aria-label"])], 2))
+          }), 128))]))
+        : _createCommentVNode("", true),
       error
         ? (_openBlock(), _createElementBlock("p", {
-            key: 0,
+            key: 1,
             class: "alert error",
             role: "alert"
           }, _toDisplayString(error), 1))
         : _createCommentVNode("", true),
       notice
         ? (_openBlock(), _createElementBlock("p", {
-            key: 1,
+            key: 2,
             class: "alert",
             role: "status"
           }, _toDisplayString(notice), 1))
@@ -232,7 +250,10 @@ var _Vue=Vue; var WorkRender=function render(_ctx, _cache) {
               : (_openBlock(), _createElementBlock("span", { key: 1 }, _toDisplayString(s.evidence.records?(s.evidence.records+' registros estruturais'):'Original preservado'), 1))]),
             _createElementVNode("td", null, [_createTextVNode(_toDisplayString(s.evidence.state), 1), _createElementVNode("small", null, _toDisplayString((s.evidence.issues||[]).join('; ')), 1)]),
             _createElementVNode("td", null, [
-              _createElementVNode("button", { onClick: $event => (showSourceHistory(s)) }, "Decisões e versões", 8, ["onClick"]),
+              _createElementVNode("button", {
+                onClick: $event => (showSourceHistory(s)),
+                disabled: busy
+              }, "Decisões e versões", 8, ["onClick", "disabled"]),
               ((!s.file_id || s.evidence.state==='pendente') && !['pacote','descartado'].includes(s.evidence.state))
                 ? (_openBlock(), _createElementBlock("button", {
                     key: 0,
@@ -250,37 +271,57 @@ var _Vue=Vue; var WorkRender=function render(_ctx, _cache) {
               (s.file_id)
                 ? (_openBlock(), _createElementBlock("button", {
                     key: 2,
-                    onClick: $event => (showImpact(s))
-                  }, "Dependências / retirada", 8, ["onClick"]))
+                    onClick: $event => (showImpact(s)),
+                    disabled: busy
+                  }, "Dependências / retirada", 8, ["onClick", "disabled"]))
                 : _createCommentVNode("", true)
             ])
           ]))
         }), 128))])])]),
-        sourceHistory
-          ? (_openBlock(), _createElementBlock("article", {
+        (sourceTabs.some(t=>!t.closed))
+          ? (_openBlock(), _createElementBlock("nav", {
               key: 0,
-              class: "inset"
-            }, [_createElementVNode("h2", null, "Decisões · " + _toDisplayString(sourceHistory.filename), 1), (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(sourceHistory.revisions, (r) => {
-              return (_openBlock(), _createElementBlock("details", null, [_createElementVNode("summary", null, "Versão " + _toDisplayString(r.version) + " · " + _toDisplayString(r.evidence.state) + " · " + _toDisplayString(r.reason), 1), _createElementVNode("small", null, _toDisplayString(r.created_at) + " · responsável " + _toDisplayString(r.actor), 1), _createElementVNode("pre", null, _toDisplayString(JSON.stringify(r.evidence,null,2)), 1)]))
-            }), 256))]))
+              class: "source-tabs",
+              "aria-label": "Guias de fontes"
+            }, [(_openBlock(true), _createElementBlock(_Fragment, null, _renderList(sourceTabs.filter(t=>!t.closed), (t) => {
+              return (_openBlock(), _createElementBlock("div", {
+                key: t.id,
+                class: _normalizeClass({active:activeSourceTab===t.id})
+              }, [_createElementVNode("button", {
+                onClick: $event => (activeSourceTab=t.id),
+                "aria-current": activeSourceTab===t.id?'page':undefined
+              }, _toDisplayString(t.kind==='history'?'Decisões':'Dependências') + " · " + _toDisplayString(t.filename), 9, ["onClick", "aria-current"]), _createElementVNode("button", {
+                onClick: $event => (closeSourceTab(t)),
+                "aria-label": 'Fechar '+(t.kind==='history'?'decisões':'dependências')+' de '+t.filename
+              }, "×", 8, ["onClick", "aria-label"])], 2))
+            }), 128))]))
           : _createCommentVNode("", true),
-        impact
-          ? (_openBlock(), _createElementBlock("article", {
-              key: 1,
-              class: "inset"
-            }, [
-              _createElementVNode("h2", null, "Consequências da retirada"),
-              _createElementVNode("pre", null, _toDisplayString(JSON.stringify(impact,null,2)), 1),
-              _createElementVNode("label", null, [_withDirectives(_createElementVNode("input", {
-                type: "checkbox",
-                "onUpdate:modelValue": $event => ((impactConfirmed) = $event)
-              }, null, 8, ["onUpdate:modelValue"]), [[_vModelCheckbox, impactConfirmed]]), _createTextVNode(" Conferi as dependências e confirmo a retirada lógica")]),
-              _createElementVNode("button", {
-                onClick: removeSource,
-                disabled: busy||!impactConfirmed||impact.protected.length
-              }, "Confirmar retirada preservando original", 8, ["onClick", "disabled"])
-            ]))
-          : _createCommentVNode("", true)
+        (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(sourceTabs, (t) => {
+          return _withDirectives((_openBlock(), _createElementBlock("article", {
+            key: t.id,
+            class: "inset source-guide",
+            "data-source-guide": t.id
+          }, [_createElementVNode("button", {
+            onClick: $event => (refreshSourceTab(t)),
+            disabled: busy
+          }, "Atualizar consulta", 8, ["onClick", "disabled"]), (t.kind==='history')
+            ? (_openBlock(), _createElementBlock(_Fragment, { key: 0 }, [_createElementVNode("h2", null, "Decisões · " + _toDisplayString(t.filename), 1), (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(t.data, (r) => {
+                return (_openBlock(), _createElementBlock("details", null, [_createElementVNode("summary", null, "Versão " + _toDisplayString(r.version) + " · " + _toDisplayString(r.evidence.state) + " · " + _toDisplayString(r.reason), 1), _createElementVNode("small", null, _toDisplayString(r.created_at) + " · responsável " + _toDisplayString(r.actor), 1), _createElementVNode("pre", null, _toDisplayString(JSON.stringify(r.evidence,null,2)), 1)]))
+              }), 256))], 64))
+            : (_openBlock(), _createElementBlock(_Fragment, { key: 1 }, [
+                _createElementVNode("h2", null, "Consequências da retirada · " + _toDisplayString(t.filename), 1),
+                _createElementVNode("pre", null, _toDisplayString(JSON.stringify(t.data,null,2)), 1),
+                _createElementVNode("label", null, [_createTextVNode("Motivo da retirada desta fonte"), _withDirectives(_createElementVNode("input", { "onUpdate:modelValue": $event => ((t.reason) = $event) }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, t.reason]])]),
+                _createElementVNode("label", null, [_withDirectives(_createElementVNode("input", {
+                  type: "checkbox",
+                  "onUpdate:modelValue": $event => ((t.confirmed) = $event)
+                }, null, 8, ["onUpdate:modelValue"]), [[_vModelCheckbox, t.confirmed]]), _createTextVNode(" Conferi as dependências e confirmo a retirada lógica")]),
+                _createElementVNode("button", {
+                  onClick: $event => (removeSource(t)),
+                  disabled: busy||!t.confirmed||t.data.protected.length
+                }, "Confirmar retirada preservando original", 8, ["onClick", "disabled"])
+              ], 64))], 8, ["data-source-guide"])), [[_vShow, !t.closed && activeSourceTab===t.id]])
+        }), 128))
       ], 512), [[_vShow, page==='imports']]),
       _withDirectives(_createElementVNode("section", { class: "card" }, [
         _createElementVNode("h1", null, "Escrituração"),
@@ -350,7 +391,7 @@ var _Vue=Vue; var WorkRender=function render(_ctx, _cache) {
       }), 256))], 512), [[_vShow, ['accounting','reconciliation'].includes(page)]]),
       (active && ['accounting','reconciliation'].includes(page))
         ? (_openBlock(), _createElementBlock("section", {
-            key: 2,
+            key: 3,
             class: "card operation"
           }, [
             _createElementVNode("header", null, [_createElementVNode("h2", null, _toDisplayString(active.title), 1), _createElementVNode("span", null, _toDisplayString(active.operation?.state||'Rascunho da guia') + " · " + _toDisplayString(active.operation?'v'+active.operation.version:'não efetivado'), 1), _createElementVNode("small", null, _toDisplayString(draftStatus), 1)]),
@@ -650,16 +691,33 @@ var _Vue=Vue; var WorkRender=function render(_ctx, _cache) {
         books
           ? (_openBlock(), _createElementBlock("p", { key: 0 }, _toDisplayString(books.opening_declared?'Saldos iniciais declarados em '+books.opening_competence:'Saldos iniciais ainda não declarados: os saldos exibidos abrangem apenas movimentos conhecidos.') + " Convenção dos saldos: débitos menos créditos.", 1))
           : _createCommentVNode("", true),
-        _createElementVNode("div", { class: "toolbar" }, [(_openBlock(true), _createElementBlock(_Fragment, null, _renderList(bookTypes, (b) => {
+        _createElementVNode("nav", {
+          class: "toolbar book-tabs",
+          role: "tablist",
+          "aria-label": "Guias dos livros"
+        }, [(_openBlock(true), _createElementBlock(_Fragment, null, _renderList(bookTypes, (b) => {
           return (_openBlock(), _createElementBlock("button", {
+            id: 'book-tab-'+b.id,
+            role: "tab",
+            onKeydown: $event => (bookKey($event,b.id)),
+            tabindex: bookType===b.id?0:-1,
+            "aria-selected": bookType===b.id,
+            "aria-controls": 'book-panel-'+b.id,
             onClick: $event => (bookType=b.id),
             class: _normalizeClass({active:bookType===b.id})
-          }, _toDisplayString(b.label), 11, ["onClick"]))
+          }, _toDisplayString(b.label), 43, ["id", "onKeydown", "tabindex", "aria-selected", "aria-controls", "onClick"]))
         }), 256))]),
-        _createVNode(_component_data_table, {
-          rows: books?.[bookType]||[],
-          columns: bookColumns
-        }, null, 8, ["rows", "columns"]),
+        (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(bookTypes, (b) => {
+          return _withDirectives((_openBlock(), _createElementBlock("section", {
+            key: b.id,
+            id: 'book-panel-'+b.id,
+            role: "tabpanel",
+            "aria-labelledby": 'book-tab-'+b.id
+          }, [_createVNode(_component_data_table, {
+            rows: books?.[b.id]||[],
+            columns: bookColumnsFor(b.id)
+          }, null, 8, ["rows", "columns"])], 8, ["id", "aria-labelledby"])), [[_vShow, bookType===b.id]])
+        }), 128)),
         books
           ? (_openBlock(), _createElementBlock("p", { key: 1 }, "Débitos " + _toDisplayString(books.totals.debit) + " · créditos " + _toDisplayString(books.totals.credit), 1))
           : _createCommentVNode("", true),
@@ -735,12 +793,12 @@ var _Vue=Vue; var WorkRender=function render(_ctx, _cache) {
       ], 512), [[_vShow, page==='history']]),
       (!company)
         ? (_openBlock(), _createElementBlock("p", {
-            key: 3,
+            key: 4,
             class: "empty"
           }, "Selecione ou cadastre uma empresa no portal para iniciar."))
         : (!cycle && !['imports','setup','chart'].includes(page))
           ? (_openBlock(), _createElementBlock("p", {
-              key: 4,
+              key: 5,
               class: "empty"
             }, "Defina uma competência em Competências. A caixa de entrada já recebe arquivos."))
           : _createCommentVNode("", true)

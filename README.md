@@ -2,10 +2,11 @@
 
 Aplicação de escrituração fiscal e contábil, com portal Vue, API Python, SQLite, aplicativo Windows gráfico com área de notificação e execução em servidor Docker.
 
-A jornada foi reformulada: **receber → identificar e organizar → escriturar → conferir → consultar livros e financeiro → encerrar e exportar**. Importar e lançar manualmente são entradas para a mesma escrituração. Guias permitem alternar atividades; somente editores de acesso e confirmações pontuais usam modal.
+A jornada foi reformulada: **receber → identificar e organizar → escriturar → conferir → consultar livros e financeiro → encerrar e exportar**. Importar e lançar manualmente são entradas para a mesma escrituração. Guias permitem alternar atividades; editores de usuários e perfis também usam guias. No portal, os modais são restritos à configuração transitória do 2FA e aos códigos de recuperação.
 
 - [Novo domínio, migração, regras e limites](docs/reformulacao-fiscal-contabil.md)
 - [Validação executada e diferenças concretas](docs/validacao-reformulacao.md)
+- [Auditoria de todos os recursos e caminhos de navegação](docs/auditoria-navegacao-guias.md)
 - [Portal, primeiro acesso e instalação](docs/portal-corporativo.md)
 - [Windows offline, Docker e dependências](docs/distribuicao-offline-ghcr.md)
 - [Branches, builds e releases](docs/fluxo-desenvolvimento.md)
@@ -56,6 +57,7 @@ python scripts/build.py check
 python qa/portal_browser.py
 python qa/fiscal_browser.py
 python qa/workspace_navigation.py
+python qa/navigation_audit.py
 python scripts/smoke_import_ui.py
 python qa/integrated_flow.py
 ```

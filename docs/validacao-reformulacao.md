@@ -39,3 +39,8 @@ Base sintética, sem homologação fiscal/contábil em ambiente real. A migraç�
 Não foi possível materializar `geradorsped-main.zip` pelo helper autorizado da Library (`hosted apps tools/list request failed: network`). Nenhum código desse ZIP foi lido ou reaproveitado nesta reformulação. Leiautes reais tiveram HTTP 403 e não houve contorno. Importador/exportador Prosoft e gerador SPED oficial continuam bloqueados por perfis/evidência insuficientes. Plano PDF, NFS-e, cálculo de folha/tributos, CBS/IBS, conciliação bancária e homologação RAR5/comprimido não são implementações desta entrega.
 
 O pacote Windows foi atualizado para os novos recursos, mas **os builds nativos x86/x64 deste código ainda não foram executados**. Resultados da CI anterior não validam esta branch. A autorização anterior de envio/PR referia-se à integração já incorporada em develop; não foi reutilizada para publicar o redesenho. Nenhum resultado local comprova imagem publicada ou implantação de produção.
+
+
+## Revisão posterior das guias
+
+A auditoria ampliada encontrou exceções além do menu: editores de usuário/perfil modais e consultas de fonte em um painel único. Essas aberturas foram substituídas por guias, com correções no roteamento e nos contextos. Consulte a [auditoria de navegação](auditoria-navegacao-guias.md) para o inventário, os caminhos e os testes específicos desta revisão. Os resultados de build e contêiner anteriores não devem ser confundidos com validação nativa Windows do código posterior.

@@ -16,7 +16,8 @@ var _Vue=Vue; var EscrituraRender=function render(_ctx, _cache) {
       : (!user)
         ? (_openBlock(), _createElementBlock("div", {
             key: 1,
-            class: "auth-layout"
+            class: "auth-layout",
+            inert: dialog?true:undefined
           }, [_createElementVNode("section", { class: "auth-intro" }, [_createElementVNode("a", {
             class: "brand",
             href: "/public"
@@ -108,15 +109,17 @@ var _Vue=Vue; var EscrituraRender=function render(_ctx, _cache) {
                 }, _toDisplayString(authMode==='login'?'Esqueci minha senha':'Voltar para o login'), 9, ["onClick"]))
               : _createCommentVNode("", true),
             _createElementVNode("p", { class: "auth-note" }, "Acesso individual · Sessões protegidas · Histórico de operações")
-          ])])]))
+          ])])], 8, ["inert"]))
         : (_openBlock(), _createElementBlock("div", {
             key: 2,
-            class: "workspace"
+            class: "workspace",
+            inert: dialog?true:undefined
           }, [
             _createElementVNode("a", {
               class: "skip",
-              href: "#content"
-            }, "Ir para o conteúdo"),
+              href: "#content",
+              onClick: _withModifiers(focusContent, ["prevent"])
+            }, "Ir para o conteúdo", 8, ["onClick"]),
             menuOpen
               ? (_openBlock(), _createElementBlock("button", {
                   key: 0,
@@ -331,7 +334,7 @@ var _Vue=Vue; var EscrituraRender=function render(_ctx, _cache) {
               }), 128))])])])])], 512), [[_vShow, page==='users']]),
               _withDirectives(_createElementVNode("section", null, [_createElementVNode("div", { class: "panel" }, [_createElementVNode("header", { class: "panel-header" }, [_createElementVNode("h2", null, "Perfis de acesso"), _createElementVNode("button", {
                 class: "btn primary",
-                onClick: $event => {roleForm={name:'',permissions:[]};dialog='role'}
+                onClick: $event => (editRole())
               }, "+ Novo perfil", 8, ["onClick"])]), _createElementVNode("div", { class: "role-grid" }, [(_openBlock(true), _createElementBlock(_Fragment, null, _renderList(roles, (role) => {
                 return (_openBlock(), _createElementBlock("article", { key: role.id }, [
                   _createElementVNode("h3", null, _toDisplayString(role.name), 1),
@@ -343,7 +346,7 @@ var _Vue=Vue; var EscrituraRender=function render(_ctx, _cache) {
                     ? (_openBlock(), _createElementBlock("button", {
                         key: 0,
                         class: "link-button",
-                        onClick: $event => {roleForm=structuredCopy(role);dialog='role'}
+                        onClick: $event => (editRole(role))
                       }, "Editar perfil", 8, ["onClick"]))
                     : _createCommentVNode("", true)
                 ]))
@@ -529,6 +532,84 @@ var _Vue=Vue; var EscrituraRender=function render(_ctx, _cache) {
                 onClick: olderAudit,
                 disabled: !audit.length||busy
               }, "Carregar eventos anteriores", 8, ["onClick", "disabled"])])], 512), [[_vShow, page==='audit']]),
+              (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(editorTabs, (tab) => {
+                return _withDirectives((_openBlock(), _createElementBlock("section", {
+                  key: tab.id,
+                  class: "panel padded editor-guide",
+                  "data-editor": tab.id
+                }, [(tab.kind==='user-editor')
+                  ? (_openBlock(), _createElementBlock(_Fragment, { key: 0 }, [_createElementVNode("h2", null, _toDisplayString(tab.form.id?'Editar usuário':'Novo usuário'), 1), _createTextVNode(), _createElementVNode("form", {
+                      onSubmit: _withModifiers($event => (saveUser(tab)), ["prevent"]),
+                      class: "form-grid"
+                    }, [
+                      _createElementVNode("label", { class: "field" }, [_createTextVNode("Nome"), _withDirectives(_createElementVNode("input", {
+                        "onUpdate:modelValue": $event => ((tab.form.name) = $event),
+                        required: ""
+                      }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, tab.form.name]])]),
+                      _createElementVNode("label", { class: "field" }, [_createTextVNode("E-mail"), _withDirectives(_createElementVNode("input", {
+                        "onUpdate:modelValue": $event => ((tab.form.email) = $event),
+                        type: "email",
+                        required: ""
+                      }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, tab.form.email]])]),
+                      _createElementVNode("label", { class: "field" }, [_createTextVNode("Perfil"), _withDirectives(_createElementVNode("select", { "onUpdate:modelValue": $event => ((tab.form.role) = $event) }, [(_openBlock(true), _createElementBlock(_Fragment, null, _renderList(roles, (r) => {
+                        return (_openBlock(), _createElementBlock("option", {
+                          key: r.id,
+                          value: r.id
+                        }, _toDisplayString(r.name), 9, ["value"]))
+                      }), 128))], 8, ["onUpdate:modelValue"]), [[_vModelSelect, tab.form.role]])]),
+                      _createElementVNode("label", { class: "field" }, [_createTextVNode(_toDisplayString(tab.form.id?'Nova senha (opcional)':'Senha inicial'), 1), _withDirectives(_createElementVNode("input", {
+                        "onUpdate:modelValue": $event => ((tab.form.password) = $event),
+                        type: "password",
+                        required: !tab.form.id,
+                        minlength: "12",
+                        autocomplete: "new-password"
+                      }, null, 8, ["onUpdate:modelValue", "required"]), [[_vModelText, tab.form.password]])]),
+                      _createElementVNode("label", { class: "field checkbox-field" }, [_withDirectives(_createElementVNode("input", {
+                        type: "checkbox",
+                        "onUpdate:modelValue": $event => ((tab.form.active) = $event)
+                      }, null, 8, ["onUpdate:modelValue"]), [[_vModelCheckbox, tab.form.active]]), _createTextVNode("Conta ativa")]),
+                      (tab.form.role!=='admin')
+                        ? (_openBlock(), _createElementBlock("fieldset", {
+                            key: 0,
+                            class: "wide"
+                          }, [_createElementVNode("legend", null, "Empresas autorizadas"), (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(dashboard.companies, (c) => {
+                            return (_openBlock(), _createElementBlock("label", {
+                              key: c.id,
+                              class: "field checkbox-field"
+                            }, [_withDirectives(_createElementVNode("input", {
+                              type: "checkbox",
+                              value: String(c.id),
+                              "onUpdate:modelValue": $event => ((tab.form.companies) = $event)
+                            }, null, 8, ["value", "onUpdate:modelValue"]), [[_vModelCheckbox, tab.form.companies]]), _createTextVNode(_toDisplayString(c.name), 1)]))
+                          }), 128)), (!dashboard.companies.length)
+                            ? (_openBlock(), _createElementBlock("p", {
+                                key: 0,
+                                class: "muted"
+                              }, "Cadastre uma empresa antes de conceder acesso."))
+                            : _createCommentVNode("", true)]))
+                        : _createCommentVNode("", true),
+                      _createElementVNode("button", {
+                        class: "btn primary wide",
+                        disabled: busy
+                      }, "Salvar usuário", 8, ["disabled"])
+                    ], 40, ["onSubmit"])], 64))
+                  : (_openBlock(), _createElementBlock(_Fragment, { key: 1 }, [_createElementVNode("h2", null, _toDisplayString(tab.form.id?'Editar perfil':'Novo perfil'), 1), _createElementVNode("form", { onSubmit: _withModifiers($event => (saveRole(tab)), ["prevent"]) }, [_createElementVNode("label", { class: "field" }, [_createTextVNode("Nome do perfil"), _withDirectives(_createElementVNode("input", {
+                      "onUpdate:modelValue": $event => ((tab.form.name) = $event),
+                      required: ""
+                    }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, tab.form.name]])]), (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(permissions, (label, key) => {
+                      return (_openBlock(), _createElementBlock("label", {
+                        key: key,
+                        class: "field checkbox-field"
+                      }, [_withDirectives(_createElementVNode("input", {
+                        type: "checkbox",
+                        value: key,
+                        "onUpdate:modelValue": $event => ((tab.form.permissions) = $event)
+                      }, null, 8, ["value", "onUpdate:modelValue"]), [[_vModelCheckbox, tab.form.permissions]]), _createTextVNode(_toDisplayString(label), 1)]))
+                    }), 128)), _createElementVNode("button", {
+                      class: "btn primary",
+                      disabled: busy
+                    }, "Salvar perfil", 8, ["disabled"])], 40, ["onSubmit"])], 64))], 8, ["data-editor"])), [[_vShow, page===tab.id]])
+              }), 128)),
               (workspaceMounted && can('workspace.read'))
                 ? _withDirectives((_openBlock(), _createElementBlock("section", {
                     key: 3,
@@ -543,7 +624,7 @@ var _Vue=Vue; var EscrituraRender=function render(_ctx, _cache) {
                 : _createCommentVNode("", true),
               _createElementVNode("footer", { class: "content-footer" }, [_createElementVNode("span", null, "Escritura · Organização contábil"), _createElementVNode("span", null, _toDisplayString(version) + " · " + _toDisplayString(user.role_name), 1)])
             ], 2)])
-          ])), dialog
+          ], 8, ["inert"])), dialog
       ? (_openBlock(), _createElementBlock("div", {
           key: 3,
           class: "modal-backdrop",
@@ -557,120 +638,37 @@ var _Vue=Vue; var EscrituraRender=function render(_ctx, _cache) {
           class: "icon-button",
           onClick: closeDialog,
           "aria-label": "Fechar"
-        }, "×", 8, ["onClick"])]), _createElementVNode("div", { class: "padded" }, [
-          error
-            ? (_openBlock(), _createElementBlock("div", {
-                key: 0,
-                class: "alert error"
-              }, _toDisplayString(error), 1))
-            : _createCommentVNode("", true),
-          (dialog==='user')
-            ? (_openBlock(), _createElementBlock("form", {
-                key: 1,
-                onSubmit: _withModifiers(saveUser, ["prevent"]),
-                class: "form-grid"
-              }, [
-                _createElementVNode("label", { class: "field" }, [_createTextVNode("Nome"), _withDirectives(_createElementVNode("input", {
-                  "onUpdate:modelValue": $event => ((userForm.name) = $event),
-                  required: ""
-                }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, userForm.name]])]),
-                _createElementVNode("label", { class: "field" }, [_createTextVNode("E-mail"), _withDirectives(_createElementVNode("input", {
-                  "onUpdate:modelValue": $event => ((userForm.email) = $event),
-                  type: "email",
-                  required: ""
-                }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, userForm.email]])]),
-                _createElementVNode("label", { class: "field" }, [_createTextVNode("Perfil"), _withDirectives(_createElementVNode("select", { "onUpdate:modelValue": $event => ((userForm.role) = $event) }, [(_openBlock(true), _createElementBlock(_Fragment, null, _renderList(roles, (r) => {
-                  return (_openBlock(), _createElementBlock("option", {
-                    key: r.id,
-                    value: r.id
-                  }, _toDisplayString(r.name), 9, ["value"]))
-                }), 128))], 8, ["onUpdate:modelValue"]), [[_vModelSelect, userForm.role]])]),
-                _createElementVNode("label", { class: "field" }, [_createTextVNode(_toDisplayString(userForm.id?'Nova senha (opcional)':'Senha inicial'), 1), _withDirectives(_createElementVNode("input", {
-                  "onUpdate:modelValue": $event => ((userForm.password) = $event),
-                  type: "password",
-                  required: !userForm.id,
-                  minlength: "12",
-                  autocomplete: "new-password"
-                }, null, 8, ["onUpdate:modelValue", "required"]), [[_vModelText, userForm.password]])]),
-                _createElementVNode("label", { class: "field checkbox-field" }, [_withDirectives(_createElementVNode("input", {
-                  type: "checkbox",
-                  "onUpdate:modelValue": $event => ((userForm.active) = $event)
-                }, null, 8, ["onUpdate:modelValue"]), [[_vModelCheckbox, userForm.active]]), _createTextVNode("Conta ativa")]),
-                (userForm.role!=='admin')
-                  ? (_openBlock(), _createElementBlock("fieldset", {
-                      key: 0,
-                      class: "wide"
-                    }, [_createElementVNode("legend", null, "Empresas autorizadas"), (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(dashboard.companies, (c) => {
-                      return (_openBlock(), _createElementBlock("label", {
-                        key: c.id,
-                        class: "field checkbox-field"
-                      }, [_withDirectives(_createElementVNode("input", {
-                        type: "checkbox",
-                        value: String(c.id),
-                        "onUpdate:modelValue": $event => ((userForm.companies) = $event)
-                      }, null, 8, ["value", "onUpdate:modelValue"]), [[_vModelCheckbox, userForm.companies]]), _createTextVNode(_toDisplayString(c.name), 1)]))
-                    }), 128)), (!dashboard.companies.length)
-                      ? (_openBlock(), _createElementBlock("p", {
-                          key: 0,
-                          class: "muted"
-                        }, "Cadastre uma empresa antes de conceder acesso."))
-                      : _createCommentVNode("", true)]))
-                  : _createCommentVNode("", true),
-                _createElementVNode("button", {
-                  class: "btn primary wide",
-                  disabled: busy
-                }, "Salvar usuário", 8, ["disabled"])
-              ], 40, ["onSubmit"]))
-            : _createCommentVNode("", true),
-          (dialog==='role')
-            ? (_openBlock(), _createElementBlock("form", {
-                key: 2,
-                onSubmit: _withModifiers(saveRole, ["prevent"])
-              }, [_createElementVNode("label", { class: "field" }, [_createTextVNode("Nome do perfil"), _withDirectives(_createElementVNode("input", {
-                "onUpdate:modelValue": $event => ((roleForm.name) = $event),
-                required: ""
-              }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, roleForm.name]])]), (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(permissions, (label, key) => {
-                return (_openBlock(), _createElementBlock("label", {
-                  key: key,
-                  class: "field checkbox-field"
-                }, [_withDirectives(_createElementVNode("input", {
-                  type: "checkbox",
-                  value: key,
-                  "onUpdate:modelValue": $event => ((roleForm.permissions) = $event)
-                }, null, 8, ["value", "onUpdate:modelValue"]), [[_vModelCheckbox, roleForm.permissions]]), _createTextVNode(_toDisplayString(label), 1)]))
-              }), 128)), _createElementVNode("button", {
+        }, "×", 8, ["onClick"])]), _createElementVNode("div", { class: "padded" }, [error
+          ? (_openBlock(), _createElementBlock("div", {
+              key: 0,
+              class: "alert error"
+            }, _toDisplayString(error), 1))
+          : _createCommentVNode("", true), (dialog==='mfa')
+          ? (_openBlock(), _createElementBlock("form", {
+              key: 1,
+              onSubmit: _withModifiers(confirmMfa, ["prevent"])
+            }, [
+              _createElementVNode("p", null, "Adicione uma conta no seu autenticador usando esta chave:"),
+              _createElementVNode("code", { class: "secret" }, _toDisplayString(mfa.secret), 1),
+              _createElementVNode("p", { class: "muted small" }, "Aplicativo: Escritura · TOTP · 6 dígitos · 30 segundos"),
+              _createElementVNode("label", { class: "field" }, [_createTextVNode("Código gerado"), _withDirectives(_createElementVNode("input", {
+                "onUpdate:modelValue": $event => ((mfa.code) = $event),
+                required: "",
+                autocomplete: "one-time-code",
+                inputmode: "numeric",
+                maxlength: "6"
+              }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, mfa.code]])]),
+              _createElementVNode("button", {
                 class: "btn primary",
                 disabled: busy
-              }, "Salvar perfil", 8, ["disabled"])], 40, ["onSubmit"]))
-            : _createCommentVNode("", true),
-          (dialog==='mfa')
-            ? (_openBlock(), _createElementBlock("form", {
-                key: 3,
-                onSubmit: _withModifiers(confirmMfa, ["prevent"])
-              }, [
-                _createElementVNode("p", null, "Adicione uma conta no seu autenticador usando esta chave:"),
-                _createElementVNode("code", { class: "secret" }, _toDisplayString(mfa.secret), 1),
-                _createElementVNode("p", { class: "muted small" }, "Aplicativo: Escritura · TOTP · 6 dígitos · 30 segundos"),
-                _createElementVNode("label", { class: "field" }, [_createTextVNode("Código gerado"), _withDirectives(_createElementVNode("input", {
-                  "onUpdate:modelValue": $event => ((mfa.code) = $event),
-                  required: "",
-                  autocomplete: "one-time-code",
-                  inputmode: "numeric",
-                  maxlength: "6"
-                }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, mfa.code]])]),
-                _createElementVNode("button", {
-                  class: "btn primary",
-                  disabled: busy
-                }, "Confirmar ativação", 8, ["disabled"])
-              ], 40, ["onSubmit"]))
-            : _createCommentVNode("", true),
-          (dialog==='recovery')
-            ? (_openBlock(), _createElementBlock("div", { key: 4 }, [_createElementVNode("p", null, "Guarde estes códigos em local seguro. Cada código pode ser usado uma única vez. Eles não serão exibidos novamente."), _createElementVNode("pre", { class: "secret" }, _toDisplayString(recoveryCodes.join('\n')), 1), _createElementVNode("button", {
-                class: "btn primary",
-                onClick: closeDialog
-              }, "Guardei os códigos · entrar novamente", 8, ["onClick"])]))
-            : _createCommentVNode("", true)
-        ])], 8, ["aria-label"])], 8, ["onClick"]))
+              }, "Confirmar ativação", 8, ["disabled"])
+            ], 40, ["onSubmit"]))
+          : _createCommentVNode("", true), (dialog==='recovery')
+          ? (_openBlock(), _createElementBlock("div", { key: 2 }, [_createElementVNode("p", null, "Guarde estes códigos em local seguro. Cada código pode ser usado uma única vez. Eles não serão exibidos novamente."), _createElementVNode("pre", { class: "secret" }, _toDisplayString(recoveryCodes.join('\n')), 1), _createElementVNode("button", {
+              class: "btn primary",
+              onClick: closeDialog
+            }, "Guardei os códigos · entrar novamente", 8, ["onClick"])]))
+          : _createCommentVNode("", true)])], 8, ["aria-label"])], 8, ["onClick"]))
       : _createCommentVNode("", true)], 8, ["aria-busy"]))
   }
 };
