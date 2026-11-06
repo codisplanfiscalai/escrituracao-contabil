@@ -70,6 +70,7 @@ jobs:
       - run: python qa/company_profiles_browser.py
       - run: python qa/module_closure_browser.py
       - run: python qa/tax_browser.py
+      - run: python qa/tax_items_browser.py
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         if: always()
         with:

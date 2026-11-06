@@ -20,7 +20,7 @@ def operation_modules(payload):
         return {'fiscal', 'contabil'}
     fiscal = payload.get('fiscal') or {}
     operation = fiscal.get('operation')
-    has_fiscal = operation in {'entrada', 'saida', 'servico_tomado', 'servico_prestado'} or any(
+    has_fiscal = any(key in payload for key in ('tax_items','tax_components','tax_calculation','tax_adjustment_of')) or operation in {'entrada', 'saida', 'servico_tomado', 'servico_prestado'} or any(
         fiscal.get(key) not in (None, '') for key in ('model', 'number', 'cfop', 'icms_base', 'icms_amount', 'iss_base', 'iss_amount', 'pis_base', 'pis_amount', 'cofins_base', 'cofins_amount'))
     modules = {'fiscal'} if has_fiscal else set()
     if payload.get('entries') or not has_fiscal or payload.get('settlement') or payload.get('reversal'):

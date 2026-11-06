@@ -6,6 +6,14 @@ from .module_closure import operation_modules
 from .tax_engine import TAXES, decimal_text
 
 
+def declared_components(payload):
+    """Identify explicitly valued components; never infer amount or reversal effect."""
+    proof = payload.get('tax_calculation') or {}
+    keys = {line.get('component_key',line['tax']) for line in proof.get('memory',{}).get('lines',[]) if line.get('amount') not in (None,'')}
+    keys.update(tax for tax,prefix in TAXES.items() if payload.get('fiscal',{}).get(prefix+'_amount') not in (None,''))
+    return keys
+
+
 class TaxAssessmentMixin:
     def preview_tax_assessment(self, company_id, cycle_id):
         cycle = self._work_cycle(company_id,cycle_id)
@@ -16,8 +24,10 @@ class TaxAssessmentMixin:
             payload = operation['payload']
             if payload.get('reversal'):
                 original = self._work_revision(company_id,payload['reversal']['operation_id'])
-                if original['payload'].get('tax_calculation') or any(original['payload'].get('fiscal',{}).get(prefix+'_amount') not in (None,'') for prefix in TAXES.values()):
-                    if not any(str(a['payload']['tax_adjustment_of'])==str(original['operation_id']) and any(a['payload'].get('fiscal',{}).get(prefix+'_amount') not in (None,'') for prefix in TAXES.values()) for a in adjustments):
+                original_components = declared_components(original['payload'])
+                if original_components:
+                    adjusted_components = set().union(*(declared_components(a['payload']) for a in adjustments if str(a['payload']['tax_adjustment_of'])==str(original['operation_id'])))
+                    if not original_components <= adjusted_components:
                         blockers.append(f"Estorno #{operation['operation_id']} de origem tributada exige ajuste fiscal explícito vinculado; tributos não foram revertidos por suposição")
                     fiscal_operations.append(operation)
             if 'fiscal' not in operation_modules(payload):
@@ -40,7 +50,8 @@ class TaxAssessmentMixin:
                     lines.append({'operation_id':operation['operation_id'],'operation_hash':operation['snapshot_hash'],
                                   'tax':item['tax'],'amount':item['amount'],'base':item['base'],'rate':item['rate'],
                                   'effect':item['effect'],'revenue_code':item['revenue_code'],'origin':'calculado_por_regra',
-                                  'calculation_id':proof['id'],'rule':item['rule'],'tax_adjustment_of':payload.get('tax_adjustment_of')})
+                                  'calculation_id':proof['id'],'rule':item['rule'],'tax_adjustment_of':payload.get('tax_adjustment_of'),
+                                  **({key:item[key] for key in ('item_id','item_source','component_key','parameters','steps','formula','unrounded')} if 'item_id' in item else {})})
                     covered.add(item['tax'])
             manual = [(tax,prefix) for tax,prefix in TAXES.items() if tax not in covered and payload.get('fiscal',{}).get(prefix+'_amount') not in (None,'')]
             if manual:
@@ -70,8 +81,9 @@ class TaxAssessmentMixin:
         with localcontext() as context:
             context.prec = 40
             for line in lines:
-                key = (line['tax'],line['revenue_code'])
-                group = totals.setdefault(key,{'tax':key[0],'revenue_code':key[1],'debito':Decimal(0),'credito':Decimal(0),'informativo':Decimal(0)})
+                key = (line['tax'],line['revenue_code'],line.get('component_key',line['tax']))
+                group = totals.setdefault(key,{'tax':key[0],'revenue_code':key[1],**({'component_key':key[2]} if key[2]!=key[0] else {}),
+                                               'debito':Decimal(0),'credito':Decimal(0),'informativo':Decimal(0)})
                 group[line['effect']] += Decimal(line['amount'])
             groups = [{**g,'saldo_aritmetico':format(g['debito']-g['credito'],'.2f'),
                        **{k:format(g[k],'.2f') for k in ('debito','credito','informativo')}} for _,g in sorted(totals.items())]
