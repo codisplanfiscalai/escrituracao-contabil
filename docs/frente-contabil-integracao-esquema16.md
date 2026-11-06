@@ -1,5 +1,7 @@
 # Integração contábil com tributação em lote e esquema 16
 
+Registro histórico do esquema 16 e PR contábil #17. A composição com preparação/evidência XML e esquema 17 está em `frente-contabil-integracao-esquema17.md`; os resultados abaixo pertencem à etapa anterior.
+
 ## Base e composição
 
 Base fiscal: [PR #16](https://github.com/codisplanfiscalai/escrituracao-contabil/pull/16), branch `feat/tributacao-lote-conferida`, HEAD **`9b0a4fb97dd916de854b28515ca99ddb89cb0a00`**. O incremento contábil do PR #15, `5d78613b858cbd8a4f130bf55292cbc49eb75cf7`, foi reaplicado na árvore isolada `/workspace/escrituracao-contabil-compat16`, branch `feat/contabil-compat-esquema16`.
