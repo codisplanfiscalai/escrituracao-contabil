@@ -1,7 +1,7 @@
 /* Template pré-compilado: não requer eval no navegador. */
 var _Vue=Vue; var WorkRender=function render(_ctx, _cache) {
   with (_ctx) {
-    const { createElementVNode: _createElementVNode, renderList: _renderList, Fragment: _Fragment, openBlock: _openBlock, createElementBlock: _createElementBlock, toDisplayString: _toDisplayString, vModelSelect: _vModelSelect, withDirectives: _withDirectives, createTextVNode: _createTextVNode, createCommentVNode: _createCommentVNode, normalizeClass: _normalizeClass, vModelText: _vModelText, withModifiers: _withModifiers, resolveComponent: _resolveComponent, createVNode: _createVNode, vShow: _vShow, vModelCheckbox: _vModelCheckbox } = _Vue
+    const { createElementVNode: _createElementVNode, renderList: _renderList, Fragment: _Fragment, openBlock: _openBlock, createElementBlock: _createElementBlock, toDisplayString: _toDisplayString, vModelSelect: _vModelSelect, withDirectives: _withDirectives, createTextVNode: _createTextVNode, createCommentVNode: _createCommentVNode, normalizeClass: _normalizeClass, vModelText: _vModelText, withModifiers: _withModifiers, resolveComponent: _resolveComponent, createVNode: _createVNode, vShow: _vShow, vModelCheckbox: _vModelCheckbox, createBlock: _createBlock } = _Vue
 
     const _component_data_table = _resolveComponent("data-table")
 
@@ -511,7 +511,70 @@ var _Vue=Vue; var WorkRender=function render(_ctx, _cache) {
                     "onUpdate:modelValue": $event => ((active.data.payload.fiscal.cofins_amount) = $event),
                     inputmode: "decimal"
                   }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, active.data.payload.fiscal.cofins_amount]])])
-                ]), _createElementVNode("p", null, "Valores informados pelo operador ou pela origem. Regras aprovadas podem calcular tributos na versão salva; não há homologação de obrigação fiscal. NCM e serviço são escopos declarados para a regra, sem classificação automática dos itens.")], 8, ["open"]),
+                ]), _createElementVNode("p", null, "Valores informados pelo operador ou pela origem. Regras aprovadas podem calcular tributos na versão salva; não há homologação de obrigação fiscal. NCM e serviço são escopos declarados para a regra. O modo por item exige componentes, bases e vínculos conferidos; não classifica produtos automaticamente.")], 8, ["open"]),
+                _createElementVNode("details", {
+                  class: "tax-items",
+                  open: !!active.data.payload.tax_items
+                }, [
+                  _createElementVNode("summary", null, "Tributação por item e tratamentos mistos"),
+                  _createElementVNode("p", null, "Informe o total líquido atribuído a cada item, incluindo os rateios conferidos. A soma deve conferir com o documento. Bases, reduções, retenções, ST e DIFAL dependem de regras aprovadas; valores não são extraídos automaticamente da lista de produtos."),
+                  _createElementVNode("div", { class: "toolbar" }, [_createElementVNode("button", {
+                    type: "button",
+                    onClick: addTaxItem
+                  }, "Adicionar item tributário", 8, ["onClick"]), _createElementVNode("button", {
+                    type: "button",
+                    onClick: proposeSourceTaxItems,
+                    disabled: !active.data.payload.document_id
+                  }, "Propor vínculos dos itens da fonte", 8, ["onClick", "disabled"]), _createElementVNode("button", {
+                    type: "button",
+                    onClick: useDocumentTaxMode,
+                    disabled: !active.data.payload.tax_items
+                  }, "Usar tributação documental", 8, ["onClick", "disabled"])]),
+                  (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(active.data.payload.tax_items, (item, index) => {
+                    return (_openBlock(), _createElementBlock("article", {
+                      class: "inset",
+                      key: item.id,
+                      "data-tax-item": index
+                    }, [_createElementVNode("h3", null, "Item " + _toDisplayString(index+1), 1), _createElementVNode("div", { class: "grid" }, [
+                      _createElementVNode("label", null, [_createTextVNode("Descrição do item"), _withDirectives(_createElementVNode("input", { "onUpdate:modelValue": $event => ((item.description) = $event) }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, item.description]])]),
+                      _createElementVNode("label", null, [_createTextVNode("Total líquido atribuído ao item"), _withDirectives(_createElementVNode("input", {
+                        "onUpdate:modelValue": $event => ((item.values.total) = $event),
+                        inputmode: "decimal"
+                      }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, item.values.total]])]),
+                      _createElementVNode("label", null, [_createTextVNode("CFOP do item"), _withDirectives(_createElementVNode("input", {
+                        "onUpdate:modelValue": $event => ((item.cfop) = $event),
+                        maxlength: "4"
+                      }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, item.cfop]])]),
+                      _createElementVNode("label", null, [_createTextVNode("NCM do item"), _withDirectives(_createElementVNode("input", {
+                        "onUpdate:modelValue": $event => ((item.ncm) = $event),
+                        maxlength: "8"
+                      }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, item.ncm]])]),
+                      _createElementVNode("label", null, [_createTextVNode("Serviço do item"), _withDirectives(_createElementVNode("input", { "onUpdate:modelValue": $event => ((item.service_code) = $event) }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, item.service_code]])]),
+                      _createElementVNode("label", null, [_createTextVNode("Tratamento declarado do item"), _withDirectives(_createElementVNode("input", { "onUpdate:modelValue": $event => ((item.treatment) = $event) }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, item.treatment]])]),
+                      _createElementVNode("label", null, [_createTextVNode("Origem e conferência dos valores do item"), _withDirectives(_createElementVNode("input", { "onUpdate:modelValue": $event => ((item.source_reference) = $event) }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, item.source_reference]])]),
+                      _createElementVNode("label", null, [_createTextVNode("Localizador na fonte"), _withDirectives(_createElementVNode("input", {
+                        "onUpdate:modelValue": $event => ((item.source_locator) = $event),
+                        placeholder: "Preenchido pela proposta da fonte"
+                      }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, item.source_locator]])]),
+                      _createElementVNode("label", null, [_createTextVNode("Componentes a calcular"), _createElementVNode("input", {
+                        value: item.taxes.join(', '),
+                        onChange: $event => (itemTaxList(item,$event.target.value)),
+                        placeholder: "ICMS, ICMS_ST, ICMS_DIFAL, RETENCAO:CODIGO"
+                      }, null, 40, ["value", "onChange"])]),
+                      _createElementVNode("label", null, [_createTextVNode("Motivo quando não houver componentes"), _withDirectives(_createElementVNode("input", { "onUpdate:modelValue": $event => ((item.no_tax_reason) = $event) }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, item.no_tax_reason]])]),
+                      (_openBlock(true), _createElementBlock(_Fragment, null, _renderList([['icms_base','Base ICMS do item'],['iss_base','Base ISS do item'],['pis_base','Base PIS do item'],['cofins_base','Base COFINS do item'],['st_base','Base ST declarada do item'],['difal_base','Base DIFAL declarada do item'],['retention_base','Base de retenção do item'],['st_deduction','Dedução própria declarada para ST']], (field) => {
+                        return (_openBlock(), _createElementBlock("label", null, [_createElementVNode("span", null, _toDisplayString(field[1]), 1), _withDirectives(_createElementVNode("input", {
+                          "onUpdate:modelValue": $event => ((item.values[field[0]]) = $event),
+                          inputmode: "decimal"
+                        }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, item.values[field[0]]]])]))
+                      }), 256))
+                    ]), _createElementVNode("button", {
+                      type: "button",
+                      onClick: $event => (active.data.payload.tax_items.splice(index,1))
+                    }, "Remover item tributário", 8, ["onClick"])], 8, ["data-tax-item"]))
+                  }), 128)),
+                  _createElementVNode("p", null, "Componentes separados por vírgulas. Retenções exigem o identificador definido na regra. Um item sem componentes exige motivo e não pode contrariar uma regra aplicável. Componentes especiais não alteram automaticamente títulos ou partidas.")
+                ], 8, ["open"]),
                 _createElementVNode("label", null, [_withDirectives(_createElementVNode("input", {
                   type: "checkbox",
                   "onUpdate:modelValue": $event => ((active.data.payload.acknowledge_differences) = $event)
@@ -663,16 +726,29 @@ var _Vue=Vue; var WorkRender=function render(_ctx, _cache) {
                 disabled: busy||!active.operation||['escriturado','dispensado'].includes(active.operation?.state)||dirty
               }, "Gerar prévia de tributação", 8, ["onClick", "disabled"]),
               (taxPreview && taxPreview.snapshot.operation_id===active.operation?.operation_id)
-                ? (_openBlock(), _createElementBlock("div", { key: 0 }, [_createElementVNode("details", { open: "" }, [_createElementVNode("summary", null, "Conferir base, regra, taxa e arredondamento"), _createElementVNode("pre", null, _toDisplayString(JSON.stringify(taxPreview.snapshot,null,2)), 1)]), _createElementVNode("button", {
+                ? (_openBlock(), _createElementBlock("div", { key: 0 }, [(taxPreview.snapshot.profile==='tributacao-itens-v2')
+                    ? (_openBlock(), _createBlock(_component_data_table, {
+                        key: 0,
+                        rows: taxPreview.snapshot.lines,
+                        columns: {item_id:'Item',component_key:'Componente',base:'Base',rate:'Taxa (%)',amount:'Valor',effect:'Efeito',revenue_code:'Receita'}
+                      }, null, 8, ["rows", "columns"]))
+                    : _createCommentVNode("", true), _createElementVNode("details", { open: taxPreview.snapshot.profile!=='tributacao-itens-v2' }, [_createElementVNode("summary", null, "Conferir base, regra, taxa e arredondamento"), _createElementVNode("pre", null, _toDisplayString(JSON.stringify(taxPreview.snapshot,null,2)), 1)], 8, ["open"]), _createElementVNode("button", {
                     onClick: applyTaxes,
                     disabled: busy||dirty
                   }, "Aplicar cálculo em nova versão", 8, ["onClick", "disabled"])]))
                 : _createCommentVNode("", true),
+              (active.data.payload.tax_components)
+                ? (_openBlock(), _createBlock(_component_data_table, {
+                    key: 1,
+                    rows: active.data.payload.tax_components,
+                    columns: {component_key:'Componente calculado',base:'Base total',amount:'Valor total'}
+                  }, null, 8, ["rows", "columns"]))
+                : _createCommentVNode("", true),
               (active.data.payload.tax_calculation)
-                ? (_openBlock(), _createElementBlock("details", { key: 1 }, [_createElementVNode("summary", null, "Memória de cálculo preservada na operação"), _createElementVNode("pre", null, _toDisplayString(JSON.stringify(active.data.payload.tax_calculation,null,2)), 1)]))
+                ? (_openBlock(), _createElementBlock("details", { key: 2 }, [_createElementVNode("summary", null, "Memória de cálculo preservada na operação"), _createElementVNode("pre", null, _toDisplayString(JSON.stringify(active.data.payload.tax_calculation,null,2)), 1)]))
                 : _createCommentVNode("", true),
               (active.data.payload.tax_calculation && !['escriturado','dispensado'].includes(active.operation?.state))
-                ? (_openBlock(), _createElementBlock("div", { key: 2 }, [_createElementVNode("label", null, [_createTextVNode("Motivo para substituir cálculo automático"), _withDirectives(_createElementVNode("input", { "onUpdate:modelValue": $event => ((taxOverrideReason) = $event) }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, taxOverrideReason]])]), _createElementVNode("button", {
+                ? (_openBlock(), _createElementBlock("div", { key: 3 }, [_createElementVNode("label", null, [_createTextVNode("Motivo para substituir cálculo automático"), _withDirectives(_createElementVNode("input", { "onUpdate:modelValue": $event => ((taxOverrideReason) = $event) }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, taxOverrideReason]])]), _createElementVNode("button", {
                     onClick: useManualTaxes,
                     disabled: busy
                   }, "Preparar exceção com valores informados", 8, ["onClick", "disabled"])]))
@@ -912,7 +988,10 @@ var _Vue=Vue; var WorkRender=function render(_ctx, _cache) {
               _createElementVNode("option", null, "ICMS"),
               _createElementVNode("option", null, "ISS"),
               _createElementVNode("option", null, "PIS"),
-              _createElementVNode("option", null, "COFINS")
+              _createElementVNode("option", null, "COFINS"),
+              _createElementVNode("option", null, "ICMS_ST"),
+              _createElementVNode("option", null, "ICMS_DIFAL"),
+              _createElementVNode("option", null, "RETENCAO")
             ], 8, ["onUpdate:modelValue"]), [[_vModelSelect, taxForm.spec.tax]])]),
             _createElementVNode("label", null, [_createTextVNode("Natureza da regra"), _withDirectives(_createElementVNode("select", {
               "aria-label": "Natureza da regra",
@@ -959,8 +1038,61 @@ var _Vue=Vue; var WorkRender=function render(_ctx, _cache) {
               _createElementVNode("option", { value: "icms_base" }, "Base ICMS declarada"),
               _createElementVNode("option", { value: "iss_base" }, "Base ISS declarada"),
               _createElementVNode("option", { value: "pis_base" }, "Base PIS declarada"),
-              _createElementVNode("option", { value: "cofins_base" }, "Base COFINS declarada")
+              _createElementVNode("option", { value: "cofins_base" }, "Base COFINS declarada"),
+              (taxForm.spec.calculation)
+                ? (_openBlock(), _createElementBlock(_Fragment, { key: 0 }, [_createElementVNode("option", { value: "st_base" }, "Base ST declarada do item"), _createElementVNode("option", { value: "difal_base" }, "Base DIFAL declarada do item"), _createElementVNode("option", { value: "retention_base" }, "Base de retenção declarada do item")], 64))
+                : _createCommentVNode("", true)
             ], 8, ["onUpdate:modelValue"]), [[_vModelSelect, taxForm.spec.base_field]])]),
+            _createElementVNode("label", null, [_createTextVNode("Perfil de cálculo"), _createElementVNode("select", {
+              "aria-label": "Perfil de cálculo",
+              value: taxForm.spec.calculation?.method||'documento',
+              onChange: $event => (setTaxCalculation($event.target.value))
+            }, [
+              _createElementVNode("option", { value: "documento" }, "Percentual documental"),
+              _createElementVNode("option", { value: "percentual" }, "Percentual por item"),
+              _createElementVNode("option", { value: "retencao" }, "Retenção declarada por item"),
+              _createElementVNode("option", { value: "st" }, "ST declarada por item, com margem e dedução"),
+              _createElementVNode("option", { value: "difal" }, "Diferença de taxas declaradas por item")
+            ], 40, ["value", "onChange"])]),
+            (taxForm.spec.calculation)
+              ? (_openBlock(), _createElementBlock(_Fragment, { key: 0 }, [
+                  _createElementVNode("label", null, [_createTextVNode("Tratamento de escopo do item"), _withDirectives(_createElementVNode("input", { "onUpdate:modelValue": $event => ((taxForm.spec.item_treatment) = $event) }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, taxForm.spec.item_treatment]])]),
+                  _createElementVNode("label", null, [_createTextVNode("Redução percentual declarada"), _withDirectives(_createElementVNode("input", {
+                    "onUpdate:modelValue": $event => ((taxForm.spec.calculation.reduction_percent) = $event),
+                    inputmode: "decimal",
+                    placeholder: "Informe inclusive zero"
+                  }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, taxForm.spec.calculation.reduction_percent]])]),
+                  _createElementVNode("label", null, [_createTextVNode("Arredondamento da base do item"), _withDirectives(_createElementVNode("select", {
+                    "aria-label": "Arredondamento da base do item",
+                    "onUpdate:modelValue": $event => ((taxForm.spec.calculation.base_rounding) = $event)
+                  }, [_createElementVNode("option", { value: "" }, "Selecione explicitamente"), _createElementVNode("option", { value: "centavos_antes_da_taxa" }, "Centavos antes da taxa, conforme arredondamento da regra")], 8, ["onUpdate:modelValue"]), [[_vModelSelect, taxForm.spec.calculation.base_rounding]])]),
+                  (taxForm.spec.calculation.method==='st')
+                    ? (_openBlock(), _createElementBlock(_Fragment, { key: 0 }, [_createElementVNode("label", null, [_createTextVNode("Margem percentual declarada"), _withDirectives(_createElementVNode("input", {
+                        "onUpdate:modelValue": $event => ((taxForm.spec.calculation.margin_percent) = $event),
+                        inputmode: "decimal"
+                      }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, taxForm.spec.calculation.margin_percent]])]), _createElementVNode("p", null, "A dedução própria deve ser informada em cada item, inclusive zero. O perfil não calcula a dedução.")], 64))
+                    : _createCommentVNode("", true),
+                  (taxForm.spec.calculation.method==='difal')
+                    ? (_openBlock(), _createElementBlock("label", { key: 1 }, [_createTextVNode("Taxa de origem declarada"), _withDirectives(_createElementVNode("input", {
+                        "onUpdate:modelValue": $event => ((taxForm.spec.calculation.origin_rate) = $event),
+                        inputmode: "decimal"
+                      }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, taxForm.spec.calculation.origin_rate]])]))
+                    : _createCommentVNode("", true),
+                  (['st','difal'].includes(taxForm.spec.calculation.method))
+                    ? (_openBlock(), _createElementBlock("label", { key: 2 }, [_createTextVNode("Tratamento de resultado negativo"), _withDirectives(_createElementVNode("select", {
+                        "aria-label": "Tratamento de resultado negativo",
+                        "onUpdate:modelValue": $event => ((taxForm.spec.calculation.negative_policy) = $event)
+                      }, [_createElementVNode("option", { value: "" }, "Selecione explicitamente"), _createElementVNode("option", { value: "bloquear" }, "Bloquear para revisão"), _createElementVNode("option", { value: "zerar" }, "Zerar por parâmetro validado, preservando resultado original")], 8, ["onUpdate:modelValue"]), [[_vModelSelect, taxForm.spec.calculation.negative_policy]])]))
+                    : _createCommentVNode("", true),
+                  (taxForm.spec.calculation.method==='retencao')
+                    ? (_openBlock(), _createElementBlock("label", { key: 3 }, [_createTextVNode("Identificador do tributo retido"), _withDirectives(_createElementVNode("input", {
+                        "onUpdate:modelValue": $event => ((taxForm.spec.calculation.component_code) = $event),
+                        placeholder: "Código declarado pelo responsável"
+                      }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, taxForm.spec.calculation.component_code]])]))
+                    : _createCommentVNode("", true),
+                  _createElementVNode("p", null, "Perfil aritmético limitado: base reduzida arredondada antes da taxa; valores por item arredondados antes da soma. Não infere incidência, bases legais, FCP, partilha, cálculo por dentro ou efeito financeiro. No perfil de diferença, a alíquota principal representa a taxa de destino.")
+                ], 64))
+              : _createCommentVNode("", true),
             _createElementVNode("label", null, [_createTextVNode("Alíquota percentual informada"), _withDirectives(_createElementVNode("input", {
               "onUpdate:modelValue": $event => ((taxForm.spec.rate) = $event),
               inputmode: "decimal",
@@ -1099,7 +1231,7 @@ var _Vue=Vue; var WorkRender=function render(_ctx, _cache) {
                 }), 256)),
                 _createVNode(_component_data_table, {
                   rows: assessmentPreview.snapshot.totals,
-                  columns: {tax:'Tributo',revenue_code:'Receita declarada',debito:'Débitos',credito:'Créditos',informativo:'Informativo',saldo_aritmetico:'Saldo aritmético'}
+                  columns: {tax:'Tributo',component_key:'Componente declarado',revenue_code:'Receita declarada',debito:'Débitos',credito:'Créditos',informativo:'Informativo',saldo_aritmetico:'Saldo aritmético'}
                 }, null, 8, ["rows", "columns"]),
                 _createElementVNode("details", null, [_createElementVNode("summary", null, "Memória da prévia"), _createElementVNode("pre", null, _toDisplayString(JSON.stringify(assessmentPreview.snapshot,null,2)), 1)]),
                 _createElementVNode("button", {
@@ -1117,7 +1249,7 @@ var _Vue=Vue; var WorkRender=function render(_ctx, _cache) {
               _createElementVNode("p", { class: "tax-fingerprint" }, _toDisplayString(row.snapshot_hash), 1),
               _createVNode(_component_data_table, {
                 rows: row.snapshot.totals,
-                columns: {tax:'Tributo',revenue_code:'Receita',debito:'Débitos',credito:'Créditos',saldo_aritmetico:'Saldo aritmético'}
+                columns: {tax:'Tributo',component_key:'Componente declarado',revenue_code:'Receita',debito:'Débitos',credito:'Créditos',informativo:'Informativo',saldo_aritmetico:'Saldo aritmético'}
               }, null, 8, ["rows", "columns"]),
               _createElementVNode("button", {
                 onClick: $event => (validateAssessment(row)),

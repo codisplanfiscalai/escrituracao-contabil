@@ -8,6 +8,24 @@ class TaxHTTPTests(unittest.TestCase):
     setUp = fixtures.RegistrationHTTPTests.setUp
     post = fixtures.RegistrationHTTPTests.post
 
+    def test_item_profiles_roundtrip_and_invalid_formula_is_rejected_by_http(self):
+        company=self.post('/api/companies',{'name':'Itens sintéticos'})['id']
+        spec={'tax':'ICMS_ST','rate':'10','base_field':'total','effect':'debito','operation':'entrada',
+              'valid_from':'2026-09-01','rounding':'meio_para_cima','validation_reference':'Teste sem validade legal',
+              'calculation':{'scope':'item','method':'st','reduction_percent':'0','base_rounding':'centavos_antes_da_taxa',
+                             'margin_percent':'50','deduction_field':'st_deduction','negative_policy':'bloquear'}}
+        payload={'company_id':company,'rule_key':'st','label':'ST declarada','state':'aprovada','expected_version':0,'reason':'Teste','spec':spec}
+        result=self.post('/api/tax-rules',payload)
+        self.assertEqual(result['spec']['calculation'],spec['calculation'])
+        config=self.client.get('/api/tax-config',params={'company_id':company}).json()['data']
+        self.assertIn('ICMS_DIFAL',config['supported_taxes'])
+        self.assertFalse(config['legal_defaults_loaded'])
+        payload['expected_version']=1
+        spec['calculation']['formula']='execute()'
+        response=self.client.post('/api/tax-rules',json=payload,headers=self.headers)
+        self.assertEqual(response.status_code,400)
+        self.assertEqual(len(self.client.get('/api/tax-config',params={'company_id':company}).json()['data']['rules']),1)
+
     def test_models_require_access_to_both_companies_and_copy_unapproved(self):
         first = self.post('/api/companies',{'name':'Origem sintética'})['id']
         second = self.post('/api/companies',{'name':'Destino sintético'})['id']
