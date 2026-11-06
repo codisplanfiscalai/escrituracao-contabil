@@ -3,6 +3,7 @@
 from .accounting_store import identifier
 
 WORK_GET = {
+    "work-module-state",
     "source-search",
     "work-archived-tabs",
     "work-attempt",
@@ -36,6 +37,7 @@ WORK_WRITE = {
     "work-resume",
 }
 WORK_REVIEW = {
+    "work-module-state",
     "work-policies",
     "work-review",
     "work-post",
@@ -78,6 +80,8 @@ def dispatch_work(store, method, route, data):
 
     company = identifier(req("company_id"))
     if method == "GET":
+        if route == "work-module-state":
+            return [store.module_period_overview(company, req("cycle_id"), module) for module in ("fiscal", "contabil")]
         if route == "source-search":
             return store.search_sources(company, **{key: data.get(key, "") for key in ("query", "kind", "issued_from", "issued_to", "direction")})
         if route == "work-attempt":
@@ -147,6 +151,8 @@ def dispatch_work(store, method, route, data):
                 )
             ]
     if method == "POST":
+        if route == "work-module-state":
+            return store.transition_module_period(company, req("cycle_id"), req("module"), req("target"), req("snapshot_hash"), req("reason"), data.get("checks"), data.get("evidence_reference", ""))
         if route == "source-remove":
             return store.remove_source(
                 company,

@@ -2,6 +2,8 @@
 
 ## Resultado e estado inicial
 
+Atualização posterior: o novo requisito de encerramento independente foi implementado sobre este incremento. O estado final usa esquema **12** e guardas compartilhadas em `src/work_store.py`; consulte [contrato e validação do encerramento por módulo](encerramento-por-modulo.md). As menções ao esquema 11 e à ausência de alteração de `work_store.py` abaixo descrevem o primeiro commit cadastral, não o complemento posterior. A [descrição do PR em rascunho](pr-rascunho-cadastro-encerramento.md) foi preparada sem publicação.
+
 O incremento entrega cadastro complementar de clientes, empresa usuária em registro separado, histórico cadastral, busca das fontes recebidas sem competência e inicialização Windows recolhida no tray. Não representa o sistema completo nem recuperação do código dos executáveis fornecidos.
 
 O checkout inicial estava limpo, na branch `work`, SHA `0a2d29b84e37f57eb7622218d48382c6a5362f22`, versão 0.2.1. Antes de editar, foi consultada a `develop` remota: SHA `22ebdb14d812980dac532cd7c0403c2f811f559e`, versão 0.3.0. A branch local `feat/cadastro-clientes-busca-fontes` parte dessa revisão atualizada. As instruções AGENTS.md dessa base foram relidas. Não havia skills locais em `.agents/skills` no ambiente selecionado; foram utilizadas as skills atuais da Library e do ambiente. Nenhum agente adicional foi iniciado nesta tarefa.

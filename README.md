@@ -31,7 +31,7 @@ Fichas incompletas são preservadas no banco por usuário, empresa e competênci
 
 ## Migração
 
-O esquema 11 acrescenta cadastros versionados de clientes e da empresa usuária. O esquema 10 adicionou o novo modelo em transação, preserva originais, decisões, rascunhos, movimentos fechados e arquivos exportados. Fechamentos/exportações fiscais anteriores continuam protegidos. Movimentos contábeis anteriores entram nos livros sem ser recriados. Em **Histórico**, rascunhos elegíveis podem ser retomados para nova conferência. Lotes documentais antigos exigem abrir cada documento para definir seus componentes.
+O esquema 12 acrescenta [encerramento independente fiscal/contábil por empresa e competência](docs/encerramento-por-modulo.md), preservando o controle global anterior. O esquema 11 acrescentou cadastros versionados de clientes e da empresa usuária. O esquema 10 adicionou o novo modelo em transação, preserva originais, decisões, rascunhos, movimentos fechados e arquivos exportados. Fechamentos/exportações fiscais anteriores continuam protegidos. Movimentos contábeis anteriores entram nos livros sem ser recriados. Em **Histórico**, rascunhos elegíveis podem ser retomados para nova conferência. Lotes documentais antigos exigem abrir cada documento para definir seus componentes.
 
 A interface anterior foi substituída. Seus endpoints de gravação fiscal, contábil, documental e financeira retornam HTTP 410; consultas históricas continuam disponíveis. Faça backup privado antes de atualizar. Uma migração testada com bases sintéticas não substitui conferir a cópia privada do banco existente.
 

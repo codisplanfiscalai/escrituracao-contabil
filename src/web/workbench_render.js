@@ -762,18 +762,53 @@ var _Vue=Vue; var WorkRender=function render(_ctx, _cache) {
       ], 512), [[_vShow, page==='books']]),
       _withDirectives(_createElementVNode("section", { class: "card" }, [
         _createElementVNode("h1", null, "Encerramento da competência"),
-        _createElementVNode("p", null, "Encerre depois de resolver documentos e versões pendentes e declarar a abertura. A reabertura mantém o histórico e exige motivo."),
-        _createVNode(_component_data_table, {
-          rows: overview?[overview.counts]:[],
-          columns: {pending_documents:'Documentos pendentes',drafts:'Rascunhos',reviewed:'Conferidos não escriturados',posted:'Escriturados',rejected_inputs:'Origens rejeitadas',legacy_pending:'Rascunhos anteriores não retomados',open_forms:'Guias incompletas abertas'}
-        }, null, 8, ["rows", "columns"]),
-        _createElementVNode("form", { onSubmit: _withModifiers(closeCycle, ["prevent"]) }, [_createElementVNode("label", null, [_createTextVNode("Motivo"), _withDirectives(_createElementVNode("input", {
-          "onUpdate:modelValue": $event => ((closing.reason) = $event),
-          required: ""
-        }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, closing.reason]])]), _createElementVNode("label", null, [_withDirectives(_createElementVNode("input", {
-          type: "checkbox",
-          "onUpdate:modelValue": $event => ((closing.acknowledge_errors) = $event)
-        }, null, 8, ["onUpdate:modelValue"]), [[_vModelCheckbox, closing.acknowledge_errors]]), _createTextVNode(" Conferi e reconheço os arquivos rejeitados e rascunhos anteriores não retomados deste recorte")]), _createElementVNode("button", { disabled: busy||!cycle }, _toDisplayString(cycle?.state==='encerrada'?'Reabrir com motivo':'Encerrar competência'), 9, ["disabled"])], 40, ["onSubmit"])
+        _createElementVNode("h2", null, "Encerramento independente por módulo"),
+        _createElementVNode("p", null, "Feche fiscal e contábil separadamente por cliente e mês. Operações que produzem efeitos nos dois módulos exigem ambos abertos. A recepção continua disponível; organizar e escriturar respeitam os bloqueios. A apuração fiscal é conferida externamente e sua referência deve ser registrada; esta aplicação não a calcula."),
+        _createElementVNode("label", null, [_createTextVNode("Motivo do controle por módulo"), _withDirectives(_createElementVNode("input", {
+          "onUpdate:modelValue": $event => ((moduleClosing.reason) = $event),
+          maxlength: "2000"
+        }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, moduleClosing.reason]])]),
+        _createElementVNode("label", null, [_createTextVNode("Referência da conferência e apuração externa"), _withDirectives(_createElementVNode("input", {
+          "onUpdate:modelValue": $event => ((moduleClosing.evidence_reference) = $event),
+          maxlength: "1000"
+        }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, moduleClosing.evidence_reference]])]),
+        (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(moduleStates, (row) => {
+          return (_openBlock(), _createElementBlock("article", {
+            key: row.state.module,
+            "data-module": row.state.module,
+            class: "inset"
+          }, [
+            _createElementVNode("h3", null, _toDisplayString(row.state.module==='fiscal'?'Fiscal':'Contábil') + " · " + _toDisplayString(row.state.competence) + " · " + _toDisplayString(row.state.state), 1),
+            (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(row.blockers, (blocker) => {
+              return (_openBlock(), _createElementBlock("p", null, _toDisplayString(blocker), 1))
+            }), 256)),
+            (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(row.required_checks, (key) => {
+              return (_openBlock(), _createElementBlock("label", null, [_withDirectives(_createElementVNode("input", {
+                type: "checkbox",
+                "onUpdate:modelValue": $event => ((moduleClosing.checks[key]) = $event)
+              }, null, 8, ["onUpdate:modelValue"]), [[_vModelCheckbox, moduleClosing.checks[key]]]), _createTextVNode(" Conferido: " + _toDisplayString(({lancamentos:'lançamentos',livros:'livros',correcoes:'correções',apuracao:'apuração externa',saldos:'saldos'})[key]), 1)]))
+            }), 256)),
+            _createElementVNode("button", {
+              onClick: $event => (closeModule(row)),
+              disabled: busy||row.global_state!=='aberta'
+            }, _toDisplayString(row.state.state==='encerrada'?'Reabrir':'Encerrar') + " " + _toDisplayString(row.state.module==='fiscal'?'fiscal':'contábil'), 9, ["onClick", "disabled"])
+          ], 8, ["data-module"]))
+        }), 128)),
+        _createElementVNode("details", null, [
+          _createElementVNode("summary", null, "Controle global anterior"),
+          _createElementVNode("p", null, "Encerre depois de resolver documentos e versões pendentes e declarar a abertura. A reabertura mantém o histórico e exige motivo."),
+          _createVNode(_component_data_table, {
+            rows: overview?[overview.counts]:[],
+            columns: {pending_documents:'Documentos pendentes',drafts:'Rascunhos',reviewed:'Conferidos não escriturados',posted:'Escriturados',rejected_inputs:'Origens rejeitadas',legacy_pending:'Rascunhos anteriores não retomados',open_forms:'Guias incompletas abertas'}
+          }, null, 8, ["rows", "columns"]),
+          _createElementVNode("form", { onSubmit: _withModifiers(closeCycle, ["prevent"]) }, [_createElementVNode("label", null, [_createTextVNode("Motivo"), _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((closing.reason) = $event),
+            required: ""
+          }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, closing.reason]])]), _createElementVNode("label", null, [_withDirectives(_createElementVNode("input", {
+            type: "checkbox",
+            "onUpdate:modelValue": $event => ((closing.acknowledge_errors) = $event)
+          }, null, 8, ["onUpdate:modelValue"]), [[_vModelCheckbox, closing.acknowledge_errors]]), _createTextVNode(" Conferi e reconheço os arquivos rejeitados e rascunhos anteriores não retomados deste recorte")]), _createElementVNode("button", { disabled: busy||!cycle }, _toDisplayString(cycle?.state==='encerrada'?'Reabrir com motivo':'Encerrar competência'), 9, ["disabled"])], 40, ["onSubmit"])
+        ])
       ], 512), [[_vShow, page==='closing']]),
       _withDirectives(_createElementVNode("section", { class: "card" }, [
         _createElementVNode("h1", null, "Histórico preservado e migração"),

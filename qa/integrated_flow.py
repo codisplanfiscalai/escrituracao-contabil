@@ -116,14 +116,20 @@ def run(mode):
                 assert book['totals']['debit']=='110.40',book['totals']
                 assert book['totals']['debit']==book['totals']['credit']
                 assert len(book['diary'])==4 and len(book['fiscal_book'])==1
-                nav('Encerramento');frame.locator('section:visible').get_by_label('Motivo',exact=True).fill('Encerramento sintético')
-                frame.get_by_role('button',name='Encerrar competência',exact=True).click();idle()
-                expect(frame.get_by_role('button',name='Reabrir com motivo')).to_be_visible()
+                nav('Encerramento')
+                for module, label in [('fiscal','fiscal'),('contabil','contábil')]:
+                    frame.get_by_label('Motivo do controle por módulo').fill('Encerramento sintético '+module)
+                    frame.get_by_label('Referência da conferência e apuração externa').fill('Conferência externa sintética')
+                    panel=frame.locator('[data-module="'+module+'"]')
+                    for check in panel.locator('input[type=checkbox]').all():check.check()
+                    panel.get_by_role('button',name='Encerrar '+label,exact=True).click();idle()
+                    expect(panel.get_by_role('button',name='Reabrir '+label,exact=True)).to_be_visible()
                 if errors:raise AssertionError(errors)
                 browser.close()
             with AccountingStore(path) as s:
                 assert len(s.work_operations(company,cycle['id']))==3
                 assert s.db.execute('SELECT COUNT(*) FROM work_movements').fetchone()[0]==4
+                assert all(s.module_period_state(company,'2026-09',module)['state']=='encerrada' for module in ['fiscal','contabil'])
                 assert not s.list_accounting_batches(company)
                 assert not s.list_fiscal_entries(company)
                 assert not s.list_manual_journals(company)

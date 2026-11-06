@@ -393,6 +393,7 @@ class SourceEvidenceMixin:
                     )
                 if not sped_profile:
                     return source
+            self.assert_module_period_open(company_id, cycle["competence"], {"fiscal"})
             if source["evidence"]["state"] == "descartado":
                 raise ValueError(
                     "Fonte retirada: não restaurar silenciosamente uma decisão anterior."
@@ -618,6 +619,9 @@ class SourceEvidenceMixin:
                     "Fonte vinculada a escrituração fechada; registre ajuste, sem excluir a evidência."
                 )
             source = self._source_revision(company_id, input_id)
+            if source["evidence"].get("cycle_id"):
+                cycle = self._work_cycle(company_id, source["evidence"]["cycle_id"])
+                self.assert_module_period_open(company_id, cycle["competence"], {"fiscal", "contabil"})
             if source["file_id"]:
                 self.db.execute(
                     "UPDATE files SET status='excluido' WHERE company_id=? AND id=?",

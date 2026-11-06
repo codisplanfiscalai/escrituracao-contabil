@@ -54,6 +54,20 @@ class RegistrationHTTPTests(unittest.TestCase):
         self.assertEqual(reader.post('/api/company-profile', json={'company_id':company,'data':{},'version':0,'reason':'Teste'}, headers=headers).status_code, 403)
         self.assertEqual(reader.post('/api/v1/organization', json={}, headers=headers).status_code, 403)
 
+    def test_independent_module_closure_http_contract(self):
+        company = self.post('/api/companies', {'name':'Módulos sintéticos'})['id']
+        cycle = self.post('/api/work-cycles', {'company_id':company, 'reference_competence':'2026-08', 'competence':'2026-09', 'reason':'Configuração'})
+        rows = self.client.get('/api/work-module-state', params={'company_id':company,'cycle_id':cycle['id']}).json()['data']
+        fiscal = next(r for r in rows if r['state']['module']=='fiscal')
+        payload = {'company_id':company, 'cycle_id':cycle['id'], 'module':'fiscal', 'target':'encerrada',
+                   'snapshot_hash':fiscal['snapshot_hash'], 'reason':'Conferência', 'checks':{key:True for key in fiscal['required_checks']},
+                   'evidence_reference':'Apuração externa sintética conferida'}
+        result = self.post('/api/work-module-state', payload)
+        self.assertEqual(result['state']['state'], 'encerrada')
+        rows = self.client.get('/api/work-module-state', params={'company_id':company,'cycle_id':cycle['id']}).json()['data']
+        self.assertEqual(next(r for r in rows if r['state']['module']=='contabil')['state']['state'], 'aberta')
+        self.assertEqual(self.client.post('/api/work-module-state', json=payload, headers={'Origin':'http://127.0.0.1:8765'}).status_code, 403)
+
 
 if __name__ == '__main__':
     unittest.main()

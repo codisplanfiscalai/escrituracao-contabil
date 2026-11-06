@@ -30,6 +30,7 @@ from .work_books import WorkBooksMixin
 from .batch_import import BatchImportMixin, BATCH_SCHEMA
 from .product_catalog import ProductCatalogMixin, PRODUCT_SCHEMA
 from .company_profiles import CompanyProfilesMixin, PROFILE_SCHEMA
+from .module_closure import ModuleClosureMixin, MODULE_SCHEMA
 
 MAX_FILE_BYTES = 10 * 1024 * 1024
 NS = {"n": "http://www.portalfiscal.inf.br/nfe"}
@@ -303,6 +304,7 @@ CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL);
 
 
 class AccountingStore(
+    ModuleClosureMixin,
     CompanyProfilesMixin,
     SourceEvidenceMixin,
     WorkBooksMixin,
@@ -336,7 +338,7 @@ class AccountingStore(
             if version_table
             else None
         )
-        if version and version[0] not in {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}:
+        if version and version[0] not in {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12}:
             self.close()
             raise ValueError(
                 "Versão do banco não suportada; nenhuma migração automática realizada"
@@ -359,11 +361,12 @@ class AccountingStore(
                 + WORK_SCHEMA
                 + SOURCE_SCHEMA
                 + PROFILE_SCHEMA
+                + MODULE_SCHEMA
             )
             if not version:
-                self.db.execute("INSERT INTO schema_version VALUES (11)")
-            elif version[0] in {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}:
-                self.db.execute("UPDATE schema_version SET version=11")
+                self.db.execute("INSERT INTO schema_version VALUES (12)")
+            elif version[0] in {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}:
+                self.db.execute("UPDATE schema_version SET version=12")
             if not version or version[0] < 10:
                 self.db.execute(
                     "INSERT OR IGNORE INTO work_cycles(company_id,competence,period_id,plan_id,actor,reason,created_at) SELECT company_id,processing_competence,MIN(id),NULL,'migracao-10','Migração: confirmar parâmetros e plano.',? FROM periods GROUP BY company_id,processing_competence",
