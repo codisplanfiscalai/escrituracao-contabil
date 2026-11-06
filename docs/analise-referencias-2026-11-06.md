@@ -2,6 +2,8 @@
 
 ## Resultado e estado inicial
 
+Publicação: branch `feat/cadastro-clientes-busca-fontes` e [PR #8](https://github.com/codisplanfiscalai/escrituracao-contabil/pull/8) disponibilizados para revisão em `develop`. Os registros de ausência de publicação abaixo descrevem as etapas locais anteriores. Não houve merge, release ou implantação.
+
 Atualização tributária: o estado final usa esquema **13**, com [regras, tabelas, modelos e apuração parametrizada por empresa](tributacao-parametrizada.md). As limitações de ausência de apuração nos incrementos anteriores abaixo são históricas; não havia regras legais fornecidas e nenhum tratamento legal foi presumido no novo motor.
 
 Atualização posterior: o novo requisito de encerramento independente foi implementado sobre este incremento. O estado final usa esquema **12** e guardas compartilhadas em `src/work_store.py`; consulte [contrato e validação do encerramento por módulo](encerramento-por-modulo.md). As menções ao esquema 11 e à ausência de alteração de `work_store.py` abaixo descrevem o primeiro commit cadastral, não o complemento posterior. A [descrição do PR em rascunho](pr-rascunho-cadastro-encerramento.md) foi preparada sem publicação.

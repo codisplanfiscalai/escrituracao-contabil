@@ -1,6 +1,6 @@
-# PR em rascunho preparado — sem publicação
+# PR fiscal em rascunho — publicado
 
-Destino: `develop`. Origem: `feat/cadastro-clientes-busca-fontes`.
+PR: [#8](https://github.com/codisplanfiscalai/escrituracao-contabil/pull/8). Destino: `develop`. Origem: `feat/cadastro-clientes-busca-fontes`. Publicação inicial no SHA `7bbc57bc29bd623ade57a19ab8873453f4d9e1e7`.
 
 Título sugerido: `feat: parametrizar tributação e apuração por empresa com cadastros e bloqueios`
 
@@ -18,6 +18,6 @@ Antes do merge: reconciliar esquema 13, payload `tax_calculation` e guardas comp
 
 ## Prontidão
 
-Base `develop` `22ebdb14d812980dac532cd7c0403c2f811f559e`, reconferida ao concluir a validação. Alterações isoladas em commits locais, prontas para revisão em rascunho. Merge depende da integração contábil e das validações de distribuição/homologação aplicáveis.
+Base `develop` `22ebdb14d812980dac532cd7c0403c2f811f559e`, reconferida ao concluir a validação. Alterações publicadas em branch própria e PR em rascunho. Merge depende da integração contábil e das validações de distribuição/homologação aplicáveis.
 
-Este arquivo prepara título e descrição. Não constitui autorização para push, abertura do PR, merge, release ou deploy.
+A publicação da branch e do PR foi executada. Não houve merge, release, mudança de visibilidade ou implantação. A política de branches passou na execução inicial; CI e Build verification devem ser acompanhados no SHA atual do PR. `actionlint 1.7.12` passou localmente, e a CI foi ampliada com os novos cenários de cadastro, encerramento e tributação.
