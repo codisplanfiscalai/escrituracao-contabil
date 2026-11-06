@@ -216,7 +216,7 @@ class EvidenceExportTests(unittest.TestCase):
             self.assertIsNone(db.execute("SELECT name FROM sqlite_master WHERE name='failed_evidence'").fetchone())
             self.assertEqual(db.execute('SELECT snapshot FROM accounting_batches').fetchone()[0],before)
         self.s=AccountingStore(self.path)
-        self.assertEqual(self.s.db.execute('SELECT version FROM schema_version').fetchone()[0],10)
+        self.assertEqual(self.s.db.execute('SELECT version FROM schema_version').fetchone()[0],13)
         self.assertEqual(self.s.db.execute('SELECT snapshot FROM accounting_batches').fetchone()[0],before)
         self.assertEqual(bytes(self.s.db.execute('SELECT original FROM files').fetchone()[0]),original)
         self.assertEqual(self.s._batch(self.c,batch['id']),batch)

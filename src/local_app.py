@@ -19,6 +19,7 @@ import secrets
 import sqlite3
 from urllib.parse import parse_qs, urlsplit
 from .work_api import WORK_ROUTES, RETIRED_WRITES, dispatch_work
+from .tax_api import TAX_ROUTES, dispatch_tax
 from .finance import FINANCE_ROUTES, dispatch_finance
 from .accounting_api import ACCOUNTING_ROUTES, dispatch_accounting
 
@@ -78,6 +79,8 @@ def _identifier(value, name):
 
 def dispatch(store, method, route, data):
     """Small explicit API; no method names or paths are chosen by the client."""
+    if route in TAX_ROUTES:
+        return dispatch_tax(store, method, route, data)
     if method == "POST" and route in RETIRED_WRITES:
         raise APIError(
             "Gravação retirada: use a ficha de operação da escrituração. Histórico anterior permanece consultável.",
@@ -93,6 +96,10 @@ def dispatch(store, method, route, data):
     if route != "companies":
         company = _identifier(_required(data, "company_id"), "company_id")
     if method == "GET":
+        if route == "company-profile":
+            return store.client_profile(company)
+        if route == "company-profile-history":
+            return store.client_profile_history(company)
         if route == "products":
             return store.list_products(company)
         if route == "import-batches":
@@ -160,6 +167,8 @@ def dispatch(store, method, route, data):
         if route == "audit":
             return store.list_audit(company)
     if method == "POST":
+        if route == "company-profile":
+            return store.save_client_profile(company, _required(data, "data"), data.get("version"), _required(data, "reason"))
         if route == "product-review":
             return store.review_product(
                 company,
@@ -546,7 +555,7 @@ class LocalHandler(BaseHTTPRequestHandler):
                 "accounting-evidence-file",
             }
             route = parts.path.removeprefix("/api/")
-            routes.update(ACCOUNTING_ROUTES | FINANCE_ROUTES | WORK_ROUTES)
+            routes.update(ACCOUNTING_ROUTES | FINANCE_ROUTES | WORK_ROUTES | TAX_ROUTES | {"company-profile", "company-profile-history"})
             if not parts.path.startswith("/api/") or route not in routes:
                 raise APIError("Página não encontrada.", 404)
             if self.command == "POST":

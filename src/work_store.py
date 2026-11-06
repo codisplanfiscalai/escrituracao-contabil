@@ -51,6 +51,7 @@ class WorkStoreMixin:
         with self.db:
             self.db.execute("BEGIN IMMEDIATE")
             self._company(company_id)
+            self.assert_module_period_open(company_id, competence, {"fiscal", "contabil"})
             if plan_id:
                 self._owned("plans", company_id, plan_id)
             row = self.db.execute(
@@ -492,7 +493,7 @@ class WorkStoreMixin:
         cycle = self._work_cycle(company_id, revision["cycle_id"])
         payload = revision["payload"]
         if revision["state"] == "escriturado":
-            return check_operation(
+            result = check_operation(
                 payload,
                 {
                     "competence": cycle["competence"],
@@ -500,6 +501,9 @@ class WorkStoreMixin:
                 },
                 payload["accounts_snapshot"],
             )
+            result["issues"].extend(self.tax_operation_issues(company_id, revision))
+            result["ready"] = not result["issues"]
+            return result
 
         accounts = (
             {
@@ -738,6 +742,7 @@ class WorkStoreMixin:
                 result["issues"].append(
                     {"field": "reversal", "message": str(error), "severity": "bloqueio"}
                 )
+        result["issues"].extend(self.tax_operation_issues(company_id, revision))
         result["ready"] = not result["issues"]
         return result
 
@@ -821,6 +826,11 @@ class WorkStoreMixin:
             previous = (
                 self._work_revision(company_id, operation_id) if operation_id else None
             )
+            self.assert_operation_modules_open(company_id, cycle, payload)
+            if previous:
+                self.assert_operation_modules_open(company_id, cycle, previous["payload"])
+                if previous["payload"].get("tax_calculation") and not payload.get("tax_calculation"):
+                    _text(payload.get("tax_override_reason"), "Motivo para substituir cálculo por valores informados", 2000)
             if previous and (
                 previous["state"] in {"escriturado", "dispensado"}
                 or previous["cycle_id"] != cycle["id"]
@@ -947,6 +957,7 @@ class WorkStoreMixin:
             cycle = self._work_cycle(company_id, revision["cycle_id"])
             if cycle["state"] != "aberta":
                 raise ValueError("Competência encerrada.")
+            self.assert_operation_modules_open(company_id, cycle, revision["payload"])
             if (
                 revision["snapshot_hash"] != expected_hash
                 or digest(revision["payload"]) != expected_hash
@@ -995,6 +1006,7 @@ class WorkStoreMixin:
                 raise ValueError("Snapshot alterado; confira novamente.")
             if revision["state"] == "escriturado":
                 return self.get_work_operation(company_id, operation_id)
+            self.assert_operation_modules_open(company_id, cycle, revision["payload"])
             if (
                 cycle["state"] != "aberta"
                 or revision["state"] != "revisado"
@@ -1518,6 +1530,9 @@ class WorkStoreMixin:
                 ).fetchone()
                 if not old or old["version"] != expected_version:
                     raise ValueError("Guia alterada; recarregue antes de sobrescrever.")
+                if json.loads(old["data"]).get("payload") != data.get("payload"):
+                    self.assert_operation_modules_open(company_id, self._work_cycle(company_id, cycle_id), data.get("payload") or {})
+                    self.assert_operation_modules_open(company_id, self._work_cycle(company_id, cycle_id), json.loads(old["data"]).get("payload") or {})
                 self.db.execute(
                     "UPDATE work_tabs SET title=?,data=?,version=version+1,closed=?,updated_at=?,operation_id=? WHERE id=?",
                     (title, dump(data), closed, self._now(), operation_id, old["id"]),
@@ -1525,6 +1540,7 @@ class WorkStoreMixin:
             else:
                 if expected_version != 0:
                     raise ValueError("Nova guia exige versão zero.")
+                self.assert_operation_modules_open(company_id, self._work_cycle(company_id, cycle_id), data.get("payload") or {})
                 tab_id = self.db.execute(
                     "INSERT INTO work_tabs(company_id,cycle_id,actor,operation_id,title,data,version,closed,updated_at) VALUES(?,?,?,?,?,?,1,?,?)",
                     (
@@ -1715,6 +1731,9 @@ class WorkStoreMixin:
             if target not in {"aberta", "encerrada"} or cycle["state"] == target:
                 raise ValueError("Transição inválida.")
             if target == "encerrada":
+                assessment = self.tax_assessment_readiness(company_id, cycle_id)
+                if assessment["required"] and not assessment["ready"]:
+                    raise ValueError(assessment["message"])
                 if any(
                     overview["counts"][key]
                     for key in ["pending_documents", "drafts", "reviewed", "open_forms"]

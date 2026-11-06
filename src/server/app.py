@@ -16,6 +16,7 @@ from .identity import Identity, IdentityError, PERMISSIONS, digest
 from ..local_app import dispatch, APIError, MAX_BODY, WEB_ROOT
 from ..persistence import AccountingStore
 from ..work_api import WORK_WRITE, WORK_REVIEW
+from ..tax_api import TAX_WRITE, TAX_REVIEW
 from ..finance import FINANCE_WRITE, FINANCE_REVIEW
 from ..accounting_api import ACCOUNTING_WRITE, ACCOUNTING_REVIEW
 
@@ -61,6 +62,8 @@ CLIENT_POST = {"files", "import-batches", "source-receive"}
 CLIENT_GET.update({"source-inbox", "source-original"})
 WRITE_ROUTES.update(ACCOUNTING_WRITE | FINANCE_WRITE | WORK_WRITE)
 REVIEW_ROUTES.update(ACCOUNTING_REVIEW | FINANCE_REVIEW | WORK_REVIEW)
+WRITE_ROUTES.update(TAX_WRITE)
+REVIEW_ROUTES.update(TAX_REVIEW)
 
 
 def create_app(
@@ -408,6 +411,25 @@ def create_app(
         actor(request, "settings.manage")
         return answer(identity.settings())
 
+    @app.get("/api/v1/organization")
+    def organization(request: Request):
+        actor(request, "settings.manage")
+        with AccountingStore(accounting) as store:
+            return answer(store.user_organization())
+
+    @app.get("/api/v1/organization-history")
+    def organization_history(request: Request):
+        actor(request, "settings.manage")
+        with AccountingStore(accounting) as store:
+            return answer(store.user_organization_history())
+
+    @app.post("/api/v1/organization")
+    async def save_organization(request: Request):
+        user = actor(request, "settings.manage")
+        body = await data(request)
+        with AccountingStore(accounting, actor=user["id"]) as store:
+            return answer(store.save_user_organization(body.get("data"), body.get("version"), body.get("reason", "")))
+
     @app.post("/api/v1/settings")
     async def save_settings(request: Request):
         user = actor(request, "settings.manage")
@@ -474,6 +496,8 @@ def create_app(
             return answer(companies(user))
         if route != "companies":
             company_scope(user, body.get("company_id"))
+        if route == "tax-template-copy":
+            company_scope(user, body.get("source_company_id"))
         store = AccountingStore(accounting, actor=user["id"])
         try:
             result = dispatch(store, request.method, route, body)
@@ -503,8 +527,10 @@ def create_app(
     @app.api_route("/api/{route}", methods=["GET", "POST"])
     async def workspace_api(route: str, request: Request):
         permission = "workspace.read"
+        if route in {"company-profile", "company-profile-history"}:
+            permission = "companies.manage"
         if request.method == "POST":
-            if route == "companies":
+            if route in {"companies", "company-profile"}:
                 permission = "companies.manage"
             elif route in REVIEW_ROUTES:
                 permission = "workspace.review"
@@ -514,7 +540,7 @@ def create_app(
                 raise IdentityError("Recurso não disponível.", 404)
         user = actor(request, permission)
         if (
-            route == "companies"
+            route in {"companies", "company-profile"}
             and request.method == "POST"
             and user["role"] != "admin"
         ):

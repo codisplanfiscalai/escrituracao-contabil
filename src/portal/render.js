@@ -308,7 +308,53 @@ var _Vue=Vue; var EscrituraRender=function render(_ctx, _cache) {
               ], 40, ["onSubmit"])]), _createElementVNode("div", { class: "panel spaced" }, [_createVNode(_component_data_table, {
                 rows: dashboard.companies,
                 columns: {name:'Empresa',cnpj:'CNPJ',prosoft_company_code:'Código Prosoft',prosoft_plan_code:'Plano'}
-              }, null, 8, ["rows", "columns"])])], 512), [[_vShow, page==='companies']]),
+              }, null, 8, ["rows", "columns"])]), _createElementVNode("div", { class: "panel spaced padded" }, [
+                _createElementVNode("h2", null, "Cadastro complementar do cliente"),
+                _createElementVNode("p", null, "Dados declarados para cadastro. Regime, RAT e FAP não ativam cálculos fiscais ou trabalhistas. Razão social e CNPJ de identificação são definidos no cadastro inicial."),
+                _createElementVNode("label", { class: "field" }, [_createTextVNode("Cliente para cadastro"), _withDirectives(_createElementVNode("select", {
+                  "aria-label": "Cliente para cadastro",
+                  "onUpdate:modelValue": $event => ((clientId) = $event),
+                  onChange: loadClientProfile,
+                  disabled: busy
+                }, [_createElementVNode("option", { value: "" }, "Selecione"), (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(dashboard.companies, (c) => {
+                  return (_openBlock(), _createElementBlock("option", {
+                    key: c.id,
+                    value: String(c.id)
+                  }, _toDisplayString(c.name), 9, ["value"]))
+                }), 128))], 40, ["onUpdate:modelValue", "onChange", "disabled"]), [[_vModelSelect, clientId]])]),
+                clientProfile
+                  ? (_openBlock(), _createElementBlock("form", {
+                      key: 0,
+                      onSubmit: _withModifiers(saveClientProfile, ["prevent"])
+                    }, [
+                      _createElementVNode("p", null, _toDisplayString(clientProfile.company.name) + " · CNPJ " + _toDisplayString(clientProfile.company.cnpj||'não informado') + " · Versão " + _toDisplayString(clientProfile.version), 1),
+                      (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(clientProfile.fields, (section) => {
+                        return (_openBlock(), _createElementBlock("fieldset", { key: section.id }, [_createElementVNode("legend", null, _toDisplayString(section.label), 1), _createElementVNode("div", { class: "form-grid" }, [(_openBlock(true), _createElementBlock(_Fragment, null, _renderList(section.fields, (field) => {
+                          return (_openBlock(), _createElementBlock("label", {
+                            class: "field",
+                            key: field[0]
+                          }, [_createTextVNode(_toDisplayString(field[1]), 1), _withDirectives(_createElementVNode("input", {
+                            "onUpdate:modelValue": $event => ((clientProfile.data[section.id][field[0]]) = $event),
+                            maxlength: field[0]==='notes'?2000:200
+                          }, null, 8, ["onUpdate:modelValue", "maxlength"]), [[_vModelText, clientProfile.data[section.id][field[0]]]])]))
+                        }), 128))])]))
+                      }), 128)),
+                      _createElementVNode("label", { class: "field" }, [_createTextVNode("Motivo da atualização do cliente"), _withDirectives(_createElementVNode("input", {
+                        "onUpdate:modelValue": $event => ((clientReason) = $event),
+                        required: "",
+                        maxlength: "1000"
+                      }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, clientReason]])]),
+                      _createElementVNode("button", {
+                        class: "btn primary",
+                        disabled: busy
+                      }, "Salvar cadastro do cliente", 8, ["disabled"]),
+                      _createElementVNode("details", null, [_createElementVNode("summary", null, "Histórico cadastral do cliente"), _createVNode(_component_data_table, {
+                        rows: clientProfileHistory,
+                        columns: {version:'Versão',created_at:'Data',actor:'Responsável',reason:'Motivo',data:'Dados declarados'}
+                      }, null, 8, ["rows", "columns"])])
+                    ], 40, ["onSubmit"]))
+                  : _createCommentVNode("", true)
+              ])], 512), [[_vShow, page==='companies']]),
               _withDirectives(_createElementVNode("section", null, [_createElementVNode("div", { class: "panel" }, [_createElementVNode("header", { class: "panel-header" }, [_createElementVNode("h2", null, "Usuários e acessos"), _createElementVNode("button", {
                 class: "btn primary",
                 onClick: $event => (editUser())
@@ -400,6 +446,49 @@ var _Vue=Vue; var EscrituraRender=function render(_ctx, _cache) {
                   class: "btn primary",
                   disabled: busy
                 }, "Salvar configurações", 8, ["disabled"])])], 40, ["onSubmit"]),
+                _createElementVNode("div", { class: "divider" }),
+                _createElementVNode("h2", null, "Empresa usuária"),
+                _createElementVNode("p", null, "Identifica o escritório ou a empresa que utiliza a aplicação. Este registro é independente das empresas clientes e não recebe movimentos."),
+                organization
+                  ? (_openBlock(), _createElementBlock("form", {
+                      key: 0,
+                      onSubmit: _withModifiers(saveOrganization, ["prevent"])
+                    }, [
+                      _createElementVNode("div", { class: "form-grid" }, [_createElementVNode("label", { class: "field" }, [_createTextVNode("Nome da empresa usuária"), _withDirectives(_createElementVNode("input", {
+                        "onUpdate:modelValue": $event => ((organization.data.name) = $event),
+                        required: "",
+                        maxlength: "200"
+                      }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, organization.data.name]])]), _createElementVNode("label", { class: "field" }, [_createTextVNode("CNPJ da empresa usuária"), _withDirectives(_createElementVNode("input", {
+                        "onUpdate:modelValue": $event => ((organization.data.cnpj) = $event),
+                        maxlength: "14",
+                        inputmode: "numeric"
+                      }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, organization.data.cnpj]])])]),
+                      (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(organization.fields, (section) => {
+                        return (_openBlock(), _createElementBlock("fieldset", { key: section.id }, [_createElementVNode("legend", null, _toDisplayString(section.label), 1), _createElementVNode("div", { class: "form-grid" }, [(_openBlock(true), _createElementBlock(_Fragment, null, _renderList(section.fields, (field) => {
+                          return (_openBlock(), _createElementBlock("label", {
+                            class: "field",
+                            key: field[0]
+                          }, [_createTextVNode(_toDisplayString(field[1]), 1), _withDirectives(_createElementVNode("input", {
+                            "onUpdate:modelValue": $event => ((organization.data.profile[section.id][field[0]]) = $event),
+                            maxlength: field[0]==='notes'?2000:200
+                          }, null, 8, ["onUpdate:modelValue", "maxlength"]), [[_vModelText, organization.data.profile[section.id][field[0]]]])]))
+                        }), 128))])]))
+                      }), 128)),
+                      _createElementVNode("label", { class: "field" }, [_createTextVNode("Motivo da atualização da empresa usuária"), _withDirectives(_createElementVNode("input", {
+                        "onUpdate:modelValue": $event => ((organizationReason) = $event),
+                        required: "",
+                        maxlength: "1000"
+                      }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, organizationReason]])]),
+                      _createElementVNode("button", {
+                        class: "btn primary",
+                        disabled: busy
+                      }, "Salvar empresa usuária", 8, ["disabled"]),
+                      _createElementVNode("details", null, [_createElementVNode("summary", null, "Histórico da empresa usuária"), _createVNode(_component_data_table, {
+                        rows: organizationHistory,
+                        columns: {version:'Versão',created_at:'Data',actor:'Responsável',reason:'Motivo',data:'Cadastro'}
+                      }, null, 8, ["rows", "columns"])])
+                    ], 40, ["onSubmit"]))
+                  : _createCommentVNode("", true),
                 _createElementVNode("div", { class: "divider" }),
                 _createElementVNode("h2", null, "Ordem dos menus"),
                 _createElementVNode("p", { class: "muted" }, "As permissões de cada usuário continuam sendo aplicadas."),

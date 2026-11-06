@@ -2,6 +2,13 @@
 
 Aplicação de escrituração fiscal e contábil, com portal Vue, API Python, SQLite, aplicativo Windows gráfico com área de notificação e execução em servidor Docker.
 
+Uma aplicação integrada: menus, módulos e relatórios compartilham contexto e serviços internos, com filtros e opções. Os executáveis externos são referências para levantamento; não haverá um EXE por tela ou relatório.
+
+[Tributação e apuração por empresa](docs/tributacao-parametrizada.md): regras percentuais versionadas para ICMS/ISS/PIS/COFINS, cadastros de CFOP/NCM/receita/serviço, modelos copiáveis em rascunho e memória de cálculo. Não há alíquotas ou tratamentos legais pré-carregados. Cada modelo precisa de validação no destino; cálculo e apuração permanecem sujeitos à conferência.
+
+
+Incremento de 06/11 em revisão no [PR #8](https://github.com/codisplanfiscalai/escrituracao-contabil/pull/8): [análise dos anexos, cadastro separado da empresa usuária, busca sem competência, contratos e validação](docs/analise-referencias-2026-11-06.md). A transferência dos executáveis/prints falhou; sua tecnologia e suas telas não foram verificadas. O cadastro complementar está em Empresas, e a empresa usuária em Configurações. Esses dados declarados não ativam cálculo fiscal/trabalhista. A busca em Recepção consulta fontes já recebidas sem exigir competência. Windows inicia no tray; `--show-window` abre a administração. A mudança de inicialização ainda exige validação nativa x86/x64.
+
 A jornada foi reformulada: **receber → identificar e organizar → escriturar → conferir → consultar livros e financeiro → encerrar e exportar**. Importar e lançar manualmente são entradas para a mesma escrituração. Guias permitem alternar atividades; editores de usuários e perfis também usam guias. No portal, os modais são restritos à configuração transitória do 2FA e aos códigos de recuperação.
 
 - [Novo domínio, migração, regras e limites](docs/reformulacao-fiscal-contabil.md)
@@ -27,13 +34,13 @@ Fichas incompletas são preservadas no banco por usuário, empresa e competênci
 
 ## Migração
 
-O esquema 10 adiciona o novo modelo em transação, preserva originais, decisões, rascunhos, movimentos fechados e arquivos exportados. Fechamentos/exportações fiscais anteriores continuam protegidos. Movimentos contábeis anteriores entram nos livros sem ser recriados. Em **Histórico**, rascunhos elegíveis podem ser retomados para nova conferência. Lotes documentais antigos exigem abrir cada documento para definir seus componentes.
+O esquema 13 acrescenta regras/tabelas/modelos tributários, memórias de cálculo e apurações versionadas, sem recálculo retroativo. O esquema 12 acrescentou [encerramento independente fiscal/contábil por empresa e competência](docs/encerramento-por-modulo.md), preservando o controle global anterior. O esquema 11 acrescentou cadastros versionados de clientes e da empresa usuária. O esquema 10 adicionou o novo modelo em transação, preserva originais, decisões, rascunhos, movimentos fechados e arquivos exportados. Fechamentos/exportações fiscais anteriores continuam protegidos. Movimentos contábeis anteriores entram nos livros sem ser recriados. Em **Histórico**, rascunhos elegíveis podem ser retomados para nova conferência. Lotes documentais antigos exigem abrir cada documento para definir seus componentes.
 
 A interface anterior foi substituída. Seus endpoints de gravação fiscal, contábil, documental e financeira retornam HTTP 410; consultas históricas continuam disponíveis. Faça backup privado antes de atualizar. Uma migração testada com bases sintéticas não substitui conferir a cópia privada do banco existente.
 
 ## Limites comprovados
 
-- NF-e/NFC-e 4.00 modelos 55/65: cabeçalho, itens observados e cobrança quando identificada. Sem validação de assinatura, autorização ou esquema XSD completo. Serviços e folha admitem valores informados manualmente; não há cálculo de folha, tributos, CBS/IBS, apuração ou obrigações acessórias.
+- NF-e/NFC-e 4.00 modelos 55/65: cabeçalho, itens observados e cobrança quando identificada. Sem validação de assinatura, autorização ou esquema XSD completo. Serviços e folha admitem valores informados manualmente; não há cálculo de folha, CBS/IBS ou geração de obrigações. Tributação percentual e apuração aritmética dependem de regras explicitamente aprovadas; regimes especiais e validação legal integral permanecem pendentes.
 - SPED: preservação do original e perfil explícito parcial EFD-ICMS/IPI 020 para cabeçalho/C100 55/65. C140/C141 não são convertidos em cobrança por suposição. Outros perfis permanecem pendentes.
 - ZIP integrado. 7z/RAR dependem de libarchive e estão indisponíveis no Windows congelado atual; RAR5/comprimido não homologado. Até 10 MiB por envio web, 500 entradas totais e 100 MiB expandidos. Links, pacotes aninhados e criptografia são recusados.
 - Exportação operacional própria disponível. Geração de obrigação SPED, PVA/transmissão e importação Prosoft permanecem indisponíveis sem perfis verificados. Os leiautes reais tiveram HTTP 403; o download autorizado do ZIP do gerador da Library falhou na rede. Nenhuma compatibilidade ou homologação é alegada.

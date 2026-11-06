@@ -213,6 +213,28 @@ var _Vue=Vue; var WorkRender=function render(_ctx, _cache) {
       ], 512), [[_vShow, page==='chart']]),
       _withDirectives(_createElementVNode("section", { class: "card" }, [
         _createElementVNode("h1", null, "Recepção e caixa de entrada"),
+        _createElementVNode("form", {
+          onSubmit: _withModifiers(searchSources, ["prevent"]),
+          class: "toolbar source-search"
+        }, [
+          _createElementVNode("label", null, [_createTextVNode("Buscar fontes"), _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((sourceSearch.query) = $event),
+            placeholder: "Arquivo, chave, número ou CPF/CNPJ",
+            maxlength: "100"
+          }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, sourceSearch.query]])]),
+          _createElementVNode("label", null, [_createTextVNode("Tipo da fonte"), _withDirectives(_createElementVNode("select", { "onUpdate:modelValue": $event => ((sourceSearch.kind) = $event) }, [_createElementVNode("option", { value: "" }, "Todos"), _createElementVNode("option", null, "XML"), _createElementVNode("option", null, "SPED")], 8, ["onUpdate:modelValue"]), [[_vModelSelect, sourceSearch.kind]])]),
+          _createElementVNode("label", null, [_createTextVNode("Direção identificada"), _withDirectives(_createElementVNode("select", { "onUpdate:modelValue": $event => ((sourceSearch.direction) = $event) }, [_createElementVNode("option", { value: "" }, "Todas"), _createElementVNode("option", { value: "entrada" }, "Entradas"), _createElementVNode("option", { value: "saida" }, "Saídas")], 8, ["onUpdate:modelValue"]), [[_vModelSelect, sourceSearch.direction]])]),
+          _createElementVNode("label", null, [_createTextVNode("Emissão inicial"), _withDirectives(_createElementVNode("input", {
+            type: "date",
+            "onUpdate:modelValue": $event => ((sourceSearch.issued_from) = $event)
+          }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, sourceSearch.issued_from]])]),
+          _createElementVNode("label", null, [_createTextVNode("Emissão final"), _withDirectives(_createElementVNode("input", {
+            type: "date",
+            "onUpdate:modelValue": $event => ((sourceSearch.issued_to) = $event)
+          }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, sourceSearch.issued_to]])]),
+          _createElementVNode("button", { disabled: busy||!company }, "Buscar sem competência", 8, ["disabled"])
+        ], 40, ["onSubmit"]),
+        _createElementVNode("p", null, "Busca nas fontes já recebidas deste cliente, sem abertura de competência. Fontes sem emissão identificada não aparecem no filtro por data; direção depende do CNPJ cadastrado."),
         _createElementVNode("p", null, "Receba primeiro; escolha a competência ao organizar. Nenhum lançamento é criado pelo envio. XML, SPED e ZIP; 7z/RAR dependem do leitor disponível e não estão disponíveis no Windows congelado atual."),
         _createElementVNode("form", {
           onSubmit: _withModifiers(receive, ["prevent"]),
@@ -395,206 +417,267 @@ var _Vue=Vue; var WorkRender=function render(_ctx, _cache) {
             class: "card operation"
           }, [
             _createElementVNode("header", null, [_createElementVNode("h2", null, _toDisplayString(active.title), 1), _createElementVNode("span", null, _toDisplayString(active.operation?.state||'Rascunho da guia') + " · " + _toDisplayString(active.operation?'v'+active.operation.version:'não efetivado'), 1), _createElementVNode("small", null, _toDisplayString(draftStatus), 1)]),
-            _createElementVNode("form", { onSubmit: _withModifiers(saveOperation, ["prevent"]) }, [_createElementVNode("fieldset", { disabled: busy||['escriturado','dispensado'].includes(active.operation?.state) }, [
-              _createElementVNode("div", { class: "grid" }, [
-                _createElementVNode("label", null, [_createTextVNode("Referência"), _withDirectives(_createElementVNode("input", {
-                  id: "operation-reference",
-                  "onUpdate:modelValue": $event => ((active.data.payload.reference) = $event)
-                }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, active.data.payload.reference]])]),
-                _createElementVNode("label", null, [_createTextVNode("Natureza"), _withDirectives(_createElementVNode("select", {
-                  "aria-label": "Natureza",
-                  "onUpdate:modelValue": $event => ((active.data.payload.fiscal.operation) = $event)
-                }, [(_openBlock(true), _createElementBlock(_Fragment, null, _renderList(operations, (o) => {
-                  return (_openBlock(), _createElementBlock("option", { value: o.id }, _toDisplayString(o.label), 9, ["value"]))
-                }), 256))], 8, ["onUpdate:modelValue"]), [[_vModelSelect, active.data.payload.fiscal.operation]])]),
-                _createElementVNode("label", null, [_createTextVNode("Data de escrituração"), _withDirectives(_createElementVNode("input", {
-                  type: "date",
-                  "onUpdate:modelValue": $event => ((active.data.payload.fiscal.posting_date) = $event),
-                  onChange: syncDates
-                }, null, 40, ["onUpdate:modelValue", "onChange"]), [[_vModelText, active.data.payload.fiscal.posting_date]])]),
-                _createElementVNode("label", null, [_createTextVNode("Valor total"), _withDirectives(_createElementVNode("input", {
-                  "onUpdate:modelValue": $event => ((active.data.payload.fiscal.total) = $event),
-                  inputmode: "decimal",
-                  onChange: syncAmounts
-                }, null, 40, ["onUpdate:modelValue", "onChange"]), [[_vModelText, active.data.payload.fiscal.total]])]),
-                _createElementVNode("label", null, [_createTextVNode("Política"), _withDirectives(_createElementVNode("select", {
-                  "aria-label": "Política",
-                  "onUpdate:modelValue": $event => ((active.data.payload.policy_id) = $event)
-                }, [_createElementVNode("option", { value: null }, "Partidas informadas manualmente", 8, ["value"]), (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(applicablePolicies, (p) => {
-                  return (_openBlock(), _createElementBlock("option", { value: p.id }, _toDisplayString(p.label) + " · v" + _toDisplayString(p.version), 9, ["value"]))
-                }), 256))], 8, ["onUpdate:modelValue"]), [[_vModelSelect, active.data.payload.policy_id]])]),
+            _createElementVNode("form", { onSubmit: _withModifiers(saveOperation, ["prevent"]) }, [
+              _createElementVNode("fieldset", { disabled: busy||['escriturado','dispensado'].includes(active.operation?.state) }, [
+                _createElementVNode("div", { class: "grid" }, [
+                  _createElementVNode("label", null, [_createTextVNode("Referência"), _withDirectives(_createElementVNode("input", {
+                    id: "operation-reference",
+                    "onUpdate:modelValue": $event => ((active.data.payload.reference) = $event)
+                  }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, active.data.payload.reference]])]),
+                  _createElementVNode("label", null, [_createTextVNode("Natureza"), _withDirectives(_createElementVNode("select", {
+                    "aria-label": "Natureza",
+                    "onUpdate:modelValue": $event => ((active.data.payload.fiscal.operation) = $event)
+                  }, [(_openBlock(true), _createElementBlock(_Fragment, null, _renderList(operations, (o) => {
+                    return (_openBlock(), _createElementBlock("option", { value: o.id }, _toDisplayString(o.label), 9, ["value"]))
+                  }), 256))], 8, ["onUpdate:modelValue"]), [[_vModelSelect, active.data.payload.fiscal.operation]])]),
+                  _createElementVNode("label", null, [_createTextVNode("Data de escrituração"), _withDirectives(_createElementVNode("input", {
+                    type: "date",
+                    "onUpdate:modelValue": $event => ((active.data.payload.fiscal.posting_date) = $event),
+                    onChange: syncDates
+                  }, null, 40, ["onUpdate:modelValue", "onChange"]), [[_vModelText, active.data.payload.fiscal.posting_date]])]),
+                  _createElementVNode("label", null, [_createTextVNode("Valor total"), _withDirectives(_createElementVNode("input", {
+                    "onUpdate:modelValue": $event => ((active.data.payload.fiscal.total) = $event),
+                    inputmode: "decimal",
+                    onChange: syncAmounts
+                  }, null, 40, ["onUpdate:modelValue", "onChange"]), [[_vModelText, active.data.payload.fiscal.total]])]),
+                  _createElementVNode("label", null, [_createTextVNode("Política"), _withDirectives(_createElementVNode("select", {
+                    "aria-label": "Política",
+                    "onUpdate:modelValue": $event => ((active.data.payload.policy_id) = $event)
+                  }, [_createElementVNode("option", { value: null }, "Partidas informadas manualmente", 8, ["value"]), (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(applicablePolicies, (p) => {
+                    return (_openBlock(), _createElementBlock("option", { value: p.id }, _toDisplayString(p.label) + " · v" + _toDisplayString(p.version), 9, ["value"]))
+                  }), 256))], 8, ["onUpdate:modelValue"]), [[_vModelSelect, active.data.payload.policy_id]])]),
+                  _createElementVNode("button", {
+                    type: "button",
+                    onClick: applyPolicy
+                  }, "Aplicar contas da política", 8, ["onClick"])
+                ]),
+                _createElementVNode("details", { open: ['entrada','saida','servico_tomado','servico_prestado'].includes(active.data.payload.fiscal.operation) }, [_createElementVNode("summary", null, "Documento e fatos fiscais informados"), _createElementVNode("div", { class: "grid" }, [
+                  _createElementVNode("label", null, [_createTextVNode("Modelo"), _withDirectives(_createElementVNode("select", {
+                    "aria-label": "Modelo",
+                    "onUpdate:modelValue": $event => ((active.data.payload.fiscal.model) = $event)
+                  }, [
+                    _createElementVNode("option", { value: "" }, "Sem documento fiscal"),
+                    _createElementVNode("option", { value: "55" }, "55 · NF-e"),
+                    _createElementVNode("option", { value: "65" }, "65 · NFC-e"),
+                    _createElementVNode("option", { value: "SERVICO" }, "Serviço")
+                  ], 8, ["onUpdate:modelValue"]), [[_vModelSelect, active.data.payload.fiscal.model]])]),
+                  _createElementVNode("label", null, [_createTextVNode("Número"), _withDirectives(_createElementVNode("input", { "onUpdate:modelValue": $event => ((active.data.payload.fiscal.number) = $event) }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, active.data.payload.fiscal.number]])]),
+                  _createElementVNode("label", null, [_createTextVNode("Série"), _withDirectives(_createElementVNode("input", { "onUpdate:modelValue": $event => ((active.data.payload.fiscal.series) = $event) }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, active.data.payload.fiscal.series]])]),
+                  _createElementVNode("label", null, [_createTextVNode("Emissão"), _withDirectives(_createElementVNode("input", {
+                    type: "date",
+                    "onUpdate:modelValue": $event => ((active.data.payload.fiscal.issued_date) = $event)
+                  }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, active.data.payload.fiscal.issued_date]])]),
+                  _createElementVNode("label", null, [_createTextVNode("Emitente · CPF/CNPJ"), _withDirectives(_createElementVNode("input", { "onUpdate:modelValue": $event => ((active.data.payload.fiscal.issuer) = $event) }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, active.data.payload.fiscal.issuer]])]),
+                  _createElementVNode("label", null, [_createTextVNode("Destinatário · CPF/CNPJ"), _withDirectives(_createElementVNode("input", { "onUpdate:modelValue": $event => ((active.data.payload.fiscal.buyer) = $event) }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, active.data.payload.fiscal.buyer]])]),
+                  _createElementVNode("label", null, [_createTextVNode("CFOP informado"), _withDirectives(_createElementVNode("input", { "onUpdate:modelValue": $event => ((active.data.payload.fiscal.cfop) = $event) }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, active.data.payload.fiscal.cfop]])]),
+                  _createElementVNode("label", null, [_createTextVNode("CST informado"), _withDirectives(_createElementVNode("input", { "onUpdate:modelValue": $event => ((active.data.payload.fiscal.cst) = $event) }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, active.data.payload.fiscal.cst]])]),
+                  _createElementVNode("label", null, [_createTextVNode("NCM declarado para regra"), _withDirectives(_createElementVNode("input", {
+                    "onUpdate:modelValue": $event => ((active.data.payload.fiscal.ncm) = $event),
+                    maxlength: "8"
+                  }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, active.data.payload.fiscal.ncm]])]),
+                  _createElementVNode("label", null, [_createTextVNode("Código de serviço declarado"), _withDirectives(_createElementVNode("input", {
+                    "onUpdate:modelValue": $event => ((active.data.payload.fiscal.service_code) = $event),
+                    maxlength: "30"
+                  }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, active.data.payload.fiscal.service_code]])]),
+                  _createElementVNode("label", null, [_createTextVNode("Base ICMS informada"), _withDirectives(_createElementVNode("input", {
+                    "onUpdate:modelValue": $event => ((active.data.payload.fiscal.icms_base) = $event),
+                    inputmode: "decimal"
+                  }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, active.data.payload.fiscal.icms_base]])]),
+                  _createElementVNode("label", null, [_createTextVNode("ICMS informado"), _withDirectives(_createElementVNode("input", {
+                    "onUpdate:modelValue": $event => ((active.data.payload.fiscal.icms_amount) = $event),
+                    inputmode: "decimal"
+                  }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, active.data.payload.fiscal.icms_amount]])]),
+                  _createElementVNode("label", null, [_createTextVNode("Base ISS informada"), _withDirectives(_createElementVNode("input", {
+                    "onUpdate:modelValue": $event => ((active.data.payload.fiscal.iss_base) = $event),
+                    inputmode: "decimal"
+                  }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, active.data.payload.fiscal.iss_base]])]),
+                  _createElementVNode("label", null, [_createTextVNode("ISS informado"), _withDirectives(_createElementVNode("input", {
+                    "onUpdate:modelValue": $event => ((active.data.payload.fiscal.iss_amount) = $event),
+                    inputmode: "decimal"
+                  }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, active.data.payload.fiscal.iss_amount]])]),
+                  _createElementVNode("label", null, [_createTextVNode("Base PIS informada"), _withDirectives(_createElementVNode("input", {
+                    "onUpdate:modelValue": $event => ((active.data.payload.fiscal.pis_base) = $event),
+                    inputmode: "decimal"
+                  }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, active.data.payload.fiscal.pis_base]])]),
+                  _createElementVNode("label", null, [_createTextVNode("PIS informado"), _withDirectives(_createElementVNode("input", {
+                    "onUpdate:modelValue": $event => ((active.data.payload.fiscal.pis_amount) = $event),
+                    inputmode: "decimal"
+                  }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, active.data.payload.fiscal.pis_amount]])]),
+                  _createElementVNode("label", null, [_createTextVNode("Base COFINS informada"), _withDirectives(_createElementVNode("input", {
+                    "onUpdate:modelValue": $event => ((active.data.payload.fiscal.cofins_base) = $event),
+                    inputmode: "decimal"
+                  }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, active.data.payload.fiscal.cofins_base]])]),
+                  _createElementVNode("label", null, [_createTextVNode("COFINS informado"), _withDirectives(_createElementVNode("input", {
+                    "onUpdate:modelValue": $event => ((active.data.payload.fiscal.cofins_amount) = $event),
+                    inputmode: "decimal"
+                  }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, active.data.payload.fiscal.cofins_amount]])])
+                ]), _createElementVNode("p", null, "Valores informados pelo operador ou pela origem. Regras aprovadas podem calcular tributos na versão salva; não há homologação de obrigação fiscal. NCM e serviço são escopos declarados para a regra, sem classificação automática dos itens.")], 8, ["open"]),
+                _createElementVNode("label", null, [_withDirectives(_createElementVNode("input", {
+                  type: "checkbox",
+                  "onUpdate:modelValue": $event => ((active.data.payload.acknowledge_differences) = $event)
+                }, null, 8, ["onUpdate:modelValue"]), [[_vModelCheckbox, active.data.payload.acknowledge_differences]]), _createTextVNode(" Conferi divergências entre as fontes")]),
+                (active.data.payload.fiscal.operation==='abertura')
+                  ? (_openBlock(), _createElementBlock("label", { key: 0 }, [_withDirectives(_createElementVNode("input", {
+                      type: "checkbox",
+                      "onUpdate:modelValue": $event => ((active.data.payload.opening_zero) = $event),
+                      onChange: toggleZero
+                    }, null, 40, ["onUpdate:modelValue", "onChange"]), [[_vModelCheckbox, active.data.payload.opening_zero]]), _createTextVNode(" Confirmo que os saldos iniciais são zero")]))
+                  : _createCommentVNode("", true),
+                _createElementVNode("h3", null, "Partidas contábeis"),
+                _createElementVNode("div", { class: "table-scroll" }, [_createElementVNode("table", null, [_createElementVNode("thead", null, [_createElementVNode("tr", null, [
+                  _createElementVNode("th", null, "Conta analítica"),
+                  _createElementVNode("th", null, "D/C"),
+                  _createElementVNode("th", null, "Data"),
+                  _createElementVNode("th", null, "Valor"),
+                  _createElementVNode("th", null, "Grupo"),
+                  _createElementVNode("th", null, "Histórico"),
+                  _createElementVNode("th")
+                ])]), _createElementVNode("tbody", null, [(_openBlock(true), _createElementBlock(_Fragment, null, _renderList(active.data.payload.entries, (l, i) => {
+                  return (_openBlock(), _createElementBlock("tr", null, [
+                    _createElementVNode("td", null, [_withDirectives(_createElementVNode("select", {
+                      "aria-label": 'Conta '+(i+1),
+                      "onUpdate:modelValue": $event => ((l.account_id) = $event)
+                    }, [_createElementVNode("option", { value: "" }, "Selecione"), (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(cycleAccounts.filter(a=>a.kind==='analitica'), (a) => {
+                      return (_openBlock(), _createElementBlock("option", { value: a.id }, _toDisplayString(a.code) + " · " + _toDisplayString(a.description), 9, ["value"]))
+                    }), 256))], 8, ["aria-label", "onUpdate:modelValue"]), [[_vModelSelect, l.account_id]])]),
+                    _createElementVNode("td", null, [_withDirectives(_createElementVNode("select", { "onUpdate:modelValue": $event => ((l.side) = $event) }, [_createElementVNode("option", null, "D"), _createElementVNode("option", null, "C")], 8, ["onUpdate:modelValue"]), [[_vModelSelect, l.side]])]),
+                    _createElementVNode("td", null, [_withDirectives(_createElementVNode("input", {
+                      type: "date",
+                      "onUpdate:modelValue": $event => ((l.date) = $event)
+                    }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, l.date]])]),
+                    _createElementVNode("td", null, [_withDirectives(_createElementVNode("input", {
+                      "aria-label": 'Valor partida '+(i+1),
+                      "onUpdate:modelValue": $event => ((l.amount) = $event),
+                      inputmode: "decimal"
+                    }, null, 8, ["aria-label", "onUpdate:modelValue"]), [[_vModelText, l.amount]])]),
+                    _createElementVNode("td", null, [_withDirectives(_createElementVNode("input", { "onUpdate:modelValue": $event => ((l.group) = $event) }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, l.group]])]),
+                    _createElementVNode("td", null, [_withDirectives(_createElementVNode("input", {
+                      "aria-label": 'Histórico '+(i+1),
+                      "onUpdate:modelValue": $event => ((l.memo) = $event)
+                    }, null, 8, ["aria-label", "onUpdate:modelValue"]), [[_vModelText, l.memo]])]),
+                    _createElementVNode("td", null, [_createElementVNode("button", {
+                      type: "button",
+                      onClick: $event => (active.data.payload.entries.splice(i,1))
+                    }, "×", 8, ["onClick"])])
+                  ]))
+                }), 256))])])]),
                 _createElementVNode("button", {
                   type: "button",
-                  onClick: applyPolicy
-                }, "Aplicar contas da política", 8, ["onClick"])
-              ]),
-              _createElementVNode("details", { open: ['entrada','saida','servico_tomado','servico_prestado'].includes(active.data.payload.fiscal.operation) }, [_createElementVNode("summary", null, "Documento e fatos fiscais informados"), _createElementVNode("div", { class: "grid" }, [
-                _createElementVNode("label", null, [_createTextVNode("Modelo"), _withDirectives(_createElementVNode("select", {
-                  "aria-label": "Modelo",
-                  "onUpdate:modelValue": $event => ((active.data.payload.fiscal.model) = $event)
-                }, [
-                  _createElementVNode("option", { value: "" }, "Sem documento fiscal"),
-                  _createElementVNode("option", { value: "55" }, "55 · NF-e"),
-                  _createElementVNode("option", { value: "65" }, "65 · NFC-e"),
-                  _createElementVNode("option", { value: "SERVICO" }, "Serviço")
-                ], 8, ["onUpdate:modelValue"]), [[_vModelSelect, active.data.payload.fiscal.model]])]),
-                _createElementVNode("label", null, [_createTextVNode("Número"), _withDirectives(_createElementVNode("input", { "onUpdate:modelValue": $event => ((active.data.payload.fiscal.number) = $event) }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, active.data.payload.fiscal.number]])]),
-                _createElementVNode("label", null, [_createTextVNode("Série"), _withDirectives(_createElementVNode("input", { "onUpdate:modelValue": $event => ((active.data.payload.fiscal.series) = $event) }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, active.data.payload.fiscal.series]])]),
-                _createElementVNode("label", null, [_createTextVNode("Emissão"), _withDirectives(_createElementVNode("input", {
-                  type: "date",
-                  "onUpdate:modelValue": $event => ((active.data.payload.fiscal.issued_date) = $event)
-                }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, active.data.payload.fiscal.issued_date]])]),
-                _createElementVNode("label", null, [_createTextVNode("Emitente · CPF/CNPJ"), _withDirectives(_createElementVNode("input", { "onUpdate:modelValue": $event => ((active.data.payload.fiscal.issuer) = $event) }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, active.data.payload.fiscal.issuer]])]),
-                _createElementVNode("label", null, [_createTextVNode("Destinatário · CPF/CNPJ"), _withDirectives(_createElementVNode("input", { "onUpdate:modelValue": $event => ((active.data.payload.fiscal.buyer) = $event) }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, active.data.payload.fiscal.buyer]])]),
-                _createElementVNode("label", null, [_createTextVNode("CFOP informado"), _withDirectives(_createElementVNode("input", { "onUpdate:modelValue": $event => ((active.data.payload.fiscal.cfop) = $event) }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, active.data.payload.fiscal.cfop]])]),
-                _createElementVNode("label", null, [_createTextVNode("CST informado"), _withDirectives(_createElementVNode("input", { "onUpdate:modelValue": $event => ((active.data.payload.fiscal.cst) = $event) }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, active.data.payload.fiscal.cst]])]),
-                _createElementVNode("label", null, [_createTextVNode("Base ICMS informada"), _withDirectives(_createElementVNode("input", {
-                  "onUpdate:modelValue": $event => ((active.data.payload.fiscal.icms_base) = $event),
-                  inputmode: "decimal"
-                }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, active.data.payload.fiscal.icms_base]])]),
-                _createElementVNode("label", null, [_createTextVNode("ICMS informado"), _withDirectives(_createElementVNode("input", {
-                  "onUpdate:modelValue": $event => ((active.data.payload.fiscal.icms_amount) = $event),
-                  inputmode: "decimal"
-                }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, active.data.payload.fiscal.icms_amount]])]),
-                _createElementVNode("label", null, [_createTextVNode("Base ISS informada"), _withDirectives(_createElementVNode("input", {
-                  "onUpdate:modelValue": $event => ((active.data.payload.fiscal.iss_base) = $event),
-                  inputmode: "decimal"
-                }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, active.data.payload.fiscal.iss_base]])]),
-                _createElementVNode("label", null, [_createTextVNode("ISS informado"), _withDirectives(_createElementVNode("input", {
-                  "onUpdate:modelValue": $event => ((active.data.payload.fiscal.iss_amount) = $event),
-                  inputmode: "decimal"
-                }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, active.data.payload.fiscal.iss_amount]])])
-              ]), _createElementVNode("p", null, "Valores informados pelo operador ou pela origem; não há cálculo tributário nem homologação de obrigação fiscal.")], 8, ["open"]),
-              _createElementVNode("label", null, [_withDirectives(_createElementVNode("input", {
-                type: "checkbox",
-                "onUpdate:modelValue": $event => ((active.data.payload.acknowledge_differences) = $event)
-              }, null, 8, ["onUpdate:modelValue"]), [[_vModelCheckbox, active.data.payload.acknowledge_differences]]), _createTextVNode(" Conferi divergências entre as fontes")]),
-              (active.data.payload.fiscal.operation==='abertura')
-                ? (_openBlock(), _createElementBlock("label", { key: 0 }, [_withDirectives(_createElementVNode("input", {
-                    type: "checkbox",
-                    "onUpdate:modelValue": $event => ((active.data.payload.opening_zero) = $event),
-                    onChange: toggleZero
-                  }, null, 40, ["onUpdate:modelValue", "onChange"]), [[_vModelCheckbox, active.data.payload.opening_zero]]), _createTextVNode(" Confirmo que os saldos iniciais são zero")]))
-                : _createCommentVNode("", true),
-              _createElementVNode("h3", null, "Partidas contábeis"),
-              _createElementVNode("div", { class: "table-scroll" }, [_createElementVNode("table", null, [_createElementVNode("thead", null, [_createElementVNode("tr", null, [
-                _createElementVNode("th", null, "Conta analítica"),
-                _createElementVNode("th", null, "D/C"),
-                _createElementVNode("th", null, "Data"),
-                _createElementVNode("th", null, "Valor"),
-                _createElementVNode("th", null, "Grupo"),
-                _createElementVNode("th", null, "Histórico"),
-                _createElementVNode("th")
-              ])]), _createElementVNode("tbody", null, [(_openBlock(true), _createElementBlock(_Fragment, null, _renderList(active.data.payload.entries, (l, i) => {
-                return (_openBlock(), _createElementBlock("tr", null, [
-                  _createElementVNode("td", null, [_withDirectives(_createElementVNode("select", {
-                    "aria-label": 'Conta '+(i+1),
-                    "onUpdate:modelValue": $event => ((l.account_id) = $event)
-                  }, [_createElementVNode("option", { value: "" }, "Selecione"), (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(cycleAccounts.filter(a=>a.kind==='analitica'), (a) => {
-                    return (_openBlock(), _createElementBlock("option", { value: a.id }, _toDisplayString(a.code) + " · " + _toDisplayString(a.description), 9, ["value"]))
-                  }), 256))], 8, ["aria-label", "onUpdate:modelValue"]), [[_vModelSelect, l.account_id]])]),
-                  _createElementVNode("td", null, [_withDirectives(_createElementVNode("select", { "onUpdate:modelValue": $event => ((l.side) = $event) }, [_createElementVNode("option", null, "D"), _createElementVNode("option", null, "C")], 8, ["onUpdate:modelValue"]), [[_vModelSelect, l.side]])]),
-                  _createElementVNode("td", null, [_withDirectives(_createElementVNode("input", {
-                    type: "date",
-                    "onUpdate:modelValue": $event => ((l.date) = $event)
-                  }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, l.date]])]),
-                  _createElementVNode("td", null, [_withDirectives(_createElementVNode("input", {
-                    "aria-label": 'Valor partida '+(i+1),
-                    "onUpdate:modelValue": $event => ((l.amount) = $event),
-                    inputmode: "decimal"
-                  }, null, 8, ["aria-label", "onUpdate:modelValue"]), [[_vModelText, l.amount]])]),
-                  _createElementVNode("td", null, [_withDirectives(_createElementVNode("input", { "onUpdate:modelValue": $event => ((l.group) = $event) }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, l.group]])]),
-                  _createElementVNode("td", null, [_withDirectives(_createElementVNode("input", {
-                    "aria-label": 'Histórico '+(i+1),
-                    "onUpdate:modelValue": $event => ((l.memo) = $event)
-                  }, null, 8, ["aria-label", "onUpdate:modelValue"]), [[_vModelText, l.memo]])]),
-                  _createElementVNode("td", null, [_createElementVNode("button", {
-                    type: "button",
-                    onClick: $event => (active.data.payload.entries.splice(i,1))
-                  }, "×", 8, ["onClick"])])
-                ]))
-              }), 256))])])]),
-              _createElementVNode("button", {
-                type: "button",
-                onClick: addLine
-              }, "+ Partida", 8, ["onClick"]),
-              _createElementVNode("h3", null, "Cobrança"),
-              _createElementVNode("div", { class: "grid" }, [
-                _createElementVNode("label", null, [_createTextVNode("Tratamento"), _withDirectives(_createElementVNode("select", {
-                  "aria-label": "Tratamento",
-                  "onUpdate:modelValue": $event => ((active.data.payload.finance.mode) = $event)
-                }, [_createElementVNode("option", { value: "sem_cobranca" }, "Sem nova cobrança"), _createElementVNode("option", {
-                  value: "origem",
-                  disabled: !active.data.payload.document_id
-                }, "Parcelas da origem", 8, ["disabled"]), _createElementVNode("option", { value: "manual" }, "Cobrança informada")], 8, ["onUpdate:modelValue"]), [[_vModelSelect, active.data.payload.finance.mode]])]),
+                  onClick: addLine
+                }, "+ Partida", 8, ["onClick"]),
+                _createElementVNode("h3", null, "Cobrança"),
+                _createElementVNode("div", { class: "grid" }, [
+                  _createElementVNode("label", null, [_createTextVNode("Tratamento"), _withDirectives(_createElementVNode("select", {
+                    "aria-label": "Tratamento",
+                    "onUpdate:modelValue": $event => ((active.data.payload.finance.mode) = $event)
+                  }, [_createElementVNode("option", { value: "sem_cobranca" }, "Sem nova cobrança"), _createElementVNode("option", {
+                    value: "origem",
+                    disabled: !active.data.payload.document_id
+                  }, "Parcelas da origem", 8, ["disabled"]), _createElementVNode("option", { value: "manual" }, "Cobrança informada")], 8, ["onUpdate:modelValue"]), [[_vModelSelect, active.data.payload.finance.mode]])]),
+                  (active.data.payload.finance.mode!=='sem_cobranca')
+                    ? (_openBlock(), _createElementBlock("label", { key: 0 }, [_createTextVNode("Direção"), _withDirectives(_createElementVNode("select", {
+                        "aria-label": "Direção",
+                        "onUpdate:modelValue": $event => ((active.data.payload.finance.direction) = $event)
+                      }, [_createElementVNode("option", { value: "pagar" }, "A pagar"), _createElementVNode("option", { value: "receber" }, "A receber")], 8, ["onUpdate:modelValue"]), [[_vModelSelect, active.data.payload.finance.direction]])]))
+                    : _createCommentVNode("", true),
+                  (active.data.payload.finance.mode!=='sem_cobranca')
+                    ? (_openBlock(), _createElementBlock("label", { key: 1 }, [_createTextVNode("Contraparte"), _withDirectives(_createElementVNode("input", { "onUpdate:modelValue": $event => ((active.data.payload.finance.counterparty) = $event) }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, active.data.payload.finance.counterparty]])]))
+                    : _createCommentVNode("", true),
+                  (active.data.payload.finance.mode==='manual')
+                    ? (_openBlock(), _createElementBlock("label", { key: 2 }, [_createTextVNode("Motivo da cobrança manual"), _withDirectives(_createElementVNode("input", { "onUpdate:modelValue": $event => ((active.data.payload.finance.reason) = $event) }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, active.data.payload.finance.reason]])]))
+                    : _createCommentVNode("", true)
+                ]),
                 (active.data.payload.finance.mode!=='sem_cobranca')
-                  ? (_openBlock(), _createElementBlock("label", { key: 0 }, [_createTextVNode("Direção"), _withDirectives(_createElementVNode("select", {
-                      "aria-label": "Direção",
-                      "onUpdate:modelValue": $event => ((active.data.payload.finance.direction) = $event)
-                    }, [_createElementVNode("option", { value: "pagar" }, "A pagar"), _createElementVNode("option", { value: "receber" }, "A receber")], 8, ["onUpdate:modelValue"]), [[_vModelSelect, active.data.payload.finance.direction]])]))
+                  ? (_openBlock(), _createElementBlock("div", { key: 1 }, [(_openBlock(true), _createElementBlock(_Fragment, null, _renderList(active.data.payload.finance.installments, (p, i) => {
+                      return (_openBlock(), _createElementBlock("div", { class: "grid" }, [
+                        _createElementVNode("label", null, [_createTextVNode("Parcela"), _withDirectives(_createElementVNode("input", { "onUpdate:modelValue": $event => ((p.reference) = $event) }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, p.reference]])]),
+                        _createElementVNode("label", null, [_createTextVNode("Vencimento"), _withDirectives(_createElementVNode("input", {
+                          type: "date",
+                          "onUpdate:modelValue": $event => ((p.due_date) = $event)
+                        }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, p.due_date]])]),
+                        _createElementVNode("label", null, [_createTextVNode("Valor"), _withDirectives(_createElementVNode("input", {
+                          "onUpdate:modelValue": $event => ((p.amount) = $event),
+                          inputmode: "decimal"
+                        }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, p.amount]])]),
+                        _createElementVNode("label", null, [_createTextVNode("Título existente (ID, opcional)"), _withDirectives(_createElementVNode("input", {
+                          "onUpdate:modelValue": $event => ((p.existing_title_id) = $event),
+                          inputmode: "numeric"
+                        }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, p.existing_title_id]])]),
+                        _createElementVNode("button", {
+                          type: "button",
+                          onClick: $event => (active.data.payload.finance.installments.splice(i,1))
+                        }, "Remover parcela", 8, ["onClick"])
+                      ]))
+                    }), 256)), _createElementVNode("button", {
+                      type: "button",
+                      onClick: $event => (active.data.payload.finance.installments.push({reference:'',due_date:'',amount:''}))
+                    }, "+ Parcela", 8, ["onClick"])]))
                   : _createCommentVNode("", true),
-                (active.data.payload.finance.mode!=='sem_cobranca')
-                  ? (_openBlock(), _createElementBlock("label", { key: 1 }, [_createTextVNode("Contraparte"), _withDirectives(_createElementVNode("input", { "onUpdate:modelValue": $event => ((active.data.payload.finance.counterparty) = $event) }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, active.data.payload.finance.counterparty]])]))
-                  : _createCommentVNode("", true),
-                (active.data.payload.finance.mode==='manual')
-                  ? (_openBlock(), _createElementBlock("label", { key: 2 }, [_createTextVNode("Motivo da cobrança manual"), _withDirectives(_createElementVNode("input", { "onUpdate:modelValue": $event => ((active.data.payload.finance.reason) = $event) }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, active.data.payload.finance.reason]])]))
-                  : _createCommentVNode("", true)
-              ]),
-              (active.data.payload.finance.mode!=='sem_cobranca')
-                ? (_openBlock(), _createElementBlock("div", { key: 1 }, [(_openBlock(true), _createElementBlock(_Fragment, null, _renderList(active.data.payload.finance.installments, (p, i) => {
-                    return (_openBlock(), _createElementBlock("div", { class: "grid" }, [
-                      _createElementVNode("label", null, [_createTextVNode("Parcela"), _withDirectives(_createElementVNode("input", { "onUpdate:modelValue": $event => ((p.reference) = $event) }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, p.reference]])]),
-                      _createElementVNode("label", null, [_createTextVNode("Vencimento"), _withDirectives(_createElementVNode("input", {
-                        type: "date",
-                        "onUpdate:modelValue": $event => ((p.due_date) = $event)
-                      }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, p.due_date]])]),
-                      _createElementVNode("label", null, [_createTextVNode("Valor"), _withDirectives(_createElementVNode("input", {
-                        "onUpdate:modelValue": $event => ((p.amount) = $event),
-                        inputmode: "decimal"
-                      }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, p.amount]])]),
-                      _createElementVNode("label", null, [_createTextVNode("Título existente (ID, opcional)"), _withDirectives(_createElementVNode("input", {
-                        "onUpdate:modelValue": $event => ((p.existing_title_id) = $event),
-                        inputmode: "numeric"
-                      }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, p.existing_title_id]])]),
-                      _createElementVNode("button", {
-                        type: "button",
-                        onClick: $event => (active.data.payload.finance.installments.splice(i,1))
-                      }, "Remover parcela", 8, ["onClick"])
-                    ]))
-                  }), 256)), _createElementVNode("button", {
-                    type: "button",
-                    onClick: $event => (active.data.payload.finance.installments.push({reference:'',due_date:'',amount:''}))
-                  }, "+ Parcela", 8, ["onClick"])]))
+                _createElementVNode("label", null, [_createTextVNode("Observações"), _withDirectives(_createElementVNode("textarea", { "onUpdate:modelValue": $event => ((active.data.payload.notes) = $event) }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, active.data.payload.notes]])])
+              ], 8, ["disabled"]),
+              (active.data.payload.fiscal.operation==='ajuste')
+                ? (_openBlock(), _createElementBlock("details", { key: 0 }, [
+                    _createElementVNode("summary", null, "Vínculo de ajuste tributário explícito"),
+                    _createElementVNode("label", null, [_createTextVNode("Operação de origem do ajuste tributário"), _withDirectives(_createElementVNode("input", {
+                      "onUpdate:modelValue": $event => ((active.data.payload.tax_adjustment_of) = $event),
+                      inputmode: "numeric"
+                    }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, active.data.payload.tax_adjustment_of]])]),
+                    _createElementVNode("label", null, [_createTextVNode("Motivo do ajuste tributário"), _withDirectives(_createElementVNode("input", { "onUpdate:modelValue": $event => ((active.data.payload.tax_adjustment_reason) = $event) }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, active.data.payload.tax_adjustment_reason]])]),
+                    _createElementVNode("p", null, "Informe valores e efeito pela regra aprovada. O vínculo não presume reversão legal de créditos ou débitos.")
+                  ]))
                 : _createCommentVNode("", true),
-              _createElementVNode("label", null, [_createTextVNode("Observações"), _withDirectives(_createElementVNode("textarea", { "onUpdate:modelValue": $event => ((active.data.payload.notes) = $event) }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, active.data.payload.notes]])])
-            ], 8, ["disabled"]), _createElementVNode("label", null, [_createTextVNode("Motivo desta ação"), _withDirectives(_createElementVNode("input", {
-              id: "operation-reason",
-              disabled: busy,
-              "onUpdate:modelValue": $event => ((active.data.reason) = $event),
-              required: ""
-            }, null, 8, ["disabled", "onUpdate:modelValue"]), [[_vModelText, active.data.reason]])]), _createElementVNode("div", { class: "toolbar" }, [
-              _createElementVNode("button", { disabled: busy||['escriturado','dispensado'].includes(active.operation?.state) }, "Salvar versão", 8, ["disabled"]),
+              _createElementVNode("label", null, [_createTextVNode("Motivo desta ação"), _withDirectives(_createElementVNode("input", {
+                id: "operation-reason",
+                disabled: busy,
+                "onUpdate:modelValue": $event => ((active.data.reason) = $event),
+                required: ""
+              }, null, 8, ["disabled", "onUpdate:modelValue"]), [[_vModelText, active.data.reason]])]),
+              _createElementVNode("div", { class: "toolbar" }, [
+                _createElementVNode("button", { disabled: busy||['escriturado','dispensado'].includes(active.operation?.state) }, "Salvar versão", 8, ["disabled"]),
+                _createElementVNode("button", {
+                  type: "button",
+                  onClick: flush,
+                  disabled: busy
+                }, "Preservar rascunho da guia", 8, ["onClick", "disabled"]),
+                _createElementVNode("button", {
+                  type: "button",
+                  onClick: $event => (review('revisado')),
+                  disabled: busy||active.operation?.state!=='rascunho'||dirty
+                }, "Conferir versão", 8, ["onClick", "disabled"]),
+                _createElementVNode("button", {
+                  type: "button",
+                  onClick: post,
+                  disabled: busy||active.operation?.state!=='revisado'||dirty
+                }, "Escriturar", 8, ["onClick", "disabled"]),
+                _createElementVNode("button", {
+                  type: "button",
+                  onClick: $event => (review('dispensado')),
+                  disabled: busy||active.operation?.state!=='rascunho'||dirty
+                }, "Dispensar com motivo", 8, ["onClick", "disabled"])
+              ])
+            ], 40, ["onSubmit"]),
+            _createElementVNode("div", { class: "inset" }, [
+              _createElementVNode("h3", null, "Tributação pelas regras da empresa"),
               _createElementVNode("button", {
-                type: "button",
-                onClick: flush,
-                disabled: busy
-              }, "Preservar rascunho da guia", 8, ["onClick", "disabled"]),
-              _createElementVNode("button", {
-                type: "button",
-                onClick: $event => (review('revisado')),
-                disabled: busy||active.operation?.state!=='rascunho'||dirty
-              }, "Conferir versão", 8, ["onClick", "disabled"]),
-              _createElementVNode("button", {
-                type: "button",
-                onClick: post,
-                disabled: busy||active.operation?.state!=='revisado'||dirty
-              }, "Escriturar", 8, ["onClick", "disabled"]),
-              _createElementVNode("button", {
-                type: "button",
-                onClick: $event => (review('dispensado')),
-                disabled: busy||active.operation?.state!=='rascunho'||dirty
-              }, "Dispensar com motivo", 8, ["onClick", "disabled"])
-            ])], 40, ["onSubmit"]),
+                onClick: previewTaxes,
+                disabled: busy||!active.operation||['escriturado','dispensado'].includes(active.operation?.state)||dirty
+              }, "Gerar prévia de tributação", 8, ["onClick", "disabled"]),
+              (taxPreview && taxPreview.snapshot.operation_id===active.operation?.operation_id)
+                ? (_openBlock(), _createElementBlock("div", { key: 0 }, [_createElementVNode("details", { open: "" }, [_createElementVNode("summary", null, "Conferir base, regra, taxa e arredondamento"), _createElementVNode("pre", null, _toDisplayString(JSON.stringify(taxPreview.snapshot,null,2)), 1)]), _createElementVNode("button", {
+                    onClick: applyTaxes,
+                    disabled: busy||dirty
+                  }, "Aplicar cálculo em nova versão", 8, ["onClick", "disabled"])]))
+                : _createCommentVNode("", true),
+              (active.data.payload.tax_calculation)
+                ? (_openBlock(), _createElementBlock("details", { key: 1 }, [_createElementVNode("summary", null, "Memória de cálculo preservada na operação"), _createElementVNode("pre", null, _toDisplayString(JSON.stringify(active.data.payload.tax_calculation,null,2)), 1)]))
+                : _createCommentVNode("", true),
+              (active.data.payload.tax_calculation && !['escriturado','dispensado'].includes(active.operation?.state))
+                ? (_openBlock(), _createElementBlock("div", { key: 2 }, [_createElementVNode("label", null, [_createTextVNode("Motivo para substituir cálculo automático"), _withDirectives(_createElementVNode("input", { "onUpdate:modelValue": $event => ((taxOverrideReason) = $event) }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, taxOverrideReason]])]), _createElementVNode("button", {
+                    onClick: useManualTaxes,
+                    disabled: busy
+                  }, "Preparar exceção com valores informados", 8, ["onClick", "disabled"])]))
+                : _createCommentVNode("", true)
+            ]),
             (active.operation)
               ? (_openBlock(), _createElementBlock("ul", {
                   key: 0,
@@ -739,19 +822,361 @@ var _Vue=Vue; var WorkRender=function render(_ctx, _cache) {
         }), 256))
       ], 512), [[_vShow, page==='books']]),
       _withDirectives(_createElementVNode("section", { class: "card" }, [
+        _createElementVNode("h1", null, "Tributação e apuração"),
+        _createElementVNode("p", null, "Parâmetros exclusivos da empresa selecionada. Nenhuma tabela legal ou alíquota foi carregada automaticamente. Códigos isolados não definem tributação. Revise origem, vigência, base, taxa, efeito e arredondamento com o responsável antes de aprovar."),
+        _createElementVNode("details", { open: "" }, [_createElementVNode("summary", null, "CFOP, NCM, códigos de receita e de serviço"), _createElementVNode("form", {
+          onSubmit: _withModifiers(saveTaxCode, ["prevent"]),
+          class: "grid"
+        }, [
+          _createElementVNode("label", null, [_createTextVNode("Tabela do código"), _withDirectives(_createElementVNode("select", {
+            "aria-label": "Tabela do código",
+            "onUpdate:modelValue": $event => ((codeForm.kind) = $event),
+            disabled: codeForm.expected_version>0
+          }, [
+            _createElementVNode("option", { value: "cfop" }, "CFOP"),
+            _createElementVNode("option", { value: "ncm" }, "NCM"),
+            _createElementVNode("option", { value: "revenue" }, "Receita"),
+            _createElementVNode("option", { value: "service" }, "Serviço")
+          ], 8, ["onUpdate:modelValue", "disabled"]), [[_vModelSelect, codeForm.kind]])]),
+          _createElementVNode("label", null, [_createTextVNode("Código cadastrado"), _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((codeForm.code) = $event),
+            disabled: codeForm.expected_version>0,
+            required: "",
+            maxlength: "30"
+          }, null, 8, ["onUpdate:modelValue", "disabled"]), [[_vModelText, codeForm.code]])]),
+          _createElementVNode("label", null, [_createTextVNode("Descrição do código"), _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((codeForm.data.description) = $event),
+            required: "",
+            maxlength: "1000"
+          }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, codeForm.data.description]])]),
+          _createElementVNode("label", null, [_createTextVNode("Origem e versão da tabela"), _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((codeForm.data.source_reference) = $event),
+            required: "",
+            maxlength: "1000"
+          }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, codeForm.data.source_reference]])]),
+          _createElementVNode("label", null, [_createTextVNode("Vigência inicial do código"), _withDirectives(_createElementVNode("input", {
+            type: "date",
+            "onUpdate:modelValue": $event => ((codeForm.data.valid_from) = $event),
+            required: ""
+          }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, codeForm.data.valid_from]])]),
+          _createElementVNode("label", null, [_createTextVNode("Vigência final do código"), _withDirectives(_createElementVNode("input", {
+            type: "date",
+            "onUpdate:modelValue": $event => ((codeForm.data.valid_to) = $event)
+          }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, codeForm.data.valid_to]])]),
+          _createElementVNode("label", null, [_createTextVNode("Estado do código"), _withDirectives(_createElementVNode("select", { "onUpdate:modelValue": $event => ((codeForm.state) = $event) }, [_createElementVNode("option", { value: "ativo" }, "Ativo"), _createElementVNode("option", { value: "inativo" }, "Inativo")], 8, ["onUpdate:modelValue"]), [[_vModelSelect, codeForm.state]])]),
+          _createElementVNode("label", null, [_createTextVNode("Motivo do cadastro do código"), _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((codeForm.reason) = $event),
+            required: ""
+          }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, codeForm.reason]])]),
+          _createElementVNode("button", { disabled: busy||!company }, "Salvar versão do código", 8, ["disabled"]),
+          _createElementVNode("button", {
+            type: "button",
+            onClick: newTaxCode
+          }, "Novo código", 8, ["onClick"])
+        ], 40, ["onSubmit"]), (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(latestTaxCodes, (row) => {
+          return (_openBlock(), _createElementBlock("article", {
+            key: row.id,
+            class: "inset"
+          }, [
+            _createElementVNode("b", null, _toDisplayString(row.kind) + " · " + _toDisplayString(row.code) + " · v" + _toDisplayString(row.version) + " · " + _toDisplayString(row.state), 1),
+            _createElementVNode("p", null, _toDisplayString(row.data.description) + " · " + _toDisplayString(row.data.valid_from) + " a " + _toDisplayString(row.data.valid_to||'sem término informado'), 1),
+            _createElementVNode("p", null, "Origem: " + _toDisplayString(row.data.source_reference), 1),
+            _createElementVNode("button", { onClick: $event => (editTaxCode(row)) }, "Editar código", 8, ["onClick"])
+          ]))
+        }), 128))]),
+        _createElementVNode("details", { open: "" }, [
+          _createElementVNode("summary", null, "Regras por empresa"),
+          _createElementVNode("div", { class: "toolbar" }, [_createElementVNode("button", { onClick: newTaxRule }, "Nova regra", 8, ["onClick"]), (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(taxConfig.structural_models, (model) => {
+            return (_openBlock(), _createElementBlock("button", { onClick: $event => (useTaxModel(model)) }, _toDisplayString(model.label), 9, ["onClick"]))
+          }), 256))]),
+          _createElementVNode("form", {
+            onSubmit: _withModifiers($event => (saveTaxRule('rascunho')), ["prevent"]),
+            class: "grid"
+          }, [
+            _createElementVNode("label", null, [_createTextVNode("Identificador da regra"), _withDirectives(_createElementVNode("input", {
+              "onUpdate:modelValue": $event => ((taxForm.rule_key) = $event),
+              disabled: taxForm.expected_version>0,
+              required: "",
+              maxlength: "80"
+            }, null, 8, ["onUpdate:modelValue", "disabled"]), [[_vModelText, taxForm.rule_key]])]),
+            _createElementVNode("label", null, [_createTextVNode("Nome da regra"), _withDirectives(_createElementVNode("input", {
+              "onUpdate:modelValue": $event => ((taxForm.label) = $event),
+              required: "",
+              maxlength: "200"
+            }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, taxForm.label]])]),
+            _createElementVNode("label", null, [_createTextVNode("Tributo da regra"), _withDirectives(_createElementVNode("select", {
+              "aria-label": "Tributo da regra",
+              "onUpdate:modelValue": $event => ((taxForm.spec.tax) = $event)
+            }, [
+              _createElementVNode("option", { value: "" }, "Selecione"),
+              _createElementVNode("option", null, "ICMS"),
+              _createElementVNode("option", null, "ISS"),
+              _createElementVNode("option", null, "PIS"),
+              _createElementVNode("option", null, "COFINS")
+            ], 8, ["onUpdate:modelValue"]), [[_vModelSelect, taxForm.spec.tax]])]),
+            _createElementVNode("label", null, [_createTextVNode("Natureza da regra"), _withDirectives(_createElementVNode("select", {
+              "aria-label": "Natureza da regra",
+              "onUpdate:modelValue": $event => ((taxForm.spec.operation) = $event)
+            }, [
+              _createElementVNode("option", { value: "" }, "Selecione"),
+              _createElementVNode("option", { value: "entrada" }, "Entrada"),
+              _createElementVNode("option", { value: "saida" }, "Saída"),
+              _createElementVNode("option", { value: "servico_tomado" }, "Serviço tomado"),
+              _createElementVNode("option", { value: "servico_prestado" }, "Serviço prestado"),
+              _createElementVNode("option", { value: "ajuste" }, "Ajuste informado")
+            ], 8, ["onUpdate:modelValue"]), [[_vModelSelect, taxForm.spec.operation]])]),
+            _createElementVNode("label", null, [_createTextVNode("Modelo da regra"), _withDirectives(_createElementVNode("select", {
+              "aria-label": "Modelo da regra",
+              "onUpdate:modelValue": $event => ((taxForm.spec.model) = $event)
+            }, [
+              _createElementVNode("option", { value: "" }, "Todos os modelos"),
+              _createElementVNode("option", null, "55"),
+              _createElementVNode("option", null, "65"),
+              _createElementVNode("option", null, "SERVICO")
+            ], 8, ["onUpdate:modelValue"]), [[_vModelSelect, taxForm.spec.model]])]),
+            _createElementVNode("label", null, [_createTextVNode("CFOP de escopo"), _withDirectives(_createElementVNode("input", {
+              "onUpdate:modelValue": $event => ((taxForm.spec.cfop) = $event),
+              maxlength: "4"
+            }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, taxForm.spec.cfop]])]),
+            _createElementVNode("label", null, [_createTextVNode("NCM de escopo"), _withDirectives(_createElementVNode("input", {
+              "onUpdate:modelValue": $event => ((taxForm.spec.ncm) = $event),
+              maxlength: "8"
+            }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, taxForm.spec.ncm]])]),
+            _createElementVNode("label", null, [_createTextVNode("Código de serviço de escopo"), _withDirectives(_createElementVNode("input", {
+              "onUpdate:modelValue": $event => ((taxForm.spec.service_code) = $event),
+              maxlength: "30"
+            }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, taxForm.spec.service_code]])]),
+            _createElementVNode("label", null, [_createTextVNode("Código de receita da regra"), _withDirectives(_createElementVNode("input", {
+              "onUpdate:modelValue": $event => ((taxForm.spec.revenue_code) = $event),
+              maxlength: "30"
+            }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, taxForm.spec.revenue_code]])]),
+            _createElementVNode("label", null, [_createTextVNode("Campo da base"), _withDirectives(_createElementVNode("select", {
+              "aria-label": "Campo da base",
+              "onUpdate:modelValue": $event => ((taxForm.spec.base_field) = $event)
+            }, [
+              _createElementVNode("option", { value: "" }, "Selecione explicitamente"),
+              _createElementVNode("option", { value: "total" }, "Total declarado do documento"),
+              _createElementVNode("option", { value: "icms_base" }, "Base ICMS declarada"),
+              _createElementVNode("option", { value: "iss_base" }, "Base ISS declarada"),
+              _createElementVNode("option", { value: "pis_base" }, "Base PIS declarada"),
+              _createElementVNode("option", { value: "cofins_base" }, "Base COFINS declarada")
+            ], 8, ["onUpdate:modelValue"]), [[_vModelSelect, taxForm.spec.base_field]])]),
+            _createElementVNode("label", null, [_createTextVNode("Alíquota percentual informada"), _withDirectives(_createElementVNode("input", {
+              "onUpdate:modelValue": $event => ((taxForm.spec.rate) = $event),
+              inputmode: "decimal",
+              placeholder: "Sem alíquota presumida"
+            }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, taxForm.spec.rate]])]),
+            _createElementVNode("label", null, [_createTextVNode("Efeito na apuração"), _withDirectives(_createElementVNode("select", {
+              "aria-label": "Efeito na apuração",
+              "onUpdate:modelValue": $event => ((taxForm.spec.effect) = $event)
+            }, [
+              _createElementVNode("option", { value: "" }, "Selecione explicitamente"),
+              _createElementVNode("option", { value: "debito" }, "Débito declarado"),
+              _createElementVNode("option", { value: "credito" }, "Crédito declarado"),
+              _createElementVNode("option", { value: "informativo" }, "Informativo")
+            ], 8, ["onUpdate:modelValue"]), [[_vModelSelect, taxForm.spec.effect]])]),
+            _createElementVNode("label", null, [_createTextVNode("Arredondamento da regra"), _withDirectives(_createElementVNode("select", {
+              "aria-label": "Arredondamento da regra",
+              "onUpdate:modelValue": $event => ((taxForm.spec.rounding) = $event)
+            }, [_createElementVNode("option", { value: "" }, "Selecione explicitamente"), _createElementVNode("option", { value: "meio_para_cima" }, "Meio para cima, centavos"), _createElementVNode("option", { value: "truncar" }, "Truncar em centavos")], 8, ["onUpdate:modelValue"]), [[_vModelSelect, taxForm.spec.rounding]])]),
+            _createElementVNode("label", null, [_createTextVNode("Início da vigência da regra"), _withDirectives(_createElementVNode("input", {
+              type: "date",
+              "onUpdate:modelValue": $event => ((taxForm.spec.valid_from) = $event)
+            }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, taxForm.spec.valid_from]])]),
+            _createElementVNode("label", null, [_createTextVNode("Fim da vigência da regra"), _withDirectives(_createElementVNode("input", {
+              type: "date",
+              "onUpdate:modelValue": $event => ((taxForm.spec.valid_to) = $event)
+            }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, taxForm.spec.valid_to]])]),
+            _createElementVNode("label", null, [_createTextVNode("Referência da validação da regra"), _withDirectives(_createElementVNode("input", {
+              "onUpdate:modelValue": $event => ((taxForm.spec.validation_reference) = $event),
+              maxlength: "1000"
+            }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, taxForm.spec.validation_reference]])]),
+            _createElementVNode("label", null, [_createTextVNode("Motivo da versão da regra"), _withDirectives(_createElementVNode("input", {
+              "onUpdate:modelValue": $event => ((taxForm.reason) = $event),
+              required: ""
+            }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, taxForm.reason]])]),
+            _createElementVNode("button", { disabled: busy||!company }, "Salvar regra como rascunho", 8, ["disabled"]),
+            _createElementVNode("button", {
+              type: "button",
+              onClick: $event => (saveTaxRule('aprovada')),
+              disabled: busy||!company
+            }, "Aprovar versão da regra", 8, ["onClick", "disabled"]),
+            _createElementVNode("button", {
+              type: "button",
+              onClick: $event => (saveTaxRule('inativa')),
+              disabled: busy||!taxForm.expected_version
+            }, "Inativar por nova versão", 8, ["onClick", "disabled"])
+          ], 40, ["onSubmit"]),
+          (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(latestTaxRules, (rule) => {
+            return (_openBlock(), _createElementBlock("article", {
+              key: rule.id,
+              class: "inset"
+            }, [
+              _createElementVNode("b", null, _toDisplayString(rule.label) + " · " + _toDisplayString(rule.spec.tax||'tributo a definir') + " · " + _toDisplayString(rule.state) + " · v" + _toDisplayString(rule.version), 1),
+              _createElementVNode("p", null, _toDisplayString(rule.spec.operation) + " · base " + _toDisplayString(rule.spec.base_field) + " · taxa " + _toDisplayString(rule.spec.rate||'não informada') + "% · " + _toDisplayString(rule.spec.effect), 1),
+              (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(rule.issues, (issue) => {
+                return (_openBlock(), _createElementBlock("p", null, _toDisplayString(issue), 1))
+              }), 256)),
+              _createElementVNode("button", { onClick: $event => (editTaxRule(rule)) }, "Editar regra", 8, ["onClick"])
+            ]))
+          }), 128)),
+          _createElementVNode("details", null, [_createElementVNode("summary", null, "Histórico de regras e parâmetros"), _createVNode(_component_data_table, {
+            rows: taxConfig.rules,
+            columns: {rule_key:'Regra',version:'Versão',state:'Estado',spec:'Parâmetros',source:'Origem do modelo',actor:'Responsável',reason:'Motivo'}
+          }, null, 8, ["rows", "columns"])])
+        ]),
+        _createElementVNode("details", null, [
+          _createElementVNode("summary", null, "Modelos reutilizáveis e cópia independente"),
+          _createElementVNode("p", null, "Os modelos estruturais não contêm alíquotas. Um modelo salvo preserva uma versão aprovada; sua cópia sempre nasce em rascunho e precisa de validação na empresa de destino. Tabelas de códigos devem estar cadastradas e vigentes no destino."),
+          _createElementVNode("form", {
+            onSubmit: _withModifiers(saveTaxTemplate, ["prevent"]),
+            class: "grid"
+          }, [
+            _createElementVNode("label", null, [_createTextVNode("Regra aprovada para modelo"), _withDirectives(_createElementVNode("select", {
+              "aria-label": "Regra aprovada para modelo",
+              "onUpdate:modelValue": $event => ((templateForm.rule_id) = $event)
+            }, [_createElementVNode("option", { value: "" }, "Selecione"), (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(taxConfig.rules.filter(r=>r.state==='aprovada'), (r) => {
+              return (_openBlock(), _createElementBlock("option", { value: String(r.id) }, _toDisplayString(r.label) + " · v" + _toDisplayString(r.version), 9, ["value"]))
+            }), 256))], 8, ["onUpdate:modelValue"]), [[_vModelSelect, templateForm.rule_id]])]),
+            _createElementVNode("label", null, [_createTextVNode("Nome do modelo"), _withDirectives(_createElementVNode("input", {
+              "onUpdate:modelValue": $event => ((templateForm.label) = $event),
+              required: ""
+            }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, templateForm.label]])]),
+            _createElementVNode("label", null, [_createTextVNode("Motivo do modelo"), _withDirectives(_createElementVNode("input", {
+              "onUpdate:modelValue": $event => ((templateForm.reason) = $event),
+              required: ""
+            }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, templateForm.reason]])]),
+            _createElementVNode("button", { disabled: busy }, "Preservar modelo da regra", 8, ["disabled"])
+          ], 40, ["onSubmit"]),
+          _createElementVNode("form", {
+            onSubmit: _withModifiers(copyTaxTemplate, ["prevent"]),
+            class: "grid"
+          }, [
+            _createElementVNode("label", null, [_createTextVNode("Empresa de origem do modelo"), _withDirectives(_createElementVNode("select", {
+              "aria-label": "Empresa de origem do modelo",
+              "onUpdate:modelValue": $event => ((templateSource) = $event),
+              onChange: loadTemplateSource
+            }, [(_openBlock(true), _createElementBlock(_Fragment, null, _renderList(companies, (c) => {
+              return (_openBlock(), _createElementBlock("option", { value: String(c.id) }, _toDisplayString(c.name), 9, ["value"]))
+            }), 256))], 40, ["onUpdate:modelValue", "onChange"]), [[_vModelSelect, templateSource]])]),
+            _createElementVNode("label", null, [_createTextVNode("Modelo a copiar"), _withDirectives(_createElementVNode("select", {
+              "aria-label": "Modelo a copiar",
+              "onUpdate:modelValue": $event => ((copyForm.template_id) = $event)
+            }, [_createElementVNode("option", { value: "" }, "Selecione"), (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(copyTemplates, (t) => {
+              return (_openBlock(), _createElementBlock("option", { value: String(t.id) }, _toDisplayString(t.label) + " · v" + _toDisplayString(t.version), 9, ["value"]))
+            }), 256))], 8, ["onUpdate:modelValue"]), [[_vModelSelect, copyForm.template_id]])]),
+            _createElementVNode("label", null, [_createTextVNode("Identificador da regra copiada"), _withDirectives(_createElementVNode("input", {
+              "onUpdate:modelValue": $event => ((copyForm.rule_key) = $event),
+              required: ""
+            }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, copyForm.rule_key]])]),
+            _createElementVNode("label", null, [_createTextVNode("Nome da regra copiada"), _withDirectives(_createElementVNode("input", {
+              "onUpdate:modelValue": $event => ((copyForm.label) = $event),
+              required: ""
+            }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, copyForm.label]])]),
+            _createElementVNode("label", null, [_createTextVNode("Motivo da cópia"), _withDirectives(_createElementVNode("input", {
+              "onUpdate:modelValue": $event => ((copyForm.reason) = $event),
+              required: ""
+            }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, copyForm.reason]])]),
+            _createElementVNode("button", { disabled: busy }, "Copiar modelo como rascunho", 8, ["disabled"])
+          ], 40, ["onSubmit"])
+        ]),
+        _createElementVNode("article", { class: "inset" }, [
+          _createElementVNode("h2", null, "Apuração parametrizada da competência"),
+          _createElementVNode("p", null, "Soma automaticamente fatos escriturados pelos efeitos declarados nas regras. Valores informados são preservados. O saldo é aritmético: não gera guia, vencimento, crédito legal ou compensação automática. CBS/IBS permanecem fora do cálculo."),
+          _createElementVNode("button", {
+            onClick: previewAssessment,
+            disabled: busy||!cycle
+          }, "Gerar prévia da apuração", 8, ["onClick", "disabled"]),
+          _createElementVNode("label", null, [_createTextVNode("Motivo da apuração ou validação"), _withDirectives(_createElementVNode("input", { "onUpdate:modelValue": $event => ((assessmentReason) = $event) }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, assessmentReason]])]),
+          _createElementVNode("label", null, [_withDirectives(_createElementVNode("input", {
+            type: "checkbox",
+            "onUpdate:modelValue": $event => ((assessmentConfirmed) = $event)
+          }, null, 8, ["onUpdate:modelValue"]), [[_vModelCheckbox, assessmentConfirmed]]), _createTextVNode(" Conferi fatos, regras, vigência, tabelas, bases, efeitos e memória da apuração")]),
+          assessmentPreview
+            ? (_openBlock(), _createElementBlock("div", { key: 0 }, [
+                (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(assessmentPreview.snapshot.blockers, (blocker) => {
+                  return (_openBlock(), _createElementBlock("p", { class: "error" }, _toDisplayString(blocker), 1))
+                }), 256)),
+                _createVNode(_component_data_table, {
+                  rows: assessmentPreview.snapshot.totals,
+                  columns: {tax:'Tributo',revenue_code:'Receita declarada',debito:'Débitos',credito:'Créditos',informativo:'Informativo',saldo_aritmetico:'Saldo aritmético'}
+                }, null, 8, ["rows", "columns"]),
+                _createElementVNode("details", null, [_createElementVNode("summary", null, "Memória da prévia"), _createElementVNode("pre", null, _toDisplayString(JSON.stringify(assessmentPreview.snapshot,null,2)), 1)]),
+                _createElementVNode("button", {
+                  onClick: saveAssessment,
+                  disabled: busy
+                }, "Preservar versão da apuração", 8, ["onClick", "disabled"])
+              ]))
+            : _createCommentVNode("", true),
+          (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(taxAssessments, (row) => {
+            return (_openBlock(), _createElementBlock("article", {
+              key: row.id,
+              class: "inset"
+            }, [
+              _createElementVNode("b", null, "Apuração v" + _toDisplayString(row.version) + " · " + _toDisplayString(row.state), 1),
+              _createElementVNode("p", { class: "tax-fingerprint" }, _toDisplayString(row.snapshot_hash), 1),
+              _createVNode(_component_data_table, {
+                rows: row.snapshot.totals,
+                columns: {tax:'Tributo',revenue_code:'Receita',debito:'Débitos',credito:'Créditos',saldo_aritmetico:'Saldo aritmético'}
+              }, null, 8, ["rows", "columns"]),
+              _createElementVNode("button", {
+                onClick: $event => (validateAssessment(row)),
+                disabled: busy||!assessmentConfirmed||row.state==='validada'
+              }, "Validar apuração conferida", 8, ["onClick", "disabled"]),
+              _createElementVNode("button", { onClick: $event => (downloadAssessment(row)) }, "Baixar memória JSON", 8, ["onClick"])
+            ]))
+          }), 128))
+        ])
+      ], 512), [[_vShow, page==='tax']]),
+      _withDirectives(_createElementVNode("section", { class: "card" }, [
         _createElementVNode("h1", null, "Encerramento da competência"),
-        _createElementVNode("p", null, "Encerre depois de resolver documentos e versões pendentes e declarar a abertura. A reabertura mantém o histórico e exige motivo."),
-        _createVNode(_component_data_table, {
-          rows: overview?[overview.counts]:[],
-          columns: {pending_documents:'Documentos pendentes',drafts:'Rascunhos',reviewed:'Conferidos não escriturados',posted:'Escriturados',rejected_inputs:'Origens rejeitadas',legacy_pending:'Rascunhos anteriores não retomados',open_forms:'Guias incompletas abertas'}
-        }, null, 8, ["rows", "columns"]),
-        _createElementVNode("form", { onSubmit: _withModifiers(closeCycle, ["prevent"]) }, [_createElementVNode("label", null, [_createTextVNode("Motivo"), _withDirectives(_createElementVNode("input", {
-          "onUpdate:modelValue": $event => ((closing.reason) = $event),
-          required: ""
-        }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, closing.reason]])]), _createElementVNode("label", null, [_withDirectives(_createElementVNode("input", {
-          type: "checkbox",
-          "onUpdate:modelValue": $event => ((closing.acknowledge_errors) = $event)
-        }, null, 8, ["onUpdate:modelValue"]), [[_vModelCheckbox, closing.acknowledge_errors]]), _createTextVNode(" Conferi e reconheço os arquivos rejeitados e rascunhos anteriores não retomados deste recorte")]), _createElementVNode("button", { disabled: busy||!cycle }, _toDisplayString(cycle?.state==='encerrada'?'Reabrir com motivo':'Encerrar competência'), 9, ["disabled"])], 40, ["onSubmit"])
+        _createElementVNode("h2", null, "Encerramento independente por módulo"),
+        _createElementVNode("p", null, "Feche fiscal e contábil separadamente por cliente e mês. Operações que produzem efeitos nos dois módulos exigem ambos abertos. A recepção continua disponível; organizar e escriturar respeitam os bloqueios. Quando houver regras ou apuração parametrizada, valide a memória atual em Tributação e apuração. Sem parametrização automática, registre a referência da conferência externa."),
+        _createElementVNode("label", null, [_createTextVNode("Motivo do controle por módulo"), _withDirectives(_createElementVNode("input", {
+          "onUpdate:modelValue": $event => ((moduleClosing.reason) = $event),
+          maxlength: "2000"
+        }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, moduleClosing.reason]])]),
+        _createElementVNode("label", null, [_createTextVNode("Referência da conferência da apuração"), _withDirectives(_createElementVNode("input", {
+          "onUpdate:modelValue": $event => ((moduleClosing.evidence_reference) = $event),
+          maxlength: "1000"
+        }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, moduleClosing.evidence_reference]])]),
+        (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(moduleStates, (row) => {
+          return (_openBlock(), _createElementBlock("article", {
+            key: row.state.module,
+            "data-module": row.state.module,
+            class: "inset"
+          }, [
+            _createElementVNode("h3", null, _toDisplayString(row.state.module==='fiscal'?'Fiscal':'Contábil') + " · " + _toDisplayString(row.state.competence) + " · " + _toDisplayString(row.state.state), 1),
+            (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(row.blockers, (blocker) => {
+              return (_openBlock(), _createElementBlock("p", null, _toDisplayString(blocker), 1))
+            }), 256)),
+            (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(row.required_checks, (key) => {
+              return (_openBlock(), _createElementBlock("label", null, [_withDirectives(_createElementVNode("input", {
+                type: "checkbox",
+                "onUpdate:modelValue": $event => ((moduleClosing.checks[key]) = $event)
+              }, null, 8, ["onUpdate:modelValue"]), [[_vModelCheckbox, moduleClosing.checks[key]]]), _createTextVNode(" Conferido: " + _toDisplayString(({lancamentos:'lançamentos',livros:'livros',correcoes:'correções',apuracao:'apuração',saldos:'saldos'})[key]), 1)]))
+            }), 256)),
+            _createElementVNode("button", {
+              onClick: $event => (closeModule(row)),
+              disabled: busy||row.global_state!=='aberta'
+            }, _toDisplayString(row.state.state==='encerrada'?'Reabrir':'Encerrar') + " " + _toDisplayString(row.state.module==='fiscal'?'fiscal':'contábil'), 9, ["onClick", "disabled"])
+          ], 8, ["data-module"]))
+        }), 128)),
+        _createElementVNode("details", null, [
+          _createElementVNode("summary", null, "Controle global anterior"),
+          _createElementVNode("p", null, "Encerre depois de resolver documentos e versões pendentes e declarar a abertura. A reabertura mantém o histórico e exige motivo."),
+          _createVNode(_component_data_table, {
+            rows: overview?[overview.counts]:[],
+            columns: {pending_documents:'Documentos pendentes',drafts:'Rascunhos',reviewed:'Conferidos não escriturados',posted:'Escriturados',rejected_inputs:'Origens rejeitadas',legacy_pending:'Rascunhos anteriores não retomados',open_forms:'Guias incompletas abertas'}
+          }, null, 8, ["rows", "columns"]),
+          _createElementVNode("form", { onSubmit: _withModifiers(closeCycle, ["prevent"]) }, [_createElementVNode("label", null, [_createTextVNode("Motivo"), _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((closing.reason) = $event),
+            required: ""
+          }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, closing.reason]])]), _createElementVNode("label", null, [_withDirectives(_createElementVNode("input", {
+            type: "checkbox",
+            "onUpdate:modelValue": $event => ((closing.acknowledge_errors) = $event)
+          }, null, 8, ["onUpdate:modelValue"]), [[_vModelCheckbox, closing.acknowledge_errors]]), _createTextVNode(" Conferi e reconheço os arquivos rejeitados e rascunhos anteriores não retomados deste recorte")]), _createElementVNode("button", { disabled: busy||!cycle }, _toDisplayString(cycle?.state==='encerrada'?'Reabrir com motivo':'Encerrar competência'), 9, ["disabled"])], 40, ["onSubmit"])
+        ])
       ], 512), [[_vShow, page==='closing']]),
       _withDirectives(_createElementVNode("section", { class: "card" }, [
         _createElementVNode("h1", null, "Histórico preservado e migração"),

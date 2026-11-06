@@ -109,6 +109,40 @@ class SourceEvidenceMixin:
             )
         ]
 
+    def search_sources(self, company_id, query="", kind="", issued_from="", issued_to="", direction=""):
+        """Search receipt evidence without creating or opening an accounting cycle."""
+        from datetime import date
+        from .persistence import _text
+        company = self._company(identifier(company_id))
+        query = _text(query, "Busca", 100, False).casefold()
+        if kind not in {"", "XML", "SPED"} or direction not in {"", "entrada", "saida"}:
+            raise ValueError("Filtro de tipo ou direção desconhecido")
+        for value in (issued_from, issued_to):
+            if not isinstance(value, str):
+                raise ValueError("Data de busca deve ser texto AAAA-MM-DD")
+            if value:
+                if len(value) != 10 or date.fromisoformat(value).isoformat() != value:
+                    raise ValueError("Data de busca deve usar AAAA-MM-DD")
+        if issued_from and issued_to and issued_from > issued_to:
+            raise ValueError("Intervalo de emissão invertido")
+        rows = []
+        for source in self.source_inbox(company_id):
+            evidence = source["evidence"]
+            if kind and source["kind"] != kind:
+                continue
+            issued = evidence.get("issued_date", "")
+            if (issued_from and issued < issued_from) or (issued_to and (not issued or issued > issued_to)):
+                continue
+            issuer, buyer = evidence.get("issuer"), evidence.get("buyer")
+            inferred_direction = ("saida" if issuer == company["cnpj"] else "entrada") if company["cnpj"] and (issuer == company["cnpj"]) != (buyer == company["cnpj"]) else ""
+            if direction and inferred_direction != direction:
+                continue
+            searchable = " ".join(str(v) for v in [source["filename"], evidence.get("key", ""), evidence.get("number", ""), issuer or "", buyer or ""])
+            if query and query not in searchable.casefold():
+                continue
+            rows.append(source)
+        return {"items": rows[:200], "total": len(rows), "limit": 200}
+
     def _append_source_revision(self, company_id, input_id, evidence, reason):
         version = self.db.execute(
             "SELECT COALESCE(MAX(version),0)+1 FROM source_revisions WHERE input_id=?",
@@ -359,6 +393,7 @@ class SourceEvidenceMixin:
                     )
                 if not sped_profile:
                     return source
+            self.assert_module_period_open(company_id, cycle["competence"], {"fiscal"})
             if source["evidence"]["state"] == "descartado":
                 raise ValueError(
                     "Fonte retirada: não restaurar silenciosamente uma decisão anterior."
@@ -584,6 +619,9 @@ class SourceEvidenceMixin:
                     "Fonte vinculada a escrituração fechada; registre ajuste, sem excluir a evidência."
                 )
             source = self._source_revision(company_id, input_id)
+            if source["evidence"].get("cycle_id"):
+                cycle = self._work_cycle(company_id, source["evidence"]["cycle_id"])
+                self.assert_module_period_open(company_id, cycle["competence"], {"fiscal", "contabil"})
             if source["file_id"]:
                 self.db.execute(
                     "UPDATE files SET status='excluido' WHERE company_id=? AND id=?",
