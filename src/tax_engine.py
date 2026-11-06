@@ -9,7 +9,8 @@ import re
 from datetime import date
 from decimal import Decimal, ROUND_DOWN, ROUND_HALF_UP, localcontext
 import calendar
-from .tax_items import SPECIAL_TAXES, ITEM_BASES, calculation_spec, component_key, validate_items, calculate_item
+from .tax_items import SPECIAL_TAXES, ITEM_BASES, ITEM_MEMORY_PROFILES, calculation_spec, component_key, validate_items, calculate_item_group
+from .tax_grossup import is_grossup
 
 from .accounting_store import digest, dump, identifier
 
@@ -93,7 +94,9 @@ def rule_spec(data):
     if 'calculation' in data:
         spec['calculation'] = copy.deepcopy(data['calculation'])
         try:
-            calculation_spec(spec['calculation'],spec['tax'])
+            calculation_spec(spec['calculation'],spec['tax'],spec['rate'])
+            if is_grossup(spec['calculation']) and spec['base_field']!='net_base':
+                raise ValueError('Cálculo por dentro exige o campo net_base, líquido sem os componentes declarados; não presume base a partir do total')
         except ValueError as error:
             issues.append(str(error))
     elif spec['tax'] in SPECIAL_TAXES or spec.get('item_treatment'):
@@ -239,7 +242,7 @@ class TaxEngineMixin:
         validate_items(items,fiscal,products)
         if self._matching_tax_rules(company_id,fiscal):
             raise ValueError('Há regras documentais aplicáveis; adapte explicitamente para itens antes de combinar tratamentos')
-        lines, output, components = [], {}, {}
+        lines, output, components, grossup_groups = [], {}, {}, []
         with localcontext() as context:
             context.prec = 50
             for item in items:
@@ -247,8 +250,12 @@ class TaxEngineMixin:
                 rules = self._matching_tax_rules(company_id,facts,scope='item')
                 if {component_key(r['spec']) for r in rules} != set(item['taxes']):
                     raise ValueError('Item '+item['id']+': componentes declarados não correspondem exatamente às regras aprovadas aplicáveis')
-                for rule in rules:
-                    line = calculate_item(rule,item)
+                try:
+                    item_lines,item_groups=calculate_item_group(rules,item)
+                except ValueError as error:
+                    raise ValueError('Item '+item['id']+': '+str(error)) from None
+                grossup_groups.extend(item_groups)
+                for line in item_lines:
                     lines.append(line)
                     key = line['component_key']
                     group = components.setdefault(key,{'component_key':key,'tax':line['tax'],'base':Decimal(0),'amount':Decimal(0)})
@@ -263,7 +270,8 @@ class TaxEngineMixin:
         # Values not covered by this item memory cannot silently survive a prior document calculation.
         if any(fiscal.get(prefix+'_amount') not in (None,'') and tax not in components for tax,prefix in TAXES.items()):
             raise ValueError('Há valores documentais sem cobertura nos itens; reconcilie explicitamente antes de calcular')
-        snapshot = {'profile':'tributacao-itens-v2','company_id':identifier(company_id),'cycle_id':revision['cycle_id'],
+        extended=any(line['parameters']['method'] in {'fcp','por_dentro'} for line in lines)
+        snapshot = {'profile':'tributacao-itens-v3' if extended else 'tributacao-itens-v2','company_id':identifier(company_id),'cycle_id':revision['cycle_id'],
                     'operation_id':revision['operation_id'],'input_version':revision['version'],'input_hash':revision['snapshot_hash'],
                     'input_fiscal':fiscal,'input_items':items,'document_id':payload.get('document_id'),
                     'source_hash':payload.get('source_hash'),'observation_id':payload.get('observation_id'),
@@ -273,6 +281,7 @@ class TaxEngineMixin:
                     'reconciliation':{'source_locators':[p['locator'] for p in products],
                                       'item_values_origin':'Valores e rateios declarados; não extraídos automaticamente dos produtos XML',
                                       'rounding':'Base em centavos antes da taxa; tributo arredondado por item antes da soma'}}
+        if extended:snapshot['grossup_groups']=grossup_groups
         return {'snapshot':snapshot,'snapshot_hash':digest(snapshot)}
 
     def preview_operation_tax(self, company_id, operation_id):
@@ -314,7 +323,7 @@ class TaxEngineMixin:
                 (company_id,cycle['id'],operation_id,request_key,request_hash,dump(preview['snapshot']),expected_hash,self.actor,reason,self._now())).lastrowid
             payload = copy.deepcopy(revision['payload'])
             payload['fiscal'].update(preview['snapshot']['output'])
-            if preview['snapshot'].get('profile')=='tributacao-itens-v2':
+            if preview['snapshot'].get('profile') in ITEM_MEMORY_PROFILES:
                 payload['tax_components'] = copy.deepcopy(preview['snapshot']['component_output'])
             else:
                 payload.pop('tax_components',None)
@@ -346,7 +355,7 @@ class TaxEngineMixin:
             expected_fiscal = {**memory['input_fiscal'],**memory['output']}
             if payload.get('fiscal') != expected_fiscal or any(payload.get(k) != memory.get(k) for k in ('document_id','source_hash','reference','tax_adjustment_of','tax_adjustment_reason')):
                 raise ValueError('Dados fiscais alterados depois do cálculo; gere nova memória')
-            item_mode = memory.get('profile')=='tributacao-itens-v2'
+            item_mode = memory.get('profile') in ITEM_MEMORY_PROFILES
             if item_mode:
                 if payload.get('tax_items')!=memory['input_items'] or payload.get('tax_components')!=memory['component_output'] or payload.get('observation_id')!=memory.get('observation_id'):
                     raise ValueError('Itens ou componentes alterados depois do cálculo; gere nova memória')
@@ -426,6 +435,12 @@ class TaxEngineMixin:
             ('Retenção por item e tributo declarado','retencao','RETENCAO',{'component_code':''})]:
             spec = {key:'' for key in SPEC_FIELDS}
             spec.update(tax=tax,item_treatment='',calculation={'scope':'item','method':method,'reduction_percent':'','base_rounding':'',**extra})
+            structural.append({'label':label,'spec':spec,'state':'rascunho','requires_validation':True})
+        for label,method,tax,basis,extra in [
+            ('FCP por item com modalidade e base declaradas','fcp','FCP','',{'component_code':'','base_mode':''}),
+            ('Por dentro com grupo e base líquida declarados','por_dentro','','net_base',{'input_basis':'','denominator_components':[],'residual_policy':''})]:
+            spec={key:'' for key in SPEC_FIELDS}
+            spec.update(tax=tax,base_field=basis,item_treatment='',calculation={'scope':'item','method':method,'reduction_percent':'','base_rounding':'',**extra})
             structural.append({'label':label,'spec':spec,'state':'rascunho','requires_validation':True})
         return {'rules':self.tax_rules(company_id),'templates':self.tax_templates(company_id),
                 'catalog':page['items'],'catalog_page':{key:value for key,value in page.items() if key!='items'},'structural_models':structural,

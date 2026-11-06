@@ -18,7 +18,7 @@ class TaxAssessmentMixin:
     def preview_tax_assessment(self, company_id, cycle_id):
         cycle = self._work_cycle(company_id,cycle_id)
         overview = self.work_overview(company_id,cycle_id)
-        lines, blockers, fiscal_operations = [], [], []
+        lines, blockers, fiscal_operations, grossup_groups = [], [], [], []
         adjustments = [o for o in overview['operations'] if o['state']=='escriturado' and o['payload'].get('tax_adjustment_of') and not self.tax_operation_issues(company_id,o)]
         for operation in overview['operations']:
             payload = operation['payload']
@@ -46,6 +46,7 @@ class TaxAssessmentMixin:
             covered = set()
             proof = payload.get('tax_calculation')
             if proof:
+                grossup_groups.extend({'operation_id':operation['operation_id'],'calculation_id':proof['id'],**group} for group in proof['memory'].get('grossup_groups',[]))
                 for item in proof['memory']['lines']:
                     lines.append({'operation_id':operation['operation_id'],'operation_hash':operation['snapshot_hash'],
                                   'tax':item['tax'],'amount':item['amount'],'base':item['base'],'rate':item['rate'],
@@ -93,6 +94,7 @@ class TaxAssessmentMixin:
         snapshot = {'profile':'apuracao-parametrizada-v1','source':source,'lines':lines,'totals':groups,'blockers':blockers,
                     'formula':'saldo_aritmetico = soma(debito) - soma(credito)',
                     'limits':['Não é obrigação acessória ou guia de pagamento','Não infere créditos, regimes, vencimentos ou compensações','Saldo negativo não é transferido automaticamente','CBS/IBS fora do cálculo']}
+        if grossup_groups:snapshot['grossup_groups']=grossup_groups
         return {'snapshot':snapshot,'snapshot_hash':digest(snapshot)}
 
     def tax_assessments(self, company_id, cycle_id):

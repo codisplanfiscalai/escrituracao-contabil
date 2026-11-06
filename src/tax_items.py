@@ -2,23 +2,25 @@
 import copy
 import re
 from decimal import Decimal, localcontext
+from .tax_grossup import GROSSUP_FIELDS, is_grossup, validate_grossup_parameters, validate_grossup_group, grossup_steps, reconcile_grossup_groups
 
-SPECIAL_TAXES = {'ICMS_ST', 'ICMS_DIFAL', 'RETENCAO'}
-ITEM_BASES = {'total', 'icms_base', 'iss_base', 'pis_base', 'cofins_base', 'st_base', 'difal_base', 'retention_base'}
-METHOD_TAX = {'st': 'ICMS_ST', 'difal': 'ICMS_DIFAL', 'retencao': 'RETENCAO'}
+SPECIAL_TAXES = {'ICMS_ST', 'ICMS_DIFAL', 'RETENCAO', 'FCP'}
+ITEM_BASES = {'total', 'icms_base', 'iss_base', 'pis_base', 'cofins_base', 'st_base', 'difal_base', 'retention_base','fcp_base','net_base'}
+METHOD_TAX = {'st': 'ICMS_ST', 'difal': 'ICMS_DIFAL', 'retencao': 'RETENCAO','fcp':'FCP'}
 CALC_FIELDS = {'scope', 'method', 'reduction_percent', 'base_rounding', 'margin_percent',
-               'origin_rate', 'deduction_field', 'negative_policy', 'component_code'}
+               'origin_rate', 'deduction_field', 'negative_policy', 'component_code','base_mode'} | GROSSUP_FIELDS
+ITEM_MEMORY_PROFILES = {'tributacao-itens-v2','tributacao-itens-v3'}
 
 
 def component_key(spec):
-    return spec['tax'] + (':' + spec['calculation']['component_code'] if spec['tax'] == 'RETENCAO' else '')
+    return spec['tax'] + (':' + spec['calculation']['component_code'] if spec['tax'] in {'RETENCAO','FCP'} else '')
 
 
-def calculation_spec(value, tax):
+def calculation_spec(value, tax, rate):
     from .tax_engine import decimal_text
     if not isinstance(value, dict) or set(value) - CALC_FIELDS:
         raise ValueError('Perfil de cálculo por item inválido')
-    if any(not isinstance(parameter,str) or len(parameter)>100 for parameter in value.values()):
+    if any(not isinstance(parameter,str) or len(parameter)>100 for key,parameter in value.items() if key!='denominator_components'):
         raise ValueError('Parâmetros do perfil devem ser textos explícitos de até 100 caracteres')
     required = {'scope', 'method', 'reduction_percent', 'base_rounding'}
     method = value.get('method')
@@ -28,8 +30,15 @@ def calculation_spec(value, tax):
         required |= {'origin_rate', 'negative_policy'}
     elif method == 'retencao':
         required.add('component_code')
+    elif method == 'fcp':
+        required |= {'component_code','base_mode'}
+        if value.get('base_mode') not in {'declarada','por_dentro'}:
+            raise ValueError('Declare se a base FCP é informada ou recomposta por dentro')
+    elif method == 'por_dentro':
+        pass
     elif method != 'percentual':
         raise ValueError('Selecione o método de cálculo por item')
+    if is_grossup(value):required |= GROSSUP_FIELDS
     if set(value) != required or value.get('scope') != 'item' or value.get('base_rounding') != 'centavos_antes_da_taxa':
         raise ValueError('Preencha somente os parâmetros exigidos pelo perfil e declare o arredondamento da base')
     if METHOD_TAX.get(method, tax) != tax or (tax in SPECIAL_TAXES and METHOD_TAX.get(method) != tax):
@@ -47,10 +56,13 @@ def calculation_spec(value, tax):
         decimal_text(value['origin_rate'], rate=True)
     if method in {'st', 'difal'} and value['negative_policy'] not in {'bloquear', 'zerar'}:
         raise ValueError('Declare o tratamento de resultado negativo: bloquear ou zerar')
-    if method == 'retencao' and (not isinstance(value['component_code'], str) or not re.fullmatch(r'[A-Z][A-Z0-9_]{0,29}', value['component_code'])):
-        raise ValueError('Identifique explicitamente o tributo retido, sem enquadramento automático')
-    if method == 'retencao' and {'CBS','IBS'} & set(value['component_code'].split('_')):
-        raise ValueError('CBS/IBS permanecem fora do cálculo, inclusive por retenção')
+    if method in {'retencao','fcp'} and (not isinstance(value['component_code'], str) or not re.fullmatch(r'[A-Z][A-Z0-9_]{0,29}', value['component_code'])):
+        raise ValueError('Identifique explicitamente o tributo retido ou a modalidade FCP, sem enquadramento automático')
+    if method in {'retencao','fcp'} and {'CBS','IBS'} & set(value['component_code'].split('_')):
+        raise ValueError('CBS/IBS permanecem fora do cálculo, inclusive por componente declarado')
+    if is_grossup(value):
+        key=tax+(':'+value['component_code'] if tax=='FCP' else '')
+        validate_grossup_parameters(value,key,rate)
     return copy.deepcopy(value)
 
 
@@ -79,9 +91,9 @@ def validate_items(items, fiscal, products):
         taxes = item['taxes']
         if not isinstance(taxes,list) or any(not isinstance(t,str) for t in taxes) or len(taxes)!=len(set(taxes)) or len(taxes)>20:
             raise ValueError('Componentes do item devem ser uma lista sem repetições, até 20')
-        if any(t not in set(TAXES) | (SPECIAL_TAXES - {'RETENCAO'}) and not re.fullmatch(r'RETENCAO:[A-Z][A-Z0-9_]{0,29}',t) for t in taxes):
+        if any(t not in set(TAXES) | (SPECIAL_TAXES - {'RETENCAO','FCP'}) and not re.fullmatch(r'(?:RETENCAO|FCP):[A-Z][A-Z0-9_]{0,29}',t) for t in taxes):
             raise ValueError('Componente do item não suportado; CBS/IBS fora do cálculo')
-        if any(t.startswith('RETENCAO:') and {'CBS','IBS'} & set(t.split(':',1)[1].split('_')) for t in taxes):
+        if any(t.startswith(('RETENCAO:','FCP:')) and {'CBS','IBS'} & set(t.split(':',1)[1].split('_')) for t in taxes):
             raise ValueError('CBS/IBS permanecem fora do cálculo, inclusive por retenção')
         if not taxes and not item['no_tax_reason'].strip():
             raise ValueError('Item sem componentes exige motivo explícito')
@@ -115,9 +127,14 @@ def calculate_item(rule, item):
         reduction = decimal_text(calc['reduction_percent'],rate=True)
         rate = decimal_text(spec['rate'],rate=True)
         expanded = base
-        if calc['method'] == 'st':
-            expanded *= 1 + Decimal(calc['margin_percent']) / 100
-        unrounded_base = expanded * (1 - reduction / 100)
+        extra_steps={}
+        if is_grossup(calc):
+            expanded,extra_steps=grossup_steps(spec,base)
+            unrounded_base=expanded
+        else:
+            if calc['method'] == 'st':
+                expanded *= 1 + Decimal(calc['margin_percent']) / 100
+            unrounded_base = expanded * (1 - reduction / 100)
         effective_base = unrounded_base.quantize(Decimal('.01'),rounding=rounding)
         effective_rate = rate - decimal_text(calc['origin_rate'],rate=True) if calc['method']=='difal' else rate
         gross = effective_base * effective_rate / 100
@@ -133,12 +150,21 @@ def calculate_item(rule, item):
             amount = abs(amount)
     formulas = {'percentual':'base_reduzida_arredondada * taxa / 100', 'retencao':'base_reduzida_arredondada * taxa_retida / 100',
                 'st':'arredondar(base * (1 + margem / 100) * (1 - reducao / 100)) * taxa / 100 - deducao_declarada',
-                'difal':'base_reduzida_arredondada * (taxa_destino - taxa_origem) / 100'}
+                'difal':'base_reduzida_arredondada * (taxa_destino - taxa_origem) / 100',
+                'fcp':'base_reduzida_arredondada * taxa_FCP_declarada / 100',
+                'por_dentro':'arredondar(base_liquida * (1 - reducao / 100) / (1 - soma_taxas_do_grupo / 100)) * taxa / 100'}
+    formula=formulas['por_dentro'] if is_grossup(calc) else formulas[calc['method']]
     return {'item_id':item['id'],'item_source':{'reference':item['source_reference'],'locator':item['source_locator']},
             'tax':spec['tax'],'component_key':component_key(spec),'base_field':spec['base_field'],
             'base':format(effective_base,'.2f'),'rate':spec['rate'],'amount':format(amount,'.2f'),
-            'formula':formulas[calc['method']],'parameters':copy.deepcopy(calc),
+            'formula':formula,'parameters':copy.deepcopy(calc),
             'steps':{'declared_base':format(base,'f'),'expanded_base':format(expanded,'f'),'unrounded_base':format(unrounded_base,'f'),
                      'effective_rate':format(effective_rate,'f'),'gross':format(gross,'f'),'deduction':format(deduction,'f'),
-                     'before_negative_policy':format(raw,'f')},'unrounded':format(adjusted,'f'),
+                     'before_negative_policy':format(raw,'f'),**extra_steps},'unrounded':format(adjusted,'f'),
             'effect':spec['effect'],'rounding':spec['rounding'],'revenue_code':spec['revenue_code'],'rule':rule}
+
+
+def calculate_item_group(rules, item):
+    validate_grossup_group(rules)
+    lines=[calculate_item(rule,item) for rule in rules]
+    return lines,reconcile_grossup_groups(rules,item,lines)
