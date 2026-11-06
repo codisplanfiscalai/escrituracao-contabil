@@ -5,6 +5,8 @@ TAX_GET = {'tax-config','tax-preview','tax-assessment-preview','tax-assessments'
 TAX_WRITE = {'tax-calculate','tax-batch-preview','tax-batch-apply'}
 TAX_REVIEW = {'tax-rules','tax-codes','tax-templates','tax-template-copy','tax-assessments','tax-assessment-review','tax-assessment-adjustment-preview','tax-assessment-adjustment-apply','tax-assessment-adjustment-cancel','tax-catalog-imports','tax-catalog-preview','tax-catalog-apply'}
 TAX_GET |= {'tax-batches','tax-batch'}
+TAX_GET |= {'document-item-values','document-preparations','document-preparation'}
+TAX_WRITE |= {'document-preparation-preview','document-preparation-apply'}
 TAX_ROUTES = TAX_GET | TAX_WRITE | TAX_REVIEW
 
 
@@ -13,6 +15,12 @@ def dispatch_tax(store, method, route, data):
     req = lambda key: _required(data,key)
     company = identifier(req('company_id'))
     if method=='GET':
+        if route=='document-item-values':
+            return store.document_item_values(company,req('document_id'),req('observation_id'))
+        if route=='document-preparations':
+            return store.document_preparations(company,req('cycle_id'))
+        if route=='document-preparation':
+            return store.document_preparation_detail(company,req('batch_id'))
         if route=='tax-batches':
             return store.tax_batches(company,req('cycle_id'),data.get('offset',0))
         if route=='tax-batch':
@@ -43,6 +51,10 @@ def dispatch_tax(store, method, route, data):
         if route=='tax-balance-sources':
             return store.tax_balance_sources(company,req('cycle_id'))
     if method=='POST':
+        if route=='document-preparation-preview':
+            return store.preview_document_preparation(company,req('cycle_id'),req('documents'),req('config'))
+        if route=='document-preparation-apply':
+            return store.apply_document_preparation(company,req('cycle_id'),req('documents'),req('config'),req('snapshot_hash'),req('request_key'),req('reason'),req('review_reference'),data.get('confirmed'))
         if route=='tax-batch-preview':
             return store.preview_tax_batch(company,req('cycle_id'),req('operation_ids'))
         if route=='tax-batch-apply':

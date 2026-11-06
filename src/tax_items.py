@@ -9,7 +9,7 @@ ITEM_BASES = {'total', 'icms_base', 'iss_base', 'pis_base', 'cofins_base', 'st_b
 METHOD_TAX = {'st': 'ICMS_ST', 'difal': 'ICMS_DIFAL', 'retencao': 'RETENCAO','fcp':'FCP'}
 CALC_FIELDS = {'scope', 'method', 'reduction_percent', 'base_rounding', 'margin_percent',
                'origin_rate', 'deduction_field', 'negative_policy', 'component_code','base_mode'} | GROSSUP_FIELDS
-ITEM_MEMORY_PROFILES = {'tributacao-itens-v2','tributacao-itens-v3'}
+ITEM_MEMORY_PROFILES = {'tributacao-itens-v2','tributacao-itens-v3','tributacao-itens-v4'}
 
 
 def component_key(spec):
