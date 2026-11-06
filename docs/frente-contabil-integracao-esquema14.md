@@ -1,5 +1,7 @@
 # Integração contábil com importação fiscal e esquema 14
 
+Registro histórico do esquema 14 e PR #12. A composição posterior com ajustes/saldos e esquema 15 está em `frente-contabil-integracao-esquema15.md`; não atribuir os resultados deste registro a SHAs posteriores.
+
 ## Base e composição
 
 Base fiscal conferida: [PR #11](https://github.com/codisplanfiscalai/escrituracao-contabil/pull/11), HEAD **`db62bc86adf66d72e18d76a27aed21ac844dcdd1`**. A combinação foi preparada na árvore isolada `/workspace/escrituracao-contabil-compat14`, branch `feat/contabil-compat-esquema14`. Os PRs #9, #10 e #11 não foram alterados; não houve merge, release ou implantação.

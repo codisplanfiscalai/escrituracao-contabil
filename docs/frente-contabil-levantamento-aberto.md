@@ -1,5 +1,7 @@
 # Frente contábil — levantamento aberto e incremento de relatórios
 
+Estado posterior: `frente-contabil-integracao-esquema15.md` registra a combinação com `3673c5a1212c29aff0c600e11bfd329f5d96022a` do PR #14. As etapas 10/13/14 abaixo são históricas e não substituem a validação do esquema 15.
+
 Estado de integração mais recente: `frente-contabil-integracao-esquema14.md` registra a combinação isolada com o HEAD `db62bc86adf66d72e18d76a27aed21ac844dcdd1` do PR #11. Os registros de esquemas 10/13 a seguir são históricos; os anexos continuam sem bytes/pixels acessíveis.
 
 Atualização de integração: os relatórios foram combinados com o HEAD `64378f695919c3816840b9eb29c669c762fc6ca1` do PR fiscal #8 em uma árvore isolada, usando o esquema **13** e o fechamento por módulo implementados naquela frente. Consulte `frente-contabil-integracao-esquema13.md` para conflitos resolvidos e validação conjunta. Os registros abaixo sobre esquema 10, migração fiscal 11 e fechamento ainda não implementado descrevem o incremento contábil inicial; não são o estado da combinação atual.
