@@ -11,7 +11,7 @@ def main():
         expect(fiscal.get_by_role('heading')).to_contain_text('aberta')
         expect(accounting.get_by_role('heading')).to_contain_text('aberta')
         frame.get_by_label('Motivo do controle por módulo').fill('Fechamento fiscal sintético')
-        frame.get_by_label('Referência da conferência e apuração externa').fill('Apuração externa sintética conferida')
+        frame.get_by_label('Referência da conferência da apuração').fill('Apuração externa sintética conferida')
         for check in fiscal.locator('input[type=checkbox]').all():
             check.check()
         fiscal.get_by_role('button', name='Encerrar fiscal', exact=True).click()

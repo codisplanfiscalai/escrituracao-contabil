@@ -77,10 +77,14 @@ class ModuleClosureMixin:
             blockers.append('Resolva os documentos fiscais organizados ainda não escriturados')
         if module == 'contabil' and not self.db.execute('SELECT 1 FROM work_balance_starts WHERE company_id=? AND competence<=?', (company_id, cycle['competence'])).fetchone():
             blockers.append('Declare os saldos iniciais ou confirme abertura zero')
+        assessment = self.tax_assessment_readiness(company_id,cycle_id) if module=='fiscal' else None
+        if assessment and assessment['required'] and not assessment['ready']:
+            blockers.append(assessment['message'])
         snapshot = {'company_id': identifier(company_id), 'competence': cycle['competence'], 'module': module,
                     'version': state['version'], 'cycle_version': cycle['version'], 'global_state': cycle['state'],
                     'operations': [(o['operation_id'], o['version'], o['state'], o['snapshot_hash']) for o in operations],
-                    'documents': [(d['id'], d['state'], d['source']['source_hash']) for d in documents], 'forms': forms}
+                    'documents': [(d['id'], d['state'], d['source']['source_hash']) for d in documents], 'forms': forms,
+                    'tax_assessment':assessment}
         return {'state': state, 'snapshot_hash': digest(snapshot), 'snapshot': snapshot, 'blockers': blockers,
                 'required_checks': CHECKS[module], 'global_state': cycle['state']}
 
@@ -103,7 +107,7 @@ class ModuleClosureMixin:
                 if not isinstance(checks, dict) or set(checks) != set(CHECKS[module]) or any(value is not True for value in checks.values()):
                     raise ValueError('Confirme lançamentos, livros, correções e apuração/saldos do módulo')
                 if not evidence_reference:
-                    raise ValueError('Informe referência da conferência; apuração fiscal é conferida externamente, sem cálculo automático')
+                    raise ValueError('Informe referência da conferência da apuração ou dos saldos')
             else:
                 checks = {}
             state = current['state']

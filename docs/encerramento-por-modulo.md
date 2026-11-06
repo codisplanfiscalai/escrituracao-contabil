@@ -2,6 +2,8 @@
 
 ## Resultado implementado
 
+Atualização do esquema 13: quando houver parametrização tributária ou apuração gerada, o fechamento fiscal exige [apuração parametrizada atual validada](tributacao-parametrizada.md). O fluxo de declaração externa abaixo permanece para empresas sem essa parametrização.
+
 Fiscal e contábil possuem controles independentes de abertura/encerramento por cliente e mês. A tabela `module_period_versions` mantém versões, snapshot da conferência, hash, marcações de revisão, referência da evidência, responsável, motivo e instante. A migração aditiva **11 → 12** preserva os cadastros e movimentos existentes. Bancos anteriores passam pelas migrações aditivas já estabelecidas.
 
 O controle global anterior permanece para compatibilidade e preservação de fechamentos existentes. Um módulo aberto não sobrepõe um fechamento global anterior. Reabrir o controle global também não remove um bloqueio independente de módulo.

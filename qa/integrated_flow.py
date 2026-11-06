@@ -119,7 +119,7 @@ def run(mode):
                 nav('Encerramento')
                 for module, label in [('fiscal','fiscal'),('contabil','contábil')]:
                     frame.get_by_label('Motivo do controle por módulo').fill('Encerramento sintético '+module)
-                    frame.get_by_label('Referência da conferência e apuração externa').fill('Conferência externa sintética')
+                    frame.get_by_label('Referência da conferência da apuração').fill('Conferência externa sintética')
                     panel=frame.locator('[data-module="'+module+'"]')
                     for check in panel.locator('input[type=checkbox]').all():check.check()
                     panel.get_by_role('button',name='Encerrar '+label,exact=True).click();idle()

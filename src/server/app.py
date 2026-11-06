@@ -16,6 +16,7 @@ from .identity import Identity, IdentityError, PERMISSIONS, digest
 from ..local_app import dispatch, APIError, MAX_BODY, WEB_ROOT
 from ..persistence import AccountingStore
 from ..work_api import WORK_WRITE, WORK_REVIEW
+from ..tax_api import TAX_WRITE, TAX_REVIEW
 from ..finance import FINANCE_WRITE, FINANCE_REVIEW
 from ..accounting_api import ACCOUNTING_WRITE, ACCOUNTING_REVIEW
 
@@ -61,6 +62,8 @@ CLIENT_POST = {"files", "import-batches", "source-receive"}
 CLIENT_GET.update({"source-inbox", "source-original"})
 WRITE_ROUTES.update(ACCOUNTING_WRITE | FINANCE_WRITE | WORK_WRITE)
 REVIEW_ROUTES.update(ACCOUNTING_REVIEW | FINANCE_REVIEW | WORK_REVIEW)
+WRITE_ROUTES.update(TAX_WRITE)
+REVIEW_ROUTES.update(TAX_REVIEW)
 
 
 def create_app(
@@ -493,6 +496,8 @@ def create_app(
             return answer(companies(user))
         if route != "companies":
             company_scope(user, body.get("company_id"))
+        if route == "tax-template-copy":
+            company_scope(user, body.get("source_company_id"))
         store = AccountingStore(accounting, actor=user["id"])
         try:
             result = dispatch(store, request.method, route, body)

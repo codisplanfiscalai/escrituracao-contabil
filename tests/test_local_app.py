@@ -12,6 +12,14 @@ from src.local_app import LocalServer, MAX_BODY
 
 
 class LocalApplicationTests(unittest.TestCase):
+    def test_tax_configuration_is_available_in_private_mode_without_legal_defaults(self):
+        company = self.company()
+        result = self.api(f"tax-config?company_id={company['id']}")
+        self.assertEqual(result['rules'], [])
+        self.assertEqual(result['catalog'], [])
+        self.assertFalse(result['legal_defaults_loaded'])
+        self.assertTrue(all(not model['spec']['rate'] for model in result['structural_models']))
+
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         self.database = Path(self.directory.name) / "synthetic.sqlite3"

@@ -2,6 +2,8 @@
 
 ## Resultado e estado inicial
 
+Atualização tributária: o estado final usa esquema **13**, com [regras, tabelas, modelos e apuração parametrizada por empresa](tributacao-parametrizada.md). As limitações de ausência de apuração nos incrementos anteriores abaixo são históricas; não havia regras legais fornecidas e nenhum tratamento legal foi presumido no novo motor.
+
 Atualização posterior: o novo requisito de encerramento independente foi implementado sobre este incremento. O estado final usa esquema **12** e guardas compartilhadas em `src/work_store.py`; consulte [contrato e validação do encerramento por módulo](encerramento-por-modulo.md). As menções ao esquema 11 e à ausência de alteração de `work_store.py` abaixo descrevem o primeiro commit cadastral, não o complemento posterior. A [descrição do PR em rascunho](pr-rascunho-cadastro-encerramento.md) foi preparada sem publicação.
 
 O incremento entrega cadastro complementar de clientes, empresa usuária em registro separado, histórico cadastral, busca das fontes recebidas sem competência e inicialização Windows recolhida no tray. Não representa o sistema completo nem recuperação do código dos executáveis fornecidos.

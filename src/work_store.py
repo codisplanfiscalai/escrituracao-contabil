@@ -493,7 +493,7 @@ class WorkStoreMixin:
         cycle = self._work_cycle(company_id, revision["cycle_id"])
         payload = revision["payload"]
         if revision["state"] == "escriturado":
-            return check_operation(
+            result = check_operation(
                 payload,
                 {
                     "competence": cycle["competence"],
@@ -501,6 +501,9 @@ class WorkStoreMixin:
                 },
                 payload["accounts_snapshot"],
             )
+            result["issues"].extend(self.tax_operation_issues(company_id, revision))
+            result["ready"] = not result["issues"]
+            return result
 
         accounts = (
             {
@@ -739,6 +742,7 @@ class WorkStoreMixin:
                 result["issues"].append(
                     {"field": "reversal", "message": str(error), "severity": "bloqueio"}
                 )
+        result["issues"].extend(self.tax_operation_issues(company_id, revision))
         result["ready"] = not result["issues"]
         return result
 
@@ -825,6 +829,8 @@ class WorkStoreMixin:
             self.assert_operation_modules_open(company_id, cycle, payload)
             if previous:
                 self.assert_operation_modules_open(company_id, cycle, previous["payload"])
+                if previous["payload"].get("tax_calculation") and not payload.get("tax_calculation"):
+                    _text(payload.get("tax_override_reason"), "Motivo para substituir cálculo por valores informados", 2000)
             if previous and (
                 previous["state"] in {"escriturado", "dispensado"}
                 or previous["cycle_id"] != cycle["id"]
@@ -1725,6 +1731,9 @@ class WorkStoreMixin:
             if target not in {"aberta", "encerrada"} or cycle["state"] == target:
                 raise ValueError("Transição inválida.")
             if target == "encerrada":
+                assessment = self.tax_assessment_readiness(company_id, cycle_id)
+                if assessment["required"] and not assessment["ready"]:
+                    raise ValueError(assessment["message"])
                 if any(
                     overview["counts"][key]
                     for key in ["pending_documents", "drafts", "reviewed", "open_forms"]
