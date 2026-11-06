@@ -63,12 +63,68 @@ def stop(process):
         raise AssertionError(f"Exit status {process.returncode}: {stdout!r} {stderr!r}")
 
 
+def windows_lifecycle(command, process, environment, directory, gui, port, *, background):
+    """Drive only this disposable process's real Tk window and singleton restore."""
+    user = ctypes.WinDLL('user32', use_last_error=True)
+    user.GetAncestor.argtypes = [wintypes.HWND, wintypes.UINT]
+    user.GetAncestor.restype = wintypes.HWND
+    user.GetWindowThreadProcessId.argtypes = [wintypes.HWND, ctypes.POINTER(wintypes.DWORD)]
+    user.GetWindowThreadProcessId.restype = wintypes.DWORD
+    user.IsWindowVisible.argtypes = [wintypes.HWND]
+    user.IsIconic.argtypes = [wintypes.HWND]
+    user.PostMessageW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
+    window = user.GetAncestor(gui['window_hwnd'], 2)
+    owner = wintypes.DWORD()
+    user.GetWindowThreadProcessId(window, ctypes.byref(owner))
+    assert owner.value == process.pid, 'Only control the owned smoke process'
+    user.GetWindowThreadProcessId(gui['tray_hwnd'], ctypes.byref(owner))
+    assert owner.value == process.pid, 'Tray must belong to the owned smoke process'
+    expected = ('withdrawn' if gui['tray_available'] else 'iconic') if background else 'normal'
+    assert gui['window_state'] == expected, gui
+
+    def wait(predicate, description):
+        deadline = time.monotonic()+8
+        while not predicate():
+            assert process.poll() is None, 'Application exited during '+description
+            if time.monotonic()>deadline: raise AssertionError('Timeout: '+description)
+            time.sleep(.05)
+        assert process.poll() is None, 'Application exited after '+description
+        assert request(port, '/')[0] == 200, 'Backend stopped during '+description
+
+    def restore():
+        # The second instance must ask the first one to show its existing window.
+        duplicate = subprocess.Popen([*command, '--show-window'], cwd=directory, env=environment,
+                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        try:
+            output = duplicate.communicate(timeout=10)
+        except subprocess.TimeoutExpired:
+            duplicate.kill(); duplicate.communicate()
+            raise AssertionError('Second instance failed to return') from None
+        assert duplicate.returncode == 0, output
+        wait(lambda: user.IsWindowVisible(window) and not user.IsIconic(window), 'singleton restore')
+
+    def close_window():
+        assert user.PostMessageW(window, 0x0010, 0, 0), 'Cannot post WM_CLOSE to owned window'
+        wait(lambda: not user.IsWindowVisible(window) if gui['tray_available'] else user.IsIconic(window),
+             'close to tray/taskbar without stopping backend')
+
+    # A visible window alone cannot acknowledge a queued singleton restore.
+    # Start hidden, so visibility proves that the requested action was serviced
+    # before posting WM_CLOSE; otherwise that delayed restore can reopen it.
+    if not background:
+        close_window()
+    restore(); close_window(); restore(); close_window()
+    assert user.PostMessageW(gui['tray_hwnd'], 0x8001, 0, 0x0203), 'Cannot notify tray double click'
+    wait(lambda: user.IsWindowVisible(window) and not user.IsIconic(window), 'tray restore')
+    print('PASS Windows lifecycle: initial '+expected+', singleton restore, close without stopping HTTP, tray restore', flush=True)
+
+
 def run(command, *, server=False):
     with tempfile.TemporaryDirectory(prefix="escrituracao-smoke-") as directory:
         root = Path(directory)
         database = root / "private-data" / "synthetic.sqlite3"
         old_token = None
-        for iteration in range(2):
+        for iteration in range(4 if os.name == 'nt' else 2):
             # Pick a fresh local port: closed TCP sessions may remain in TIME_WAIT.
             with socket.socket() as reserve:
                 reserve.bind(("127.0.0.1", 0))
@@ -77,6 +133,10 @@ def run(command, *, server=False):
             if server:
                 environment["PYTHONPATH"] = str(Path(__file__).resolve().parents[1])
             if os.name == "nt":
+                environment['LOCALAPPDATA'] = str(root / 'windows-profile')
+                if iteration == 2:
+                    preferences = root / 'windows-profile' / 'EscrituracaoContabil' / 'desktop.json'
+                    preferences.write_text(json.dumps({'start_minimized':True}), encoding='utf-8')
                 kernel = ctypes.WinDLL("kernel32", use_last_error=True)
                 kernel.CreateEventW.argtypes = [ctypes.c_void_p, wintypes.BOOL, wintypes.BOOL, wintypes.LPCWSTR]
                 kernel.CreateEventW.restype = wintypes.HANDLE
@@ -87,7 +147,9 @@ def run(command, *, server=False):
                 status_file = root / f"gui-status-{iteration}.json"
                 environment["ESCRITURA_SMOKE_STATUS_FILE"] = str(status_file)
             process = subprocess.Popen(
-                [*command, "--database", str(database), "--port", str(port)],
+                [*command, "--database", str(database), "--port", str(port),
+                 *(['--background'] if os.name == 'nt' and iteration == 1 else []),
+                 *(['--show-window'] if os.name == 'nt' and iteration == 3 else [])],
                 cwd=root, env=environment, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                 creationflags=subprocess.CREATE_NEW_PROCESS_GROUP if os.name == "nt" else 0,
             )
@@ -111,6 +173,7 @@ def run(command, *, server=False):
                     gui = json.loads(status_file.read_text(encoding="utf-8"))
                     assert gui["tk_window"] and gui["tray_window"] and gui["backend_running"], gui
                     if gui["frozen"]: assert not gui["console_window"], "A GUI executable must not create a console"
+                    windows_lifecycle(command, process, environment, root, gui, port, background=iteration in (1,2))
                 assert b'/portal/app.js' in html, 'Corporate portal missing'
                 session = {}
                 if iteration == 0:
