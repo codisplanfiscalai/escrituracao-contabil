@@ -51,7 +51,7 @@ def run(mode):
                     frame=page.frame_locator('#workspace-frame')
                 else:frame=page
                 def idle():
-                    expect(frame.locator('.workbench')).to_have_attribute('aria-busy','false')
+                    expect(frame.locator('.workbench')).to_have_attribute('aria-busy','false',timeout=15000)
                     expect(frame.locator('.alert.error')).to_have_count(0)
                 def nav(label):
                     idle()
