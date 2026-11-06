@@ -1,4 +1,4 @@
-"""Accounting/tax/closing contracts introduced in 13, checked on schema 14."""
+"""Accounting/tax/closing contracts introduced in 13, checked on schema 15."""
 from copy import deepcopy
 import unittest
 
@@ -66,7 +66,7 @@ class AccountingSchema13Tests(unittest.TestCase):
         self.assertEqual(book['fiscal_book'][0]['icms_amount'], '2.51')
         self.assertEqual(self.s.get_work_operation(self.c, posted['operation_id'])['payload']['tax_calculation'],
                          applied['operation']['payload']['tax_calculation'])
-        self.assertEqual(self.s.db.execute('SELECT version FROM schema_version').fetchone()[0], 14)
+        self.assertEqual(self.s.db.execute('SELECT version FROM schema_version').fetchone()[0], 15)
 
     def test_independent_closing_keeps_reports_readable_and_receipt_cannot_bypass(self):
         self.opening()
@@ -150,7 +150,8 @@ class AccountingSchema13Tests(unittest.TestCase):
         postings = [tuple(row) for row in self.s.db.execute('SELECT revision_id,line,payload FROM work_movements ORDER BY revision_id,line')]
         self.s.db.execute('PRAGMA foreign_keys=OFF')
         with self.s.db:
-            for table in ('tax_catalog_import_applications','tax_catalog_scopes','tax_catalog_imports',
+            for table in ('tax_assessment_adjustment_versions',
+                          'tax_catalog_import_applications','tax_catalog_scopes','tax_catalog_imports',
                           'tax_assessment_versions','tax_calculations','tax_template_versions','tax_rule_versions',
                           'tax_catalog_versions','module_period_versions','client_profile_versions','user_organization_versions'):
                 self.s.db.execute('DROP TABLE '+table)
@@ -158,7 +159,7 @@ class AccountingSchema13Tests(unittest.TestCase):
         self.s.close()
         self.s = AccountingStore(self.path, actor='operador-sintetico')
         self.addCleanup(self.s.close)
-        self.assertEqual(self.s.db.execute('SELECT version FROM schema_version').fetchone()[0], 14)
+        self.assertEqual(self.s.db.execute('SELECT version FROM schema_version').fetchone()[0], 15)
         self.assertEqual([tuple(row) for row in self.s.db.execute('SELECT id,sha256,original FROM files ORDER BY id')], originals)
         self.assertEqual([tuple(row) for row in self.s.db.execute('SELECT revision_id,line,payload FROM work_movements ORDER BY revision_id,line')], postings)
         self.assertEqual(self.report(), before)

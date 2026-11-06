@@ -1,4 +1,4 @@
-"""Accounting remains immutable across reviewed catalogues and schema 14."""
+"""Catalogue contracts introduced in 14 remain immutable on schema 15."""
 import unittest
 import test_work_application as work
 import test_tax_items as items
@@ -99,13 +99,14 @@ class AccountingCatalogSchema14Tests(unittest.TestCase):
         movements = [tuple(r) for r in self.s.db.execute('SELECT revision_id,line,payload FROM work_movements ORDER BY revision_id,line')]
         calculations = [tuple(r) for r in self.s.db.execute('SELECT id,snapshot,snapshot_hash FROM tax_calculations ORDER BY id')]
         with self.s.db:
-            for table in ('tax_catalog_import_applications','tax_catalog_scopes','tax_catalog_imports'):
+            for table in ('tax_assessment_adjustment_versions',
+                          'tax_catalog_import_applications','tax_catalog_scopes','tax_catalog_imports'):
                 self.s.db.execute('DROP TABLE '+table)
             self.s.db.execute('UPDATE schema_version SET version=13')
         self.s.close()
         self.s = AccountingStore(self.path,actor='operador-sintetico')
         self.addCleanup(self.s.close)
-        self.assertEqual(self.s.db.execute('SELECT version FROM schema_version').fetchone()[0],14)
+        self.assertEqual(self.s.db.execute('SELECT version FROM schema_version').fetchone()[0],15)
         self.assertEqual(self.report(),before)
         self.assertEqual([tuple(r) for r in self.s.db.execute('SELECT id,sha256,original FROM files ORDER BY id')],originals)
         self.assertEqual([tuple(r) for r in self.s.db.execute('SELECT revision_id,line,payload FROM work_movements ORDER BY revision_id,line')],movements)
