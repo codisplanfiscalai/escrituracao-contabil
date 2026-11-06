@@ -29,6 +29,7 @@ from .work_store import WorkStoreMixin
 from .work_books import WorkBooksMixin
 from .batch_import import BatchImportMixin, BATCH_SCHEMA
 from .product_catalog import ProductCatalogMixin, PRODUCT_SCHEMA
+from .company_profiles import CompanyProfilesMixin, PROFILE_SCHEMA
 
 MAX_FILE_BYTES = 10 * 1024 * 1024
 NS = {"n": "http://www.portalfiscal.inf.br/nfe"}
@@ -302,6 +303,7 @@ CREATE TABLE IF NOT EXISTS schema_version (version INTEGER NOT NULL);
 
 
 class AccountingStore(
+    CompanyProfilesMixin,
     SourceEvidenceMixin,
     WorkBooksMixin,
     WorkStoreMixin,
@@ -334,7 +336,7 @@ class AccountingStore(
             if version_table
             else None
         )
-        if version and version[0] not in {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}:
+        if version and version[0] not in {1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11}:
             self.close()
             raise ValueError(
                 "Versão do banco não suportada; nenhuma migração automática realizada"
@@ -356,11 +358,12 @@ class AccountingStore(
                 + PRODUCT_SCHEMA
                 + WORK_SCHEMA
                 + SOURCE_SCHEMA
+                + PROFILE_SCHEMA
             )
             if not version:
-                self.db.execute("INSERT INTO schema_version VALUES (10)")
-            elif version[0] in {1, 2, 3, 4, 5, 6, 7, 8, 9}:
-                self.db.execute("UPDATE schema_version SET version=10")
+                self.db.execute("INSERT INTO schema_version VALUES (11)")
+            elif version[0] in {1, 2, 3, 4, 5, 6, 7, 8, 9, 10}:
+                self.db.execute("UPDATE schema_version SET version=11")
             if not version or version[0] < 10:
                 self.db.execute(
                     "INSERT OR IGNORE INTO work_cycles(company_id,competence,period_id,plan_id,actor,reason,created_at) SELECT company_id,processing_competence,MIN(id),NULL,'migracao-10','Migração: confirmar parâmetros e plano.',? FROM periods GROUP BY company_id,processing_competence",

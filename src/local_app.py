@@ -93,6 +93,10 @@ def dispatch(store, method, route, data):
     if route != "companies":
         company = _identifier(_required(data, "company_id"), "company_id")
     if method == "GET":
+        if route == "company-profile":
+            return store.client_profile(company)
+        if route == "company-profile-history":
+            return store.client_profile_history(company)
         if route == "products":
             return store.list_products(company)
         if route == "import-batches":
@@ -160,6 +164,8 @@ def dispatch(store, method, route, data):
         if route == "audit":
             return store.list_audit(company)
     if method == "POST":
+        if route == "company-profile":
+            return store.save_client_profile(company, _required(data, "data"), data.get("version"), _required(data, "reason"))
         if route == "product-review":
             return store.review_product(
                 company,

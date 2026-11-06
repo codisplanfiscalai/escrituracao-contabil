@@ -3,6 +3,7 @@
 from .accounting_store import identifier
 
 WORK_GET = {
+    "source-search",
     "work-archived-tabs",
     "work-attempt",
     "source-history",
@@ -77,6 +78,8 @@ def dispatch_work(store, method, route, data):
 
     company = identifier(req("company_id"))
     if method == "GET":
+        if route == "source-search":
+            return store.search_sources(company, **{key: data.get(key, "") for key in ("query", "kind", "issued_from", "issued_to", "direction")})
         if route == "work-attempt":
             row = store.db.execute(
                 "SELECT r.operation_id,r.version FROM work_requests q JOIN work_revisions r ON r.id=q.revision_id WHERE q.company_id=? AND q.request_key=?",

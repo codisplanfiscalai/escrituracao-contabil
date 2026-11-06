@@ -213,6 +213,28 @@ var _Vue=Vue; var WorkRender=function render(_ctx, _cache) {
       ], 512), [[_vShow, page==='chart']]),
       _withDirectives(_createElementVNode("section", { class: "card" }, [
         _createElementVNode("h1", null, "Recepção e caixa de entrada"),
+        _createElementVNode("form", {
+          onSubmit: _withModifiers(searchSources, ["prevent"]),
+          class: "toolbar source-search"
+        }, [
+          _createElementVNode("label", null, [_createTextVNode("Buscar fontes"), _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((sourceSearch.query) = $event),
+            placeholder: "Arquivo, chave, número ou CPF/CNPJ",
+            maxlength: "100"
+          }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, sourceSearch.query]])]),
+          _createElementVNode("label", null, [_createTextVNode("Tipo da fonte"), _withDirectives(_createElementVNode("select", { "onUpdate:modelValue": $event => ((sourceSearch.kind) = $event) }, [_createElementVNode("option", { value: "" }, "Todos"), _createElementVNode("option", null, "XML"), _createElementVNode("option", null, "SPED")], 8, ["onUpdate:modelValue"]), [[_vModelSelect, sourceSearch.kind]])]),
+          _createElementVNode("label", null, [_createTextVNode("Direção identificada"), _withDirectives(_createElementVNode("select", { "onUpdate:modelValue": $event => ((sourceSearch.direction) = $event) }, [_createElementVNode("option", { value: "" }, "Todas"), _createElementVNode("option", { value: "entrada" }, "Entradas"), _createElementVNode("option", { value: "saida" }, "Saídas")], 8, ["onUpdate:modelValue"]), [[_vModelSelect, sourceSearch.direction]])]),
+          _createElementVNode("label", null, [_createTextVNode("Emissão inicial"), _withDirectives(_createElementVNode("input", {
+            type: "date",
+            "onUpdate:modelValue": $event => ((sourceSearch.issued_from) = $event)
+          }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, sourceSearch.issued_from]])]),
+          _createElementVNode("label", null, [_createTextVNode("Emissão final"), _withDirectives(_createElementVNode("input", {
+            type: "date",
+            "onUpdate:modelValue": $event => ((sourceSearch.issued_to) = $event)
+          }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, sourceSearch.issued_to]])]),
+          _createElementVNode("button", { disabled: busy||!company }, "Buscar sem competência", 8, ["disabled"])
+        ], 40, ["onSubmit"]),
+        _createElementVNode("p", null, "Busca nas fontes já recebidas deste cliente, sem abertura de competência. Fontes sem emissão identificada não aparecem no filtro por data; direção depende do CNPJ cadastrado."),
         _createElementVNode("p", null, "Receba primeiro; escolha a competência ao organizar. Nenhum lançamento é criado pelo envio. XML, SPED e ZIP; 7z/RAR dependem do leitor disponível e não estão disponíveis no Windows congelado atual."),
         _createElementVNode("form", {
           onSubmit: _withModifiers(receive, ["prevent"]),

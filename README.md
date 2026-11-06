@@ -2,6 +2,10 @@
 
 Aplicação de escrituração fiscal e contábil, com portal Vue, API Python, SQLite, aplicativo Windows gráfico com área de notificação e execução em servidor Docker.
 
+Uma aplicação integrada: menus, módulos e relatórios compartilham contexto e serviços internos, com filtros e opções. Os executáveis externos são referências para levantamento; não haverá um EXE por tela ou relatório.
+
+Incremento local de 06/11: [análise dos anexos, cadastro separado da empresa usuária, busca sem competência, contratos e validação](docs/analise-referencias-2026-11-06.md). A transferência dos executáveis/prints falhou; sua tecnologia e suas telas não foram verificadas. O cadastro complementar está em Empresas, e a empresa usuária em Configurações. Esses dados declarados não ativam cálculo fiscal/trabalhista. A busca em Recepção consulta fontes já recebidas sem exigir competência. Windows inicia no tray; `--show-window` abre a administração. A mudança de inicialização ainda exige validação nativa x86/x64.
+
 A jornada foi reformulada: **receber → identificar e organizar → escriturar → conferir → consultar livros e financeiro → encerrar e exportar**. Importar e lançar manualmente são entradas para a mesma escrituração. Guias permitem alternar atividades; editores de usuários e perfis também usam guias. No portal, os modais são restritos à configuração transitória do 2FA e aos códigos de recuperação.
 
 - [Novo domínio, migração, regras e limites](docs/reformulacao-fiscal-contabil.md)
@@ -27,7 +31,7 @@ Fichas incompletas são preservadas no banco por usuário, empresa e competênci
 
 ## Migração
 
-O esquema 10 adiciona o novo modelo em transação, preserva originais, decisões, rascunhos, movimentos fechados e arquivos exportados. Fechamentos/exportações fiscais anteriores continuam protegidos. Movimentos contábeis anteriores entram nos livros sem ser recriados. Em **Histórico**, rascunhos elegíveis podem ser retomados para nova conferência. Lotes documentais antigos exigem abrir cada documento para definir seus componentes.
+O esquema 11 acrescenta cadastros versionados de clientes e da empresa usuária. O esquema 10 adicionou o novo modelo em transação, preserva originais, decisões, rascunhos, movimentos fechados e arquivos exportados. Fechamentos/exportações fiscais anteriores continuam protegidos. Movimentos contábeis anteriores entram nos livros sem ser recriados. Em **Histórico**, rascunhos elegíveis podem ser retomados para nova conferência. Lotes documentais antigos exigem abrir cada documento para definir seus componentes.
 
 A interface anterior foi substituída. Seus endpoints de gravação fiscal, contábil, documental e financeira retornam HTTP 410; consultas históricas continuam disponíveis. Faça backup privado antes de atualizar. Uma migração testada com bases sintéticas não substitui conferir a cópia privada do banco existente.
 

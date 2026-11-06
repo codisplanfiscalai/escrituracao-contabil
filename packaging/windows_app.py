@@ -159,7 +159,9 @@ def main(argv=None):
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument('--database')
     parser.add_argument('--port', type=int)
-    parser.add_argument('--background', action='store_true')
+    visibility = parser.add_mutually_exclusive_group()
+    visibility.add_argument('--background', action='store_true')
+    visibility.add_argument('--show-window', action='store_true')
     args = parser.parse_args(argv)
     home = Path(os.environ.get('LOCALAPPDATA', Path.home() / 'AppData/Local')) / 'EscrituracaoContabil'
     home.mkdir(parents=True, exist_ok=True)
@@ -363,7 +365,7 @@ def main(argv=None):
     ttk.Button(outer, text='Sair do Escritura', command=quit_app).pack(anchor='e', pady=(12, 0))
     root.protocol('WM_DELETE_WINDOW', hide); root.bind('<Escape>', hide)
     if automatic.get() or args.database: root.after(100, start)
-    if args.background: root.after(500, hide)
+    if not args.show_window: hide()
     stop_event = None
     if event_name := os.environ.get('ESCRITURA_SMOKE_STOP_EVENT'):
         kernel.OpenEventW.argtypes = [w.DWORD, w.BOOL, w.LPCWSTR]; kernel.OpenEventW.restype = w.HANDLE

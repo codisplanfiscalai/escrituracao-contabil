@@ -212,7 +212,7 @@ class FiscalLedgerTests(unittest.TestCase):
                 self.s.db.execute('DROP TABLE '+table)
             self.s.db.execute('UPDATE schema_version SET version=5')
         with AccountingStore(self.path) as reopened:
-            self.assertEqual(reopened.db.execute('SELECT version FROM schema_version').fetchone()[0],10)
+            self.assertEqual(reopened.db.execute('SELECT version FROM schema_version').fetchone()[0],11)
             self.assertEqual(bytes(reopened.db.execute('SELECT original FROM files WHERE id=?',(f['id'],)).fetchone()[0]),fake_xml())
             self.assertEqual(reopened.list_fiscal_entries(self.c),[])
             self.assertEqual(reopened.list_participants(self.c),[])
