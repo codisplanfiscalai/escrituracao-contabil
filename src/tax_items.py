@@ -49,6 +49,8 @@ def calculation_spec(value, tax):
         raise ValueError('Declare o tratamento de resultado negativo: bloquear ou zerar')
     if method == 'retencao' and (not isinstance(value['component_code'], str) or not re.fullmatch(r'[A-Z][A-Z0-9_]{0,29}', value['component_code'])):
         raise ValueError('Identifique explicitamente o tributo retido, sem enquadramento automático')
+    if method == 'retencao' and {'CBS','IBS'} & set(value['component_code'].split('_')):
+        raise ValueError('CBS/IBS permanecem fora do cálculo, inclusive por retenção')
     return copy.deepcopy(value)
 
 
@@ -79,6 +81,8 @@ def validate_items(items, fiscal, products):
             raise ValueError('Componentes do item devem ser uma lista sem repetições, até 20')
         if any(t not in set(TAXES) | (SPECIAL_TAXES - {'RETENCAO'}) and not re.fullmatch(r'RETENCAO:[A-Z][A-Z0-9_]{0,29}',t) for t in taxes):
             raise ValueError('Componente do item não suportado; CBS/IBS fora do cálculo')
+        if any(t.startswith('RETENCAO:') and {'CBS','IBS'} & set(t.split(':',1)[1].split('_')) for t in taxes):
+            raise ValueError('CBS/IBS permanecem fora do cálculo, inclusive por retenção')
         if not taxes and not item['no_tax_reason'].strip():
             raise ValueError('Item sem componentes exige motivo explícito')
         if not isinstance(item['values'],dict) or set(item['values']) - (ITEM_BASES | {'st_deduction'}):

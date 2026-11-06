@@ -119,7 +119,7 @@ class TaxItemTests(unittest.TestCase):
     def test_item_validation_no_silent_omissions_and_no_unsupported_codes(self):
         self.rule(calculation=self.calc())
         invalid=[[],[self.item(total='100.29')],[self.item(),self.item()],
-                 [self.item(values={'total':100.30})],[self.item(taxes=['CBS'])],
+                 [self.item(values={'total':100.30})],[self.item(taxes=['CBS'])],[self.item(taxes=['RETENCAO:CBS'])],
                  [self.item(taxes=[],no_tax_reason='')],[self.item(source_reference='')],
                  [self.item(values={'total':'100.30','invented':'1.00'})]]
         for items in invalid:
@@ -157,6 +157,9 @@ class TaxItemTests(unittest.TestCase):
             with self.assertRaises(ValueError):self.rule(calculation=calc)
         with self.assertRaises(ValueError):self.rule(tax='ICMS_ST')
         with self.assertRaises(ValueError):self.rule(tax='ICMS_ST',calculation=self.calc())
+        for code in ('CBS','IBS','TESTE_CBS'):
+            with self.assertRaisesRegex(ValueError,'CBS/IBS'):
+                self.rule(tax='RETENCAO',calculation=self.calc('retencao',component_code=code))
         self.rule(tax='ICMS_ST',calculation=self.calc('st',margin_percent='150.123456',deduction_field='st_deduction',negative_policy='bloquear'))
 
     def test_source_item_locator_ncm_and_completeness_are_checked(self):
