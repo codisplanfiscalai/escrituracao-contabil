@@ -31,6 +31,8 @@ No Windows, `NativeDesktopLifecycleTests` usa Tk/tray reais para restauração p
 
 O executor local é Linux e não possui Windows, Wine ou Xvfb. Resultados Linux não comprovam Tk/Win32 nem o EXE. O build Windows x86/x64 e os testes nativos do SHA final são obrigatórios para validar esta alteração de empacotamento; deverão ser registrados com os respectivos links e artefatos. Abertura real de todos os navegadores, diálogos do Windows e ambiente específico do usuário ainda depende de homologação; não se declara o crash eliminado somente pelos testes simulados.
 
+Na primeira validação x64 do PR #22, os testes reais Tk/tray/modal/ESC passaram. O smoke seguinte encontrou uma corrida no próprio teste: quando a janela já estava visível, a condição de restauração podia passar antes de a ação da segunda instância sair da fila; o fechamento subsequente era seguido por essa restauração tardia. A sequência foi ajustada para partir de uma janela recolhida antes de cada restauração, preservando as checagens de estado, processo e HTTP. A implementação do aplicativo não foi alterada para suprimir a falha, e os builds do novo HEAD devem ser acompanhados novamente.
+
 Resultados por SHA, CI e bloqueios de publicação devem ficar no relato final e em `artifacts/validacao-ciclo-vida-windows.md`, sem atribuir builds antigos ao código novo.
 
 Referências de implementação: [modelo de eventos do Tkinter](https://docs.python.org/3.13/library/tkinter.html#threading-model) e [fila de mensagens Win32](https://learn.microsoft.com/en-us/windows/win32/winmsg/using-messages-and-message-queues).

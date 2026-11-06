@@ -108,9 +108,15 @@ def windows_lifecycle(command, process, environment, directory, gui, port, *, ba
         wait(lambda: not user.IsWindowVisible(window) if gui['tray_available'] else user.IsIconic(window),
              'close to tray/taskbar without stopping backend')
 
+    # A visible window alone cannot acknowledge a queued singleton restore.
+    # Start hidden, so visibility proves that the requested action was serviced
+    # before posting WM_CLOSE; otherwise that delayed restore can reopen it.
+    if not background:
+        close_window()
     restore(); close_window(); restore(); close_window()
     assert user.PostMessageW(gui['tray_hwnd'], 0x8001, 0, 0x0203), 'Cannot notify tray double click'
     wait(lambda: user.IsWindowVisible(window) and not user.IsIconic(window), 'tray restore')
+    print('PASS Windows lifecycle: initial '+expected+', singleton restore, close without stopping HTTP, tray restore', flush=True)
 
 
 def run(command, *, server=False):
