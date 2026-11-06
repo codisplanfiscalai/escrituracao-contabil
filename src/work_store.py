@@ -743,6 +743,7 @@ class WorkStoreMixin:
                     {"field": "reversal", "message": str(error), "severity": "bloqueio"}
                 )
         result["issues"].extend(self.tax_operation_issues(company_id, revision))
+        result['issues'].extend(self.nfe_event_issues(company_id,revision['document_id']))
         result["ready"] = not result["issues"]
         return result
 
@@ -1025,6 +1026,7 @@ class WorkStoreMixin:
                 raise ValueError(
                     "Documento reservado pelo histórico fiscal/contábil anterior."
                 )
+            self._record_nfe_event_posting(company_id,revision)
             for line in validation["entries"]:
                 self.db.execute(
                     "INSERT INTO work_movements VALUES(?,?,?)",
@@ -1217,6 +1219,8 @@ class WorkStoreMixin:
             )
         ]
         legacy = self.work_legacy(company_id, cycle_id)
+        event_contexts=[self.nfe_document_events(company_id,d['id']) for d in documents]
+        fiscal_events={'documents':event_contexts,'blocking':sum(c['blocking'] for c in event_contexts)}
         counts = {
             "legacy_pending": sum(r["can_resume"] for r in legacy),
             "documents": len(documents),
@@ -1226,6 +1230,7 @@ class WorkStoreMixin:
             "reviewed": sum(o["state"] == "revisado" for o in operations),
             "posted": sum(o["state"] == "escriturado" for o in operations),
             "blocked": len(blocked),
+            'pending_events':fiscal_events['blocking'],
             "rejected_inputs": sum(b["counts"].get("rejeitado", 0) for b in imports)
             + sum(
                 not r["evidence"].get("document_ids")
@@ -1252,9 +1257,11 @@ class WorkStoreMixin:
             "next_action": next_action,
             "policies": self.work_policies(company_id),
             "legacy": legacy,
+            'fiscal_events':fiscal_events,
             "snapshot_hash": digest(
                 {
                     "cycle": cycle,
+                    'fiscal_events':fiscal_events,
                     "legacy": [
                         (
                             r["kind"],
@@ -1731,6 +1738,8 @@ class WorkStoreMixin:
             if target not in {"aberta", "encerrada"} or cycle["state"] == target:
                 raise ValueError("Transição inválida.")
             if target == "encerrada":
+                if overview['fiscal_events']['blocking']:
+                    raise ValueError('Confira os eventos fiscais pendentes antes de encerrar')
                 assessment = self.tax_assessment_readiness(company_id, cycle_id)
                 if assessment["required"] and not assessment["ready"]:
                     raise ValueError(assessment["message"])
