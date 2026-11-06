@@ -1,5 +1,7 @@
 # Validação do incremento contábil — 06/11/2026
 
+Validação posterior do esquema 14: consulte `frente-contabil-integracao-esquema14.md`; este arquivo preserva o registro inicial, não o resultado da combinação com o PR #11.
+
 Registro histórico da validação inicial. A validação conjunta posterior usa a base fiscal `64378f6`, esquema 13, e está em `frente-contabil-integracao-esquema13.md`: 294 testes da aplicação, 18 de distribuição (um omitido) e 30 de ferramentas. O fechamento por módulo e a tributação parametrizada daquela base foram preservados. As referências abaixo à ausência de integração fiscal descrevem somente a etapa inicial.
 
 Base: `develop` em `22ebdb14d812980dac532cd7c0403c2f811f559e`. Branch local: `feat/modulo-contabil-integrado`. Árvore isolada: `/workspace/escrituracao-contabil-contabil`. Não foi incorporado o commit local da frente fiscal; reunir as alterações e testar novamente a combinação é etapa posterior.
