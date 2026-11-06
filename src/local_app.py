@@ -580,6 +580,7 @@ class LocalHandler(BaseHTTPRequestHandler):
                     "import-original",
                     "work-export-file",
                     "source-original",
+                    "tax-catalog-original",
                 }
                 and self.command == "GET"
             ):
