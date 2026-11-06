@@ -131,12 +131,13 @@ class AccountingBatchSchema16Tests(unittest.TestCase):
         preserved={t:[tuple(r) for r in self.s.db.execute('SELECT * FROM '+t+' ORDER BY id')]
                    for t in ('files','tax_calculations','tax_assessment_adjustment_versions','tax_assessment_versions')}
         with self.s.db:
+            self.s.db.execute('DROP TABLE document_preparation_batches')
             self.s.db.execute('DROP TABLE tax_calculation_batches')
             self.s.db.execute('UPDATE schema_version SET version=15')
         self.s.close()
         self.s=AccountingStore(self.path,actor='operador-sintetico')
         self.addCleanup(self.s.close)
-        self.assertEqual(self.s.db.execute('SELECT version FROM schema_version').fetchone()[0],16)
+        self.assertEqual(self.s.db.execute('SELECT version FROM schema_version').fetchone()[0],17)
         self.assertEqual(self.report(),before)
         for table,rows in preserved.items():
             self.assertEqual([tuple(r) for r in self.s.db.execute('SELECT * FROM '+table+' ORDER BY id')],rows)

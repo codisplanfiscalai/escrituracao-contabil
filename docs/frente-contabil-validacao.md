@@ -1,5 +1,7 @@
 # Validação do incremento contábil — 06/11/2026
 
+Estado atual: integração com o PR fiscal #18, base `2a68f7452e739438cc2922dc2a3b5702a96291ea`, esquema 17, em `frente-contabil-integracao-esquema17.md`. O PR contábil #17 do esquema 16 e os demais registros abaixo são históricos e permanecem preservados.
+
 Validação posterior de esquema 16: consulte `frente-contabil-integracao-esquema16.md` e o relatório final por SHA. Os resultados abaixo são históricos.
 
 Estado posterior do esquema 15: consulte `frente-contabil-integracao-esquema15.md` e o relatório final da execução, preservando os resultados abaixo como históricos.
