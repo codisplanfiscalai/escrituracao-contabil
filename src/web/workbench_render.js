@@ -256,7 +256,7 @@ var _Vue=Vue; var WorkRender=function render(_ctx, _cache) {
           "aria-label": "Perfil para SPED",
           "onUpdate:modelValue": $event => ((spedProfile) = $event)
         }, [_createElementVNode("option", { value: "" }, "Preservar original"), _createElementVNode("option", { value: "efd-icms-ipi-020-c100-v2" }, "EFD ICMS/IPI 020 · C100 parcial")], 8, ["onUpdate:modelValue"]), [[_vModelSelect, spedProfile]])]),
-        _createElementVNode("div", { class: "scroll" }, [_createElementVNode("table", null, [_createElementVNode("thead", null, [_createElementVNode("tr", null, [
+        _createElementVNode("div", { class: "table-scroll" }, [_createElementVNode("table", null, [_createElementVNode("thead", null, [_createElementVNode("tr", null, [
           _createElementVNode("th", null, "Origem"),
           _createElementVNode("th", null, "Identificação"),
           _createElementVNode("th", null, "Situação / pendências"),
@@ -367,7 +367,7 @@ var _Vue=Vue; var WorkRender=function render(_ctx, _cache) {
           onClick: newOpening,
           disabled: busy||!cycle
         }, "Saldos iniciais", 8, ["onClick", "disabled"])]),
-        _createElementVNode("div", { class: "scroll" }, [_createElementVNode("table", null, [_createElementVNode("thead", null, [_createElementVNode("tr", null, [
+        _createElementVNode("div", { class: "table-scroll" }, [_createElementVNode("table", null, [_createElementVNode("thead", null, [_createElementVNode("tr", null, [
           _createElementVNode("th", null, "Documento organizado"),
           _createElementVNode("th", null, "Valor"),
           _createElementVNode("th", null, "Situação"),
@@ -587,7 +587,7 @@ var _Vue=Vue; var WorkRender=function render(_ctx, _cache) {
                     }, null, 40, ["onUpdate:modelValue", "onChange"]), [[_vModelCheckbox, active.data.payload.opening_zero]]), _createTextVNode(" Confirmo que os saldos iniciais são zero")]))
                   : _createCommentVNode("", true),
                 _createElementVNode("h3", null, "Partidas contábeis"),
-                _createElementVNode("div", { class: "scroll" }, [_createElementVNode("table", null, [_createElementVNode("thead", null, [_createElementVNode("tr", null, [
+                _createElementVNode("div", { class: "table-scroll" }, [_createElementVNode("table", null, [_createElementVNode("thead", null, [_createElementVNode("tr", null, [
                   _createElementVNode("th", null, "Conta analítica"),
                   _createElementVNode("th", null, "D/C"),
                   _createElementVNode("th", null, "Data"),
@@ -783,7 +783,7 @@ var _Vue=Vue; var WorkRender=function render(_ctx, _cache) {
               : _createCommentVNode("", true)
           ]))
         : _createCommentVNode("", true),
-      _withDirectives(_createElementVNode("section", { class: "card" }, [_createElementVNode("h1", null, "Conferência de operações"), _createElementVNode("p", null, "A conferência fixa a versão completa. Alterações posteriores exigem nova versão e conferência."), _createElementVNode("div", { class: "scroll" }, [_createElementVNode("table", null, [_createElementVNode("thead", null, [_createElementVNode("tr", null, [
+      _withDirectives(_createElementVNode("section", { class: "card" }, [_createElementVNode("h1", null, "Conferência de operações"), _createElementVNode("p", null, "A conferência fixa a versão completa. Alterações posteriores exigem nova versão e conferência."), _createElementVNode("div", { class: "table-scroll" }, [_createElementVNode("table", null, [_createElementVNode("thead", null, [_createElementVNode("tr", null, [
         _createElementVNode("th", null, "Referência"),
         _createElementVNode("th", null, "Situação"),
         _createElementVNode("th", null, "Pendências"),
