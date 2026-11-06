@@ -1,5 +1,7 @@
 # PR preparado localmente — não publicado
 
+O título acima é histórico. O incremento foi publicado no PR #9 em rascunho, com HEAD `c4a7a31404f49ba53a01db64192be10e00804a1a`. Os PRs foram preservados. A combinação posterior com o PR #11 foi preparada separadamente, sem atualizar o PR #9; consulte `frente-contabil-integracao-esquema14.md` antes de publicar ou retargetar qualquer revisão.
+
 Atualização: a combinação foi preparada em `feat/contabil-compat-esquema13`, baseada no HEAD fiscal `64378f695919c3816840b9eb29c669c762fc6ca1` do PR #8. A branch fiscal não foi modificada. O incremento contábil pode ser revisto como diferença contra esse HEAD; uma eventual revisão empilhada teria a branch fiscal como base, evitando duplicar seus arquivos em outro PR para `develop`. Este documento não publica PR nem autoriza merge ou release.
 
 Título proposto:
