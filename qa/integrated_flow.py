@@ -63,6 +63,7 @@ def run(mode):
                 def post():
                     frame.locator('#operation-reason').fill('Conferência e escrituração sintéticas')
                     frame.get_by_role('button',name='Salvar versão',exact=True).click();idle()
+                    expect(frame.get_by_role('status')).to_contain_text('Versão salva')
                     frame.get_by_role('button',name='Conferir versão',exact=True).click();idle()
                     frame.get_by_role('button',name='Escriturar',exact=True).click();idle()
                     expect(frame.get_by_role('status')).to_contain_text('Operação escriturada')

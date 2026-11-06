@@ -1,9 +1,9 @@
 """Authenticated tax configuration, calculation and assessment contracts."""
 from .accounting_store import identifier
 
-TAX_GET = {'tax-config','tax-preview','tax-assessment-preview','tax-assessments','tax-catalog-imports','tax-catalog-import','tax-catalog-original','tax-catalog-applications','tax-catalog-application','tax-catalog-codes','tax-code-history'}
+TAX_GET = {'tax-config','tax-preview','tax-assessment-preview','tax-assessments','tax-assessment-adjustments','tax-balance-sources','tax-catalog-imports','tax-catalog-import','tax-catalog-original','tax-catalog-applications','tax-catalog-application','tax-catalog-codes','tax-code-history'}
 TAX_WRITE = {'tax-calculate'}
-TAX_REVIEW = {'tax-rules','tax-codes','tax-templates','tax-template-copy','tax-assessments','tax-assessment-review','tax-catalog-imports','tax-catalog-preview','tax-catalog-apply'}
+TAX_REVIEW = {'tax-rules','tax-codes','tax-templates','tax-template-copy','tax-assessments','tax-assessment-review','tax-assessment-adjustment-preview','tax-assessment-adjustment-apply','tax-assessment-adjustment-cancel','tax-catalog-imports','tax-catalog-preview','tax-catalog-apply'}
 TAX_ROUTES = TAX_GET | TAX_WRITE | TAX_REVIEW
 
 
@@ -33,7 +33,17 @@ def dispatch_tax(store, method, route, data):
             return store.preview_tax_assessment(company,req('cycle_id'))
         if route=='tax-assessments':
             return store.tax_assessments(company,req('cycle_id'))
+        if route=='tax-assessment-adjustments':
+            return store.tax_assessment_adjustments(company,req('cycle_id'))
+        if route=='tax-balance-sources':
+            return store.tax_balance_sources(company,req('cycle_id'))
     if method=='POST':
+        if route=='tax-assessment-adjustment-preview':
+            return store.preview_assessment_adjustment(company,req('cycle_id'),req('spec'))
+        if route=='tax-assessment-adjustment-apply':
+            return store.apply_assessment_adjustment(company,req('cycle_id'),req('spec'),req('snapshot_hash'),req('request_key'),req('reason'),req('review_reference'),data.get('confirmed'))
+        if route=='tax-assessment-adjustment-cancel':
+            return store.cancel_assessment_adjustment(company,req('cycle_id'),req('adjustment_id'),req('snapshot_hash'),req('request_key'),req('reason'),req('review_reference'),data.get('confirmed'))
         if route=='tax-catalog-imports':
             import base64,binascii
             encoded=req('content_base64')

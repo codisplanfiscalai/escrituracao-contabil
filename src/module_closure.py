@@ -109,6 +109,7 @@ class ModuleClosureMixin:
                 if not evidence_reference:
                     raise ValueError('Informe referência da conferência da apuração ou dos saldos')
             else:
+                if module=='fiscal':self.assert_no_outgoing_tax_balances(company_id,cycle_id)
                 checks = {}
             state = current['state']
             self.db.execute('INSERT INTO module_period_versions VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',

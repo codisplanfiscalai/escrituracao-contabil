@@ -97,7 +97,7 @@ class ModulePeriodTests(unittest.TestCase):
         self.s.db.execute('UPDATE schema_version SET version=11')
         self.s.db.commit()
         with AccountingStore(self.path) as reopened:
-            self.assertEqual(reopened.db.execute('SELECT version FROM schema_version').fetchone()[0], 14)
+            self.assertEqual(reopened.db.execute('SELECT version FROM schema_version').fetchone()[0], 15)
             self.assertEqual(reopened.client_profile(self.c)['data']['basic']['trade_name'], 'Sintético')
             self.assertEqual(reopened.module_period_state(self.c, '2026-09', 'fiscal')['state'], 'aberta')
 
