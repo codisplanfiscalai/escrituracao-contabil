@@ -2,7 +2,7 @@
 
 ## Escopo e base
 
-Correção isolada na branch `fix/windows-ciclo-vida`, criada da `develop` em `c2713b9e51fe13bbcc1a10af744645d40dd45cd7` e atualizada para `1b6b12834a8cbbb5e6ed80c9dd8df8d7c7ddf19a` após os merges fiscais #18/#20. Não incorpora os PRs contábeis/fiscais ainda pendentes, não reescreve suas branches e não altera esquema, dados ou regras de negócio. Destino de revisão: develop, respeitando o fluxo de merges do projeto. Sem merge, release ou implantação automática.
+Correção isolada na branch `fix/windows-ciclo-vida`, criada da `develop` em `c2713b9e51fe13bbcc1a10af744645d40dd45cd7` e atualizada para `1b6b12834a8cbbb5e6ed80c9dd8df8d7c7ddf19a` após os merges fiscais #18/#20. Depois do merge contábil #21 na develop, a branch foi sincronizada com `63333a4ceb38e458c6095080e2fd0a5fb208dbea` para validar a versão integrada. A sincronização preserva o commit original da correção e o histórico dos merges, sem duplicar ou reescrever as branches anteriores. A correção não altera esquema, dados ou regras de negócio. Destino de revisão: develop, respeitando o fluxo de merges do projeto. Sem merge, release ou implantação automática.
 
 O usuário relatou abertura seguida de desaparecimento da janela, permanência no tray e encerramento ao interagir com links, atalhos ou pop-ups. A imagem `libfile_5d3bbd31d480819194bec90a5974f74e` não pôde ser materializada: o fluxo suportado retornou `library file transfer failed: download failed`; nenhum byte ou pixel foi inspecionado. Não se conclui nada sobre a imagem pelo seu identificador.
 
