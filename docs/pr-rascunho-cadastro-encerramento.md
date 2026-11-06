@@ -14,7 +14,7 @@ A branch também separa empresa usuária e clientes, adiciona cinco seções cad
 
 Validação local: `python scripts/build.py check` aprovado — **276 testes da aplicação, 18 de distribuição e 30 das ferramentas/auxiliares de CI**, com uma omissão DPAPI por exigir Windows. Navegador tributário, fluxo integrado local/portal e navegação dos 19 recursos aprovados, incluindo mobile. Cenários cadastral, fiscal e de encerramento foram validados durante os incrementos anteriores. Sem dados reais/anexos no Git.
 
-Antes do merge: reconciliar esquema 13, payload `tax_calculation` e guardas compartilhadas com a frente contábil; executar CI Windows x86/x64 e smoke dos executáveis finais. Ainda exigem parametrização/homologação: tabelas e modelos do responsável, tratamento legal, cálculo por item misto, regimes especiais e integração Prosoft. A transferência dos 13 executáveis e 35 prints falhou; nenhuma tecnologia/tela original foi confirmada. Não houve CI remota, publicação de artefatos ou implantação.
+Antes do merge: reconciliar esquema 13, payload `tax_calculation` e guardas compartilhadas com a frente contábil; executar CI Windows x86/x64 e smoke dos executáveis finais. Ainda exigem parametrização/homologação: tabelas e modelos do responsável, tratamento legal, cálculo por item misto, regimes especiais e integração Prosoft. A transferência dos 13 executáveis e 35 prints falhou; nenhuma tecnologia/tela original foi confirmada. A CI remota está em execução no SHA do PR; não houve release ou implantação.
 
 ## Prontidão
 

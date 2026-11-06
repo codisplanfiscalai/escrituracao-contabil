@@ -13,7 +13,7 @@ O controle global anterior permanece para compatibilidade e preservação de fec
 - A consulta apresenta a prévia atual e seus bloqueios. Encerramento exige a mesma versão/hash; concorrência ou novas operações exigem atualizar a conferência.
 - Operações ainda em rascunho/revisadas e guias incompletas do módulo impedem seu fechamento. O fiscal também verifica documentos organizados ainda sem escrituração. O contábil exige abertura/saldos declarados.
 - O operador confirma lançamentos, livros, correções e apuração no fiscal; no contábil, confirma lançamentos, livros, correções e saldos.
-- É obrigatório registrar motivo e referência da conferência. **A apuração fiscal é conferida externamente por declaração do operador. A aplicação não calcula nem valida essa apuração.** A marcação não comprova homologação tributária.
+- É obrigatório registrar motivo e referência da conferência. Para empresas sem parametrização, a apuração fiscal é conferida externamente por declaração do operador. Quando parametrizada, exige a memória atual validada do esquema 13. A marcação não comprova homologação tributária.
 - Reabertura exige motivo, autorização de revisão e prévia atualizada; cria outra versão, preservando o fechamento anterior. Não altera snapshots de operações já escrituradas.
 
 ## Barreiras de escrita
@@ -43,10 +43,10 @@ Além do incremento cadastral no commit `d046d7e`, esta atualização acrescenta
 
 Não foram alterados os cálculos do motor contábil, `src/work_books.py`, `src/work_domain.py`, `src/accounting_store.py` ou `src/finance.py`. O Analisador Fiscal IOB foi registrado somente como referência futura: não há anexos, formatos, conversores ou integrações confirmados. O print encaminhado por engano à tarefa fiscal não foi tratado como referência funcional ou como acesso recuperado aos anexos.
 
-## Validação e limites
+## Validação histórica do incremento de encerramento
 
 Passaram os testes de independência entre módulos/clientes/meses, persistência após reinício, recebimento após fechamento, impedimento de organização/escrituração, rascunhos, parâmetros compartilhados, prévia desatualizada, conferências obrigatórias, histórico/auditoria e migração 11→12 preservando cadastro. A corrida entre fechar o fiscal e gravar uma nova operação permite somente uma das duas transações: a outra é bloqueada.
 
 O contrato HTTP foi verificado com autenticação/CSRF. O teste de navegador passou para fechar/reabrir fiscal, manter contábil aberto e recuperar o estado após recarga. A verificação completa executada inclui **264 testes da aplicação, 18 de distribuição e 27 de CI**, com uma omissão de DPAPI por exigir Windows, além de templates, sintaxe, matemática, ícones e smoke autenticado.
 
-Os anexos continuam sem bytes/pixels acessíveis; não foram reexecutadas tentativas já falhas sem nova evidência. Apuração calculada, importadores bancários, homologação Prosoft e a validação nativa Windows continuam pendentes. Não houve publicação, PR, merge ou implantação.
+Os anexos continuam sem bytes/pixels acessíveis; não foram reexecutadas tentativas já falhas sem nova evidência. A apuração calculada foi acrescentada no esquema 13; importadores bancários e homologação Prosoft permanecem pendentes. O [PR #8](https://github.com/codisplanfiscalai/escrituracao-contabil/pull/8) foi publicado em rascunho, sem merge, release ou implantação. Os testes finais e as limitações do motor estão em [tributação parametrizada](tributacao-parametrizada.md).

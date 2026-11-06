@@ -6,7 +6,11 @@ Publicação: branch `feat/cadastro-clientes-busca-fontes` e [PR #8](https://git
 
 Atualização tributária: o estado final usa esquema **13**, com [regras, tabelas, modelos e apuração parametrizada por empresa](tributacao-parametrizada.md). As limitações de ausência de apuração nos incrementos anteriores abaixo são históricas; não havia regras legais fornecidas e nenhum tratamento legal foi presumido no novo motor.
 
-Atualização posterior: o novo requisito de encerramento independente foi implementado sobre este incremento. O estado final usa esquema **12** e guardas compartilhadas em `src/work_store.py`; consulte [contrato e validação do encerramento por módulo](encerramento-por-modulo.md). As menções ao esquema 11 e à ausência de alteração de `work_store.py` abaixo descrevem o primeiro commit cadastral, não o complemento posterior. A [descrição do PR em rascunho](pr-rascunho-cadastro-encerramento.md) foi preparada sem publicação.
+Incremento intermediário: o requisito de encerramento independente foi implementado no esquema **12** e guardas compartilhadas em `src/work_store.py`; consulte [contrato e validação do encerramento por módulo](encerramento-por-modulo.md). As menções ao esquema 11 e à ausência de alteração de `work_store.py` abaixo descrevem o primeiro commit cadastral, não o complemento posterior. A [descrição do PR em rascunho](pr-rascunho-cadastro-encerramento.md) registra a publicação autorizada.
+
+## Registro histórico do primeiro incremento cadastral
+
+O restante deste documento preserva o levantamento do primeiro incremento, anterior às regras tributárias e à publicação. Para o estado atual, consulte os documentos de tributação, encerramento e PR vinculados acima. Em particular, as referências abaixo a esquema 11, apuração ausente e ausência de publicação descrevem aquela etapa.
 
 O incremento entrega cadastro complementar de clientes, empresa usuária em registro separado, histórico cadastral, busca das fontes recebidas sem competência e inicialização Windows recolhida no tray. Não representa o sistema completo nem recuperação do código dos executáveis fornecidos.
 
