@@ -1,5 +1,7 @@
 # Frente contábil — levantamento aberto e incremento de relatórios
 
+Estado atual: composição com eventos do PR fiscal #20, base `dcdc7c8850623469e2a09f516b7b6434b8acb3ce`, esquema 18, em `frente-contabil-integracao-esquema18.md`. O PR contábil #19 e as etapas abaixo são históricos e permanecem preservados.
+
 Estado atual: integração com o PR fiscal #18, base `2a68f7452e739438cc2922dc2a3b5702a96291ea`, esquema 17, em `frente-contabil-integracao-esquema17.md`. O PR contábil #17 do esquema 16 e os demais registros abaixo são históricos e permanecem preservados.
 
 Estado posterior: `frente-contabil-integracao-esquema16.md` registra a composição com o PR #16, HEAD `9b0a4fb97dd916de854b28515ca99ddb89cb0a00`. Etapas anteriores permanecem históricas.

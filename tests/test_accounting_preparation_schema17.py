@@ -148,12 +148,14 @@ class AccountingPreparationSchema17Tests(unittest.TestCase):
             'tax_assessment_adjustment_versions','tax_assessment_versions','module_period_versions')
         preserved = {t:[tuple(r) for r in self.s.db.execute('SELECT * FROM '+t+' ORDER BY rowid')] for t in tables}
         with self.s.db:
+            for table in ('nfe_event_posting_proofs','nfe_event_reviews','nfe_event_observations'):
+                self.s.db.execute('DROP TABLE '+table)
             self.s.db.execute('DROP TABLE document_preparation_batches')
             self.s.db.execute('UPDATE schema_version SET version=16')
         self.s.close()
         self.s = AccountingStore(self.path, actor='operador-sintetico')
         self.addCleanup(self.s.close)
-        self.assertEqual(self.s.db.execute('SELECT version FROM schema_version').fetchone()[0], 17)
+        self.assertEqual(self.s.db.execute('SELECT version FROM schema_version').fetchone()[0], 18)
         self.assertEqual(self.report(), before)
         for table, rows in preserved.items():
             self.assertEqual([tuple(r) for r in self.s.db.execute('SELECT * FROM '+table+' ORDER BY rowid')], rows)

@@ -1,5 +1,7 @@
 # Integração contábil com preparação XML e esquema 17
 
+Registro histórico do esquema 17 e PR contábil #19. A composição com eventos NF-e e esquema 18 está em `frente-contabil-integracao-esquema18.md`; os resultados abaixo pertencem à etapa anterior.
+
 ## Base e composição
 
 Base fiscal: [PR #18](https://github.com/codisplanfiscalai/escrituracao-contabil/pull/18), branch `feat/preparacao-documentos-itens-xml`, HEAD **`2a68f7452e739438cc2922dc2a3b5702a96291ea`**. O incremento contábil do [PR #17](https://github.com/codisplanfiscalai/escrituracao-contabil/pull/17), `18fb4ffab5f826cd95eaeca089b41f740864d6fd`, foi reaplicado na árvore isolada `/workspace/escrituracao-contabil-compat17`, branch `feat/contabil-compat-esquema17`.

@@ -136,4 +136,4 @@ class AccountingTaxItemsTests(unittest.TestCase):
         self.assertNotEqual(v1['calculation']['snapshot']['profile'], v2['calculation']['snapshot']['profile'])
         self.assertEqual(self.report()['totals']['debit'], '200.60')
         self.assertEqual(self.report()['entry_count'], 4)
-        self.assertEqual(self.s.db.execute('SELECT version FROM schema_version').fetchone()[0],17)
+        self.assertEqual(self.s.db.execute('SELECT version FROM schema_version').fetchone()[0],18)

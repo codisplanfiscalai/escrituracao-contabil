@@ -1,5 +1,7 @@
 # PR preparado localmente — não publicado
 
+Estado atual: composição com eventos do PR fiscal #20, base `dcdc7c8850623469e2a09f516b7b6434b8acb3ce`, esquema 18, em `frente-contabil-integracao-esquema18.md`. O PR contábil #19 e as etapas abaixo são históricos e permanecem preservados.
+
 Estado atual: integração com o PR fiscal #18, base `2a68f7452e739438cc2922dc2a3b5702a96291ea`, esquema 17, em `frente-contabil-integracao-esquema17.md`. O PR contábil #17 do esquema 16 e os demais registros abaixo são históricos e permanecem preservados.
 
 Estado posterior: o incremento contábil do esquema 15 foi publicado no PR #15, e a etapa atual prepara revisão empilhada contra o PR #16, `feat/tributacao-lote-conferida`, se a combinação for aprovada. Consulte `frente-contabil-integracao-esquema16.md`. Os PRs anteriores devem permanecer preservados.

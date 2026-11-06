@@ -109,6 +109,8 @@ class AccountingAssessmentSchema15Tests(unittest.TestCase):
         calculations = [tuple(r) for r in self.s.db.execute('SELECT id,snapshot,snapshot_hash FROM tax_calculations ORDER BY id')]
         assessments = [tuple(r) for r in self.s.db.execute('SELECT id,snapshot,snapshot_hash FROM tax_assessment_versions ORDER BY id')]
         with self.s.db:
+            for table in ('nfe_event_posting_proofs','nfe_event_reviews','nfe_event_observations'):
+                self.s.db.execute('DROP TABLE '+table)
             self.s.db.execute('DROP TABLE document_preparation_batches')
             self.s.db.execute('DROP TABLE tax_calculation_batches')
             self.s.db.execute('DROP TABLE tax_assessment_adjustment_versions')
@@ -116,7 +118,7 @@ class AccountingAssessmentSchema15Tests(unittest.TestCase):
         self.s.close()
         self.s = AccountingStore(self.path,actor='operador-sintetico')
         self.addCleanup(self.s.close)
-        self.assertEqual(self.s.db.execute('SELECT version FROM schema_version').fetchone()[0],17)
+        self.assertEqual(self.s.db.execute('SELECT version FROM schema_version').fetchone()[0],18)
         self.assertEqual(self.report(),before)
         self.assertEqual([tuple(r) for r in self.s.db.execute('SELECT id,sha256,original FROM files ORDER BY id')],originals)
         self.assertEqual([tuple(r) for r in self.s.db.execute('SELECT id,snapshot,snapshot_hash FROM tax_calculations ORDER BY id')],calculations)
