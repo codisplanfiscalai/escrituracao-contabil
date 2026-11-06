@@ -184,7 +184,7 @@ class TaxBatchTests(unittest.TestCase):
         self.s.db.execute('INSERT INTO module_period_versions VALUES(?,?,?,?,?,?,?,?,?,?,?,?)',(self.c,'2026-09','fiscal',1,'encerrada',dump({}),digest({}),dump({}),'Teste','Teste','Teste',self.s._now()))
         self.s.db.execute('DROP TABLE tax_calculation_batches');self.s.db.execute('UPDATE schema_version SET version=15');self.s.db.commit()
         with AccountingStore(self.path) as reopened:
-            self.assertEqual(reopened.db.execute('SELECT version FROM schema_version').fetchone()[0],16)
+            self.assertEqual(reopened.db.execute('SELECT version FROM schema_version').fetchone()[0],17)
             self.assertEqual([tuple(r) for r in reopened.db.execute('SELECT * FROM tax_calculations ORDER BY id')],before)
             self.assertEqual(reopened.tax_batches(self.c,self.cycle['id'])['items'],[])
             self.assertEqual(reopened.module_period_state(self.c,'2026-09','fiscal')['state'],'encerrada')

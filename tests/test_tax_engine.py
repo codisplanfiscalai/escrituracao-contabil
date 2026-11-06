@@ -137,7 +137,7 @@ class TaxEngineTests(unittest.TestCase):
         self.s.db.execute('UPDATE schema_version SET version=12')
         self.s.db.commit()
         with AccountingStore(self.path) as reopened:
-            self.assertEqual(reopened.db.execute('SELECT version FROM schema_version').fetchone()[0],16)
+            self.assertEqual(reopened.db.execute('SELECT version FROM schema_version').fetchone()[0],17)
             self.assertEqual(reopened.module_period_state(self.c,'2026-09','fiscal')['state'],'encerrada')
             self.assertEqual(reopened.tax_rules(self.c),[])
 

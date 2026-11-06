@@ -194,7 +194,9 @@ class TaxEngineMixin:
         return {field:self.resolve_tax_code(company_id,kind,spec[field],day) for field,kind in CODE_FIELDS.items() if spec.get(field)}
 
     def _tax_preview(self, company_id, revision):
-        fiscal = copy.deepcopy(revision['payload'].get('fiscal') or {})
+        payload=revision['payload']
+        self.assert_xml_item_evidence(company_id,payload)
+        fiscal = copy.deepcopy(payload.get('fiscal') or {})
         if 'tax_items' in revision['payload']:
             return self._tax_items_preview(company_id,revision,fiscal)
         rules = self._matching_tax_rules(company_id,fiscal)
@@ -221,12 +223,13 @@ class TaxEngineMixin:
                 lines.append({'tax':spec['tax'],'base_field':spec['base_field'],'base':format(base,'.2f'),'rate':spec['rate'],
                               'formula':'base * rate / 100','unrounded':format(raw,'f'),'amount':format(amount,'.2f'),
                               'effect':spec['effect'],'rounding':spec['rounding'],'revenue_code':spec['revenue_code'],'rule':rule})
-        snapshot = {'profile':'tributacao-parametrizada-v1','company_id':identifier(company_id), 'cycle_id':revision['cycle_id'],
+        snapshot = {'profile':'tributacao-parametrizada-v2' if 'xml_item_evidence' in payload else 'tributacao-parametrizada-v1','company_id':identifier(company_id), 'cycle_id':revision['cycle_id'],
                     'operation_id':revision['operation_id'],'input_version':revision['version'],'input_hash':revision['snapshot_hash'],
                     'input_fiscal':fiscal,'document_id':revision['payload'].get('document_id'),'source_hash':revision['payload'].get('source_hash'),
                     'reference':revision['payload'].get('reference'),
                     'tax_adjustment_of':revision['payload'].get('tax_adjustment_of'),
                     'tax_adjustment_reason':revision['payload'].get('tax_adjustment_reason'),'lines':lines,'output':output}
+        if 'xml_item_evidence' in payload:snapshot['xml_item_evidence']=copy.deepcopy(payload['xml_item_evidence'])
         return {'snapshot':snapshot,'snapshot_hash':digest(snapshot)}
 
     def _tax_items_preview(self, company_id, revision, fiscal):
@@ -271,7 +274,7 @@ class TaxEngineMixin:
         if any(fiscal.get(prefix+'_amount') not in (None,'') and tax not in components for tax,prefix in TAXES.items()):
             raise ValueError('Há valores documentais sem cobertura nos itens; reconcilie explicitamente antes de calcular')
         extended=any(line['parameters']['method'] in {'fcp','por_dentro'} for line in lines)
-        snapshot = {'profile':'tributacao-itens-v3' if extended else 'tributacao-itens-v2','company_id':identifier(company_id),'cycle_id':revision['cycle_id'],
+        snapshot = {'profile':'tributacao-itens-v4' if 'xml_item_evidence' in payload else 'tributacao-itens-v3' if extended else 'tributacao-itens-v2','company_id':identifier(company_id),'cycle_id':revision['cycle_id'],
                     'operation_id':revision['operation_id'],'input_version':revision['version'],'input_hash':revision['snapshot_hash'],
                     'input_fiscal':fiscal,'input_items':items,'document_id':payload.get('document_id'),
                     'source_hash':payload.get('source_hash'),'observation_id':payload.get('observation_id'),
@@ -279,9 +282,10 @@ class TaxEngineMixin:
                     'tax_adjustment_reason':payload.get('tax_adjustment_reason'),'lines':lines,'output':output,
                     'component_output':sorted(components.values(),key=lambda g:g['component_key']),
                     'reconciliation':{'source_locators':[p['locator'] for p in products],
-                                      'item_values_origin':'Valores e rateios declarados; não extraídos automaticamente dos produtos XML',
+                                      'item_values_origin':('Valores atuais e rateios declarados; evidência XML observada separada, cópias propostas sujeitas à conferência' if 'xml_item_evidence' in payload else 'Valores e rateios declarados; não extraídos automaticamente dos produtos XML'),
                                       'rounding':'Base em centavos antes da taxa; tributo arredondado por item antes da soma'}}
         if extended:snapshot['grossup_groups']=grossup_groups
+        if 'xml_item_evidence' in payload:snapshot['xml_item_evidence']=copy.deepcopy(payload['xml_item_evidence'])
         return {'snapshot':snapshot,'snapshot_hash':digest(snapshot)}
 
     def preview_operation_tax(self, company_id, operation_id):
@@ -338,6 +342,7 @@ class TaxEngineMixin:
         payload = revision['payload']
         proof = payload.get('tax_calculation')
         try:
+            self.assert_xml_item_evidence(company_id,payload,current=revision['state']!='escriturado')
             if payload.get('tax_adjustment_of'):
                 from .persistence import _text
                 original = self._work_revision(company_id,payload['tax_adjustment_of'])
@@ -355,7 +360,7 @@ class TaxEngineMixin:
             if record['operation_id'] != revision['operation_id'] or record['cycle_id'] != revision['cycle_id'] or proof != {'id':record['id'],'snapshot_hash':record['snapshot_hash'],'memory':memory}:
                 raise ValueError('Memória de cálculo não corresponde à operação')
             expected_fiscal = {**memory['input_fiscal'],**memory['output']}
-            if payload.get('fiscal') != expected_fiscal or any(payload.get(k) != memory.get(k) for k in ('document_id','source_hash','reference','tax_adjustment_of','tax_adjustment_reason')):
+            if payload.get('fiscal') != expected_fiscal or any(payload.get(k) != memory.get(k) for k in ('document_id','source_hash','reference','tax_adjustment_of','tax_adjustment_reason','xml_item_evidence')):
                 raise ValueError('Dados fiscais alterados depois do cálculo; gere nova memória')
             item_mode = memory.get('profile') in ITEM_MEMORY_PROFILES
             if item_mode:

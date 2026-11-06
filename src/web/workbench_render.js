@@ -348,6 +348,153 @@ var _Vue=Vue; var WorkRender=function render(_ctx, _cache) {
       _withDirectives(_createElementVNode("section", { class: "card" }, [
         _createElementVNode("h1", null, "Escrituração"),
         _createElementVNode("p", null, "Importe documentos ou registre manualmente. Confira fatos fiscais, partidas e cobrança na mesma operação; a efetivação gera movimentos e títulos juntos."),
+        _createElementVNode("details", { class: "inset" }, [
+          _createElementVNode("summary", null, "Preparar operações dos documentos organizados"),
+          _createElementVNode("p", null, "Escolha documentos, natureza, política aprovada e data. A prévia não efetiva movimentos. A confirmação cria somente rascunhos, com os originais e os valores observados preservados."),
+          _createElementVNode("button", {
+            type: "button",
+            onClick: selectPreparationVisible,
+            disabled: busy||!preparationCandidates.length
+          }, "Selecionar documentos visíveis para preparar", 8, ["onClick", "disabled"]),
+          _createElementVNode("p", null, _toDisplayString(preparationSelected.length) + " selecionados; até 50 documentos visíveis sem operação.", 1),
+          _createElementVNode("div", { class: "table-scroll" }, [_createElementVNode("table", null, [_createElementVNode("thead", null, [_createElementVNode("tr", null, [_createElementVNode("th", null, "Selecionar"), _createElementVNode("th", null, "Documento"), _createElementVNode("th", null, "Origem")])]), _createElementVNode("tbody", null, [(_openBlock(true), _createElementBlock(_Fragment, null, _renderList(preparationCandidates, (doc) => {
+            return (_openBlock(), _createElementBlock("tr", { key: doc.id }, [_createElementVNode("td", null, [_createElementVNode("label", null, [_withDirectives(_createElementVNode("input", {
+              type: "checkbox",
+              "aria-label": 'Preparar documento '+doc.id,
+              value: doc.id,
+              "onUpdate:modelValue": $event => ((preparationSelected) = $event),
+              disabled: busy,
+              onChange: $event => {preparationPreview=null;preparationConfirmed=false}
+            }, null, 40, ["aria-label", "value", "onUpdate:modelValue", "disabled", "onChange"]), [[_vModelCheckbox, preparationSelected]]), _createTextVNode(" Incluir")])]), _createElementVNode("td", null, _toDisplayString(doc.number) + " · " + _toDisplayString(doc.model) + " · " + _toDisplayString(doc.total), 1), _createElementVNode("td", null, [_withDirectives(_createElementVNode("select", {
+              "aria-label": 'Origem do documento '+doc.id,
+              "onUpdate:modelValue": $event => ((preparationSources[doc.id]) = $event),
+              disabled: busy,
+              onChange: $event => {preparationPreview=null;preparationConfirmed=false}
+            }, [_createElementVNode("option", { value: "" }, _toDisplayString(doc.source.observations.length===1?'Única origem, sujeita à conferência':'Selecione uma origem'), 1), (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(doc.source.observations, (source) => {
+              return (_openBlock(), _createElementBlock("option", { value: String(source.id) }, "#" + _toDisplayString(source.id) + " · arquivo " + _toDisplayString(source.file_id) + " · " + _toDisplayString(source.profile), 9, ["value"]))
+            }), 256))], 40, ["aria-label", "onUpdate:modelValue", "disabled", "onChange"]), [[_vModelSelect, preparationSources[doc.id]]])])]))
+          }), 128))])])]),
+          _createElementVNode("form", {
+            onSubmit: _withModifiers(previewPreparation, ["prevent"]),
+            onInput: $event => {preparationPreview=null;preparationConfirmed=false}
+          }, [_createElementVNode("div", { class: "grid" }, [
+            _createElementVNode("label", null, [_createTextVNode("Natureza da preparação"), _withDirectives(_createElementVNode("select", {
+              "aria-label": "Natureza da preparação",
+              "onUpdate:modelValue": $event => ((preparationConfig.operation) = $event),
+              onChange: $event => (preparationConfig.policy_id=''),
+              required: ""
+            }, [_createElementVNode("option", { value: "" }, "Selecione explicitamente"), _createElementVNode("option", { value: "entrada" }, "Entrada"), _createElementVNode("option", { value: "saida" }, "Saída")], 40, ["onUpdate:modelValue", "onChange"]), [[_vModelSelect, preparationConfig.operation]])]),
+            _createElementVNode("label", null, [_createTextVNode("Política da preparação"), _withDirectives(_createElementVNode("select", {
+              "aria-label": "Política da preparação",
+              "onUpdate:modelValue": $event => ((preparationConfig.policy_id) = $event),
+              required: ""
+            }, [_createElementVNode("option", { value: "" }, "Selecione política aprovada"), (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(preparationPolicies, (policy) => {
+              return (_openBlock(), _createElementBlock("option", { value: String(policy.id) }, _toDisplayString(policy.label) + " · v" + _toDisplayString(policy.version), 9, ["value"]))
+            }), 256))], 8, ["onUpdate:modelValue"]), [[_vModelSelect, preparationConfig.policy_id]])]),
+            _createElementVNode("label", null, [_createTextVNode("Data de escrituração dos documentos"), _withDirectives(_createElementVNode("input", {
+              type: "date",
+              "onUpdate:modelValue": $event => ((preparationConfig.posting_date) = $event),
+              required: ""
+            }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, preparationConfig.posting_date]])]),
+            _createElementVNode("label", null, [_createTextVNode("Modo dos itens na preparação"), _createElementVNode("select", {
+              "aria-label": "Modo dos itens na preparação",
+              value: preparationConfig.item_mode,
+              onChange: $event => (setPreparationMode($event.target.value)),
+              required: ""
+            }, [
+              _createElementVNode("option", { value: "" }, "Selecione explicitamente"),
+              _createElementVNode("option", { value: "cabecalho" }, "Cabeçalho, sem extração dos itens"),
+              _createElementVNode("option", { value: "observar_xml" }, "Observar valores XML, sem propor itens tributários"),
+              _createElementVNode("option", { value: "propor_itens_xml" }, "Propor itens com escolhas de cópia conferidas")
+            ], 40, ["value", "onChange"])]),
+            (preparationConfig.item_mode==='propor_itens_xml')
+              ? (_openBlock(), _createElementBlock(_Fragment, { key: 0 }, [_createElementVNode("label", null, [_createTextVNode("Total atribuído aos itens"), _withDirectives(_createElementVNode("select", {
+                  "aria-label": "Total atribuído aos itens",
+                  "onUpdate:modelValue": $event => ((preparationConfig.total_source) = $event)
+                }, [_createElementVNode("option", { value: "nao_copiar" }, "Deixar em branco para declarar depois"), _createElementVNode("option", { value: "vProd" }, "Copiar vProd, sem presumir total líquido")], 8, ["onUpdate:modelValue"]), [[_vModelSelect, preparationConfig.total_source]])]), _createElementVNode("fieldset", null, [_createElementVNode("legend", null, "Bases observadas a copiar explicitamente"), (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(['icms_base','st_base','fcp_base','pis_base','cofins_base'], (base) => {
+                  return (_openBlock(), _createElementBlock("label", null, [_withDirectives(_createElementVNode("input", {
+                    type: "checkbox",
+                    value: base,
+                    "onUpdate:modelValue": $event => ((preparationConfig.copy_bases) = $event)
+                  }, null, 8, ["value", "onUpdate:modelValue"]), [[_vModelCheckbox, preparationConfig.copy_bases]]), _createTextVNode(" " + _toDisplayString(base), 1)]))
+                }), 256))])], 64))
+              : _createCommentVNode("", true)
+          ]), _createElementVNode("p", null, "CFOP observado não é convertido em CFOP da empresa. Componentes, tratamentos e direito a crédito não são definidos por esta preparação. Ausências não viram zero."), _createElementVNode("button", { disabled: busy||!preparationSelected.length }, "Gerar prévia da preparação", 8, ["disabled"])], 40, ["onSubmit", "onInput"]),
+          preparationPreview
+            ? (_openBlock(), _createElementBlock("article", {
+                key: 0,
+                class: "inset"
+              }, [
+                _createElementVNode("h3", null, "Prévia da preparação dos documentos"),
+                _createElementVNode("p", null, _toDisplayString(preparationPreview.snapshot.ready?'Rascunhos podem ser preparados após conferência.':'Há pendências; nenhum documento será preparado.'), 1),
+                (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(preparationPreview.snapshot.items, (item) => {
+                  return (_openBlock(), _createElementBlock("article", {
+                    class: "inset",
+                    key: item.document_id
+                  }, [
+                    _createElementVNode("b", null, "Documento #" + _toDisplayString(item.document_id), 1),
+                    (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(item.blockers, (blocker) => {
+                      return (_openBlock(), _createElementBlock("p", { class: "error" }, _toDisplayString(blocker), 1))
+                    }), 256)),
+                    (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(item.warnings, (warning) => {
+                      return (_openBlock(), _createElementBlock("p", null, _toDisplayString(warning), 1))
+                    }), 256)),
+                    (item.payload)
+                      ? (_openBlock(), _createElementBlock(_Fragment, { key: 0 }, [_createElementVNode("p", null, _toDisplayString(item.payload.fiscal.operation) + " · " + _toDisplayString(item.payload.fiscal.posting_date) + " · total documental " + _toDisplayString(item.payload.fiscal.total), 1), (item.payload.xml_item_evidence)
+                          ? (_openBlock(), _createElementBlock(_Fragment, { key: 0 }, [_createVNode(_component_data_table, {
+                              rows: xmlObservedRows(item.payload.xml_item_evidence),
+                              columns: {item:'nItem',locator:'Localizador',cfop:'CFOP observado',vProd:'vProd observado',vFrete:'Frete',vSeg:'Seguro',vDesc:'Desconto',vOutro:'Outros',issues:'Críticas',unhandled:'Não extraído'}
+                            }, null, 8, ["rows", "columns"]), _createElementVNode("button", {
+                              type: "button",
+                              onClick: $event => (preparationInspect=item.payload.xml_item_evidence)
+                            }, "Inspecionar caminhos do documento " + _toDisplayString(item.document_id), 9, ["onClick"])], 64))
+                          : _createCommentVNode("", true)], 64))
+                      : _createCommentVNode("", true)
+                  ]))
+                }), 128)),
+                preparationInspect
+                  ? (_openBlock(), _createElementBlock("pre", { key: 0 }, _toDisplayString(JSON.stringify(preparationInspect,null,2)), 1))
+                  : _createCommentVNode("", true),
+                _createElementVNode("label", null, [_createTextVNode("Motivo da preparação dos documentos"), _withDirectives(_createElementVNode("input", { "onUpdate:modelValue": $event => ((preparationReason) = $event) }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, preparationReason]])]),
+                _createElementVNode("label", null, [_createTextVNode("Referência da conferência da preparação"), _withDirectives(_createElementVNode("input", { "onUpdate:modelValue": $event => ((preparationReview) = $event) }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, preparationReview]])]),
+                _createElementVNode("label", null, [_withDirectives(_createElementVNode("input", {
+                  type: "checkbox",
+                  "onUpdate:modelValue": $event => ((preparationConfirmed) = $event)
+                }, null, 8, ["onUpdate:modelValue"]), [[_vModelCheckbox, preparationConfirmed]]), _createTextVNode(" Conferi documentos, origens, política, data e cópias; autorizo somente criar rascunhos")]),
+                _createElementVNode("button", {
+                  type: "button",
+                  onClick: applyPreparation,
+                  disabled: busy||!preparationPreview.snapshot.ready||!preparationConfirmed
+                }, "Criar rascunhos da prévia", 8, ["onClick", "disabled"])
+              ]))
+            : _createCommentVNode("", true),
+          _createElementVNode("button", {
+            type: "button",
+            onClick: loadPreparations,
+            disabled: busy||!cycle
+          }, "Consultar últimas 50 preparações", 8, ["onClick", "disabled"]),
+          (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(preparationHistory, (row) => {
+            return (_openBlock(), _createElementBlock("article", {
+              key: row.id,
+              class: "inset"
+            }, [_createElementVNode("b", null, "Preparação #" + _toDisplayString(row.id) + " · " + _toDisplayString(row.reason), 1), _createElementVNode("button", {
+              type: "button",
+              onClick: $event => (openPreparation(row))
+            }, "Abrir preparação " + _toDisplayString(row.id), 9, ["onClick"])]))
+          }), 128)),
+          preparationReceipt
+            ? (_openBlock(), _createElementBlock("article", {
+                key: 1,
+                class: "inset"
+              }, [_createElementVNode("h3", null, "Manifesto da preparação #" + _toDisplayString(preparationReceipt.id), 1), _createVNode(_component_data_table, {
+                rows: preparationReceipt.snapshot.items,
+                columns: {document_id:'Documento',operation_id:'Operação criada',version:'Versão',snapshot_hash:'Hash',warnings:'Conferências pendentes'}
+              }, null, 8, ["rows", "columns"]), _createElementVNode("button", {
+                type: "button",
+                onClick: downloadPreparation
+              }, "Baixar preparação e evidências XML", 8, ["onClick"])]))
+            : _createCommentVNode("", true)
+        ]),
         overview
           ? (_openBlock(), _createElementBlock("div", {
               key: 0,
@@ -512,6 +659,17 @@ var _Vue=Vue; var WorkRender=function render(_ctx, _cache) {
                     inputmode: "decimal"
                   }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, active.data.payload.fiscal.cofins_amount]])])
                 ]), _createElementVNode("p", null, "Valores informados pelo operador ou pela origem. Regras aprovadas podem calcular tributos na versão salva; não há homologação de obrigação fiscal. NCM e serviço são escopos declarados para a regra. O modo por item exige componentes, bases e vínculos conferidos; não classifica produtos automaticamente.")], 8, ["open"]),
+                (active.data.payload.xml_item_evidence)
+                  ? (_openBlock(), _createElementBlock("details", { key: 0 }, [
+                      _createElementVNode("summary", null, "Valores observados do XML da ficha"),
+                      _createElementVNode("p", null, "Referência da origem; os valores usados na escrituração são declarados/conferidos nos campos próprios. Nenhum enquadramento é inferido."),
+                      _createVNode(_component_data_table, {
+                        rows: xmlObservedRows(active.data.payload.xml_item_evidence),
+                        columns: {item:'nItem',locator:'Localizador',cfop:'CFOP observado',vProd:'vProd observado',vFrete:'Frete',vSeg:'Seguro',vDesc:'Desconto',vOutro:'Outros',issues:'Críticas',unhandled:'Não extraído'}
+                      }, null, 8, ["rows", "columns"]),
+                      _createElementVNode("details", null, [_createElementVNode("summary", null, "Caminhos e evidência preservada"), _createElementVNode("pre", null, _toDisplayString(JSON.stringify(active.data.payload.xml_item_evidence,null,2)), 1)])
+                    ]))
+                  : _createCommentVNode("", true),
                 _createElementVNode("details", {
                   class: "tax-items",
                   open: !!active.data.payload.tax_items
@@ -580,7 +738,7 @@ var _Vue=Vue; var WorkRender=function render(_ctx, _cache) {
                   "onUpdate:modelValue": $event => ((active.data.payload.acknowledge_differences) = $event)
                 }, null, 8, ["onUpdate:modelValue"]), [[_vModelCheckbox, active.data.payload.acknowledge_differences]]), _createTextVNode(" Conferi divergências entre as fontes")]),
                 (active.data.payload.fiscal.operation==='abertura')
-                  ? (_openBlock(), _createElementBlock("label", { key: 0 }, [_withDirectives(_createElementVNode("input", {
+                  ? (_openBlock(), _createElementBlock("label", { key: 1 }, [_withDirectives(_createElementVNode("input", {
                       type: "checkbox",
                       "onUpdate:modelValue": $event => ((active.data.payload.opening_zero) = $event),
                       onChange: toggleZero
@@ -651,7 +809,7 @@ var _Vue=Vue; var WorkRender=function render(_ctx, _cache) {
                     : _createCommentVNode("", true)
                 ]),
                 (active.data.payload.finance.mode!=='sem_cobranca')
-                  ? (_openBlock(), _createElementBlock("div", { key: 1 }, [(_openBlock(true), _createElementBlock(_Fragment, null, _renderList(active.data.payload.finance.installments, (p, i) => {
+                  ? (_openBlock(), _createElementBlock("div", { key: 2 }, [(_openBlock(true), _createElementBlock(_Fragment, null, _renderList(active.data.payload.finance.installments, (p, i) => {
                       return (_openBlock(), _createElementBlock("div", { class: "grid" }, [
                         _createElementVNode("label", null, [_createTextVNode("Parcela"), _withDirectives(_createElementVNode("input", { "onUpdate:modelValue": $event => ((p.reference) = $event) }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, p.reference]])]),
                         _createElementVNode("label", null, [_createTextVNode("Vencimento"), _withDirectives(_createElementVNode("input", {
@@ -727,7 +885,7 @@ var _Vue=Vue; var WorkRender=function render(_ctx, _cache) {
               }, "Gerar prévia de tributação", 8, ["onClick", "disabled"]),
               (taxPreview && taxPreview.snapshot.operation_id===active.operation?.operation_id)
                 ? (_openBlock(), _createElementBlock("div", { key: 0 }, [
-                    (['tributacao-itens-v2','tributacao-itens-v3'].includes(taxPreview.snapshot.profile))
+                    (['tributacao-itens-v2','tributacao-itens-v3','tributacao-itens-v4'].includes(taxPreview.snapshot.profile))
                       ? (_openBlock(), _createBlock(_component_data_table, {
                           key: 0,
                           rows: taxPreview.snapshot.lines,
@@ -741,7 +899,7 @@ var _Vue=Vue; var WorkRender=function render(_ctx, _cache) {
                           columns: {item_id:'Item',components:'Grupo por dentro',declared_net_base:'Base líquida',reduced_net_base:'Líquida reduzida',grossed_base:'Base bruta',rounded_tax_sum:'Tributos',residual:'Diferença',residual_policy:'Política da diferença'}
                         }, null, 8, ["rows", "columns"]))
                       : _createCommentVNode("", true),
-                    _createElementVNode("details", { open: !['tributacao-itens-v2','tributacao-itens-v3'].includes(taxPreview.snapshot.profile) }, [_createElementVNode("summary", null, "Conferir base, regra, taxa e arredondamento"), _createElementVNode("pre", null, _toDisplayString(JSON.stringify(taxPreview.snapshot,null,2)), 1)], 8, ["open"]),
+                    _createElementVNode("details", { open: !['tributacao-itens-v2','tributacao-itens-v3','tributacao-itens-v4'].includes(taxPreview.snapshot.profile) }, [_createElementVNode("summary", null, "Conferir base, regra, taxa e arredondamento"), _createElementVNode("pre", null, _toDisplayString(JSON.stringify(taxPreview.snapshot,null,2)), 1)], 8, ["open"]),
                     _createElementVNode("button", {
                       onClick: applyTaxes,
                       disabled: busy||dirty

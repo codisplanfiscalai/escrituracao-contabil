@@ -1,5 +1,7 @@
 # Estado da estrutura fiscal e próximos aceites — 06/11/2026
 
+A continuidade após o PR #16 está em [Preparação de documentos e valores por item](preparacao-documentos-itens-xml.md), com esquema 17 e evidência por campo. A revisão abaixo conserva o escopo e a data de sua elaboração.
+
 ## Evidência e escopo desta revisão
 
 Revisão do código na base `3673c5a1212c29aff0c600e11bfd329f5d96022a` (PR #14), com consulta dos PRs abertos #8 a #15 e da develop remota `22ebdb14d812980dac532cd7c0403c2f811f559e`. Esses PRs estavam em rascunho e não integrados à develop na consulta. O código disponível na branch fiscal não equivale a uma release instalada ou homologada.
