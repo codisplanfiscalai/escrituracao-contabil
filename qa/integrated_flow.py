@@ -51,7 +51,7 @@ def run(mode):
                     frame=page.frame_locator('#workspace-frame')
                 else:frame=page
                 def idle():
-                    expect(frame.locator('.workbench')).to_have_attribute('aria-busy','false')
+                    expect(frame.locator('.workbench')).to_have_attribute('aria-busy','false',timeout=15000)
                     expect(frame.locator('.alert.error')).to_have_count(0)
                 def nav(label):
                     idle()
@@ -63,6 +63,7 @@ def run(mode):
                 def post():
                     frame.locator('#operation-reason').fill('Conferência e escrituração sintéticas')
                     frame.get_by_role('button',name='Salvar versão',exact=True).click();idle()
+                    expect(frame.get_by_role('status')).to_contain_text('Versão salva')
                     frame.get_by_role('button',name='Conferir versão',exact=True).click();idle()
                     frame.get_by_role('button',name='Escriturar',exact=True).click();idle()
                     expect(frame.get_by_role('status')).to_contain_text('Operação escriturada')

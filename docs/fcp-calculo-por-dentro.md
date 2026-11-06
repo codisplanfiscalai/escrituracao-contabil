@@ -1,5 +1,7 @@
 # FCP e cálculo por dentro com parâmetros declarados
 
+Este documento registra o incremento do PR #13 no esquema 14. A evolução posterior para ajustes e saldos entre competências, com migração aditiva para esquema 15, está em [Ajustes e saldos da apuração](ajustes-saldos-apuracao.md).
+
 ## Escopo e dependências
 
 Incremento da branch `feat/fcp-calculo-por-dentro`, baseado no commit `db62bc86adf66d72e18d76a27aed21ac844dcdd1` do PR #11. Dependências: este incremento → #11 → #10 → #8, todos destinados a develop. A develop conferida permanece em `22ebdb14d812980dac532cd7c0403c2f811f559e`. Não há merge, release ou implantação nesta entrega.

@@ -78,16 +78,25 @@ class TaxAssessmentMixin:
                 forms.append((row['id'],row['version']))
         if forms:
             blockers.append('Há guias fiscais incompletas ainda abertas')
+        adjustment_rows,adjustment_lines,adjustment_blockers=self.assessment_adjustment_lines(company_id,cycle_id)
+        lines.extend(adjustment_lines);blockers.extend(adjustment_blockers)
         totals = {}
         with localcontext() as context:
             context.prec = 40
             for line in lines:
                 key = (line['tax'],line['revenue_code'],line.get('component_key',line['tax']))
                 group = totals.setdefault(key,{'tax':key[0],'revenue_code':key[1],**({'component_key':key[2]} if key[2]!=key[0] else {}),
-                                               'debito':Decimal(0),'credito':Decimal(0),'informativo':Decimal(0)})
+                                               'debito':Decimal(0),'credito':Decimal(0),'informativo':Decimal(0),
+                                               **({'ajustes_debito':Decimal(0),'ajustes_credito':Decimal(0)} if adjustment_rows else {})})
                 group[line['effect']] += Decimal(line['amount'])
+                if 'adjustment_id' in line:group['ajustes_'+line['effect']]+=Decimal(line['amount'])
             groups = [{**g,'saldo_aritmetico':format(g['debito']-g['credito'],'.2f'),
                        **{k:format(g[k],'.2f') for k in ('debito','credito','informativo')}} for _,g in sorted(totals.items())]
+            if adjustment_rows:
+                for group in groups:
+                    debit,credit=group['ajustes_debito'],group['ajustes_credito']
+                    group['saldo_antes_ajustes']=format(Decimal(group['saldo_aritmetico'])-debit+credit,'.2f')
+                    group['ajustes_debito']=format(debit,'.2f');group['ajustes_credito']=format(credit,'.2f')
         source = {'company_id':identifier(company_id),'competence':cycle['competence'],'cycle_version':cycle['version'],
                   'operations':[(o['operation_id'],o['version'],o['state'],o['snapshot_hash']) for o in fiscal_operations],
                   'documents':[(d['id'],d['state'],d['source']['source_hash']) for d in overview['documents']], 'forms':forms}
@@ -95,6 +104,11 @@ class TaxAssessmentMixin:
                     'formula':'saldo_aritmetico = soma(debito) - soma(credito)',
                     'limits':['Não é obrigação acessória ou guia de pagamento','Não infere créditos, regimes, vencimentos ou compensações','Saldo negativo não é transferido automaticamente','CBS/IBS fora do cálculo']}
         if grossup_groups:snapshot['grossup_groups']=grossup_groups
+        if adjustment_rows:
+            snapshot['profile']='apuracao-parametrizada-v2'
+            snapshot['adjustments']=[{'id':r['id'],'snapshot_hash':r['snapshot_hash'],'snapshot':r['snapshot']} for r in adjustment_rows]
+            snapshot['formula']='saldo_aritmetico = saldo_antes_ajustes + ajustes_debito - ajustes_credito; por componente e receita'
+            snapshot['limits'].append('Transportes reservam saldo por referência; não alteram a apuração histórica nem reconhecem direito a crédito ou pagamento')
         return {'snapshot':snapshot,'snapshot_hash':digest(snapshot)}
 
     def tax_assessments(self, company_id, cycle_id):
@@ -161,7 +175,7 @@ class TaxAssessmentMixin:
         cycle = self._work_cycle(company_id,cycle_id)
         required = any(r['state']=='aprovada' and r['spec']['valid_from'][:7]<=cycle['competence'] and (not r['spec']['valid_to'] or r['spec']['valid_to'][:7]>=cycle['competence']) for r in self.tax_rules(company_id))
         rows = self.tax_assessments(company_id,cycle_id)
-        required = required or bool(rows)
+        required = required or bool(rows) or bool(self.tax_assessment_adjustments(company_id,cycle_id))
         if not required:
             return {'required':False,'ready':True,'fingerprint':None}
         current = self.preview_tax_assessment(company_id,cycle_id)

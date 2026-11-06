@@ -1522,6 +1522,125 @@ var _Vue=Vue; var WorkRender=function render(_ctx, _cache) {
             _createElementVNode("button", { disabled: busy }, "Copiar modelo como rascunho", 8, ["disabled"])
           ], 40, ["onSubmit"])
         ]),
+        _createElementVNode("details", { class: "inset" }, [
+          _createElementVNode("summary", null, "Ajustes de apuração e saldos entre competências"),
+          _createElementVNode("p", null, "Ajustes exigem referência e conferência explícitas. Transporte preserva componente, receita e natureza do saldo de uma apuração validada com fiscal encerrado. Não reconhece direito a crédito, pagamento ou compensação entre tributos."),
+          _createElementVNode("div", { class: "toolbar" }, [_createElementVNode("button", {
+            type: "button",
+            onClick: newAssessmentAdjustment
+          }, "Novo ajuste manual de apuração", 8, ["onClick"]), _createElementVNode("button", {
+            type: "button",
+            onClick: loadAssessmentAdjustments,
+            disabled: busy||!cycle
+          }, "Consultar saldos de origem e histórico", 8, ["onClick", "disabled"])]),
+          (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(balanceSources, (source) => {
+            return (_openBlock(), _createElementBlock("article", {
+              class: "inset",
+              key: source.assessment_id+':'+source.component_key+':'+source.revenue_code
+            }, [_createElementVNode("b", null, _toDisplayString(source.competence) + " · " + _toDisplayString(source.component_key) + " · receita " + _toDisplayString(source.revenue_code||'não informada'), 1), (source.blocker)
+              ? (_openBlock(), _createElementBlock("p", {
+                  key: 0,
+                  class: "error"
+                }, _toDisplayString(source.blocker), 1))
+              : (_openBlock(), _createElementBlock(_Fragment, { key: 1 }, [_createElementVNode("p", null, "Saldo de origem " + _toDisplayString(source.balance) + " · reservado " + _toDisplayString(source.reserved) + " · disponível " + _toDisplayString(source.available) + " · natureza " + _toDisplayString(source.effect), 1), _createElementVNode("button", {
+                  type: "button",
+                  onClick: $event => (selectBalanceSource(source)),
+                  disabled: busy||Number(source.available)<=0
+                }, "Preparar transporte deste saldo", 8, ["onClick", "disabled"])], 64))]))
+          }), 128)),
+          _createElementVNode("form", {
+            onSubmit: _withModifiers(previewAssessmentAdjustment, ["prevent"]),
+            onInput: $event => {adjustmentPreview=null;adjustmentConfirmed=false}
+          }, [
+            _createElementVNode("h3", null, _toDisplayString(adjustmentForm.kind==='transporte'?'Transporte explícito de saldo':'Ajuste manual da apuração'), 1),
+            (adjustmentForm.kind==='transporte')
+              ? (_openBlock(), _createElementBlock("p", { key: 0 }, "Apuração de origem #" + _toDisplayString(adjustmentForm.source_assessment_id) + ". Valor a transportar deve ser declarado; não é preenchido pelo saldo disponível.", 1))
+              : _createCommentVNode("", true),
+            _createElementVNode("div", { class: "grid" }, [
+              _createElementVNode("label", null, [_createTextVNode("Data do ajuste de apuração"), _withDirectives(_createElementVNode("input", {
+                type: "date",
+                "onUpdate:modelValue": $event => ((adjustmentForm.date) = $event),
+                required: ""
+              }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, adjustmentForm.date]])]),
+              _createElementVNode("label", null, [_createTextVNode("Componente do ajuste de apuração"), _withDirectives(_createElementVNode("input", {
+                "onUpdate:modelValue": $event => ((adjustmentForm.component_key) = $event),
+                readonly: adjustmentForm.kind==='transporte',
+                placeholder: "ICMS ou FCP:IDENTIFICADOR",
+                required: ""
+              }, null, 8, ["onUpdate:modelValue", "readonly"]), [[_vModelText, adjustmentForm.component_key]])]),
+              _createElementVNode("label", null, [_createTextVNode("Receita do ajuste de apuração"), _withDirectives(_createElementVNode("input", {
+                "onUpdate:modelValue": $event => ((adjustmentForm.revenue_code) = $event),
+                readonly: adjustmentForm.kind==='transporte'
+              }, null, 8, ["onUpdate:modelValue", "readonly"]), [[_vModelText, adjustmentForm.revenue_code]])]),
+              _createElementVNode("label", null, [_createTextVNode("Efeito do ajuste de apuração"), _withDirectives(_createElementVNode("select", {
+                "aria-label": "Efeito do ajuste de apuração",
+                "onUpdate:modelValue": $event => ((adjustmentForm.effect) = $event),
+                disabled: adjustmentForm.kind==='transporte',
+                required: ""
+              }, [_createElementVNode("option", { value: "" }, "Selecione explicitamente"), _createElementVNode("option", { value: "debito" }, "Débito declarado"), _createElementVNode("option", { value: "credito" }, "Crédito declarado")], 8, ["onUpdate:modelValue", "disabled"]), [[_vModelSelect, adjustmentForm.effect]])]),
+              _createElementVNode("label", null, [_createTextVNode("Valor do ajuste de apuração"), _withDirectives(_createElementVNode("input", {
+                "onUpdate:modelValue": $event => ((adjustmentForm.amount) = $event),
+                inputmode: "decimal",
+                required: ""
+              }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, adjustmentForm.amount]])]),
+              _createElementVNode("label", null, [_createTextVNode("Descrição do ajuste de apuração"), _withDirectives(_createElementVNode("input", {
+                "onUpdate:modelValue": $event => ((adjustmentForm.description) = $event),
+                required: ""
+              }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, adjustmentForm.description]])]),
+              _createElementVNode("label", null, [_createTextVNode("Referência que autoriza o ajuste ou transporte"), _withDirectives(_createElementVNode("input", {
+                "onUpdate:modelValue": $event => ((adjustmentForm.reference) = $event),
+                required: ""
+              }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, adjustmentForm.reference]])])
+            ]),
+            _createElementVNode("button", { disabled: busy||!cycle }, "Conferir prévia do ajuste", 8, ["disabled"])
+          ], 40, ["onSubmit", "onInput"]),
+          adjustmentPreview
+            ? (_openBlock(), _createElementBlock("div", {
+                key: 0,
+                class: "inset"
+              }, [
+                _createElementVNode("h3", null, "Prévia do ajuste de apuração"),
+                _createElementVNode("p", null, _toDisplayString(adjustmentPreview.snapshot.spec.component_key) + " · " + _toDisplayString(adjustmentPreview.snapshot.spec.effect) + " · " + _toDisplayString(adjustmentPreview.snapshot.spec.amount), 1),
+                (adjustmentPreview.snapshot.capacity)
+                  ? (_openBlock(), _createElementBlock("p", { key: 0 }, "Disponível na conferência: " + _toDisplayString(adjustmentPreview.snapshot.capacity.available) + ". Nenhuma reserva foi feita nesta prévia.", 1))
+                  : _createCommentVNode("", true),
+                _createElementVNode("details", null, [_createElementVNode("summary", null, "Memória da prévia do ajuste"), _createElementVNode("pre", null, _toDisplayString(JSON.stringify(adjustmentPreview.snapshot,null,2)), 1)])
+              ]))
+            : _createCommentVNode("", true),
+          _createElementVNode("label", null, [_createTextVNode("Motivo do ajuste ou cancelamento"), _withDirectives(_createElementVNode("input", { "onUpdate:modelValue": $event => ((adjustmentReason) = $event) }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, adjustmentReason]])]),
+          _createElementVNode("label", null, [_createTextVNode("Referência da conferência do ajuste"), _withDirectives(_createElementVNode("input", { "onUpdate:modelValue": $event => ((adjustmentReviewReference) = $event) }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, adjustmentReviewReference]])]),
+          _createElementVNode("label", null, [_withDirectives(_createElementVNode("input", {
+            type: "checkbox",
+            "onUpdate:modelValue": $event => ((adjustmentConfirmed) = $event)
+          }, null, 8, ["onUpdate:modelValue"]), [[_vModelCheckbox, adjustmentConfirmed]]), _createTextVNode(" Conferi origem, valor, natureza, autorização e efeitos do ajuste ou cancelamento, sem presumir direito a crédito")]),
+          adjustmentPreview
+            ? (_openBlock(), _createElementBlock("button", {
+                key: 1,
+                type: "button",
+                onClick: applyAssessmentAdjustment,
+                disabled: busy||!adjustmentConfirmed
+              }, "Aprovar ajuste de apuração", 8, ["onClick", "disabled"]))
+            : _createCommentVNode("", true),
+          (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(adjustmentHistory, (row) => {
+            return (_openBlock(), _createElementBlock("article", {
+              class: "inset",
+              key: row.id,
+              "data-assessment-adjustment": row.id
+            }, [
+              _createElementVNode("b", null, "#" + _toDisplayString(row.id) + " · " + _toDisplayString(row.snapshot.data.description) + " · " + _toDisplayString(row.state) + " · v" + _toDisplayString(row.version), 1),
+              _createElementVNode("p", null, _toDisplayString(row.snapshot.data.component_key) + " · " + _toDisplayString(row.snapshot.data.effect) + " · " + _toDisplayString(row.snapshot.data.amount) + " · " + _toDisplayString(row.snapshot.data.kind) + " · " + _toDisplayString(row.current?'versão atual':'histórico preservado'), 1),
+              (row.current&&row.state==='aprovada')
+                ? (_openBlock(), _createElementBlock("button", {
+                    key: 0,
+                    type: "button",
+                    onClick: $event => (cancelAssessmentAdjustment(row)),
+                    disabled: busy||!adjustmentConfirmed
+                  }, "Cancelar ajuste em nova versão", 8, ["onClick", "disabled"]))
+                : _createCommentVNode("", true),
+              _createElementVNode("details", null, [_createElementVNode("summary", null, "Evidência do ajuste"), _createElementVNode("pre", null, _toDisplayString(JSON.stringify(row,null,2)), 1)])
+            ], 8, ["data-assessment-adjustment"]))
+          }), 128))
+        ]),
         _createElementVNode("article", { class: "inset" }, [
           _createElementVNode("h2", null, "Apuração parametrizada da competência"),
           _createElementVNode("p", null, "Soma automaticamente fatos escriturados pelos efeitos declarados nas regras. Valores informados são preservados. O saldo é aritmético: não gera guia, vencimento, crédito legal ou compensação automática. CBS/IBS permanecem fora do cálculo."),
@@ -1541,7 +1660,7 @@ var _Vue=Vue; var WorkRender=function render(_ctx, _cache) {
                 }), 256)),
                 _createVNode(_component_data_table, {
                   rows: assessmentPreview.snapshot.totals,
-                  columns: {tax:'Tributo',component_key:'Componente declarado',revenue_code:'Receita declarada',debito:'Débitos',credito:'Créditos',informativo:'Informativo',saldo_aritmetico:'Saldo aritmético'}
+                  columns: {tax:'Tributo',component_key:'Componente declarado',revenue_code:'Receita declarada',debito:'Débitos',credito:'Créditos',informativo:'Informativo',saldo_antes_ajustes:'Antes dos ajustes',ajustes_debito:'Ajustes débito',ajustes_credito:'Ajustes crédito',saldo_aritmetico:'Saldo aritmético'}
                 }, null, 8, ["rows", "columns"]),
                 (assessmentPreview.snapshot.grossup_groups)
                   ? (_openBlock(), _createBlock(_component_data_table, {
@@ -1566,7 +1685,7 @@ var _Vue=Vue; var WorkRender=function render(_ctx, _cache) {
               _createElementVNode("p", { class: "tax-fingerprint" }, _toDisplayString(row.snapshot_hash), 1),
               _createVNode(_component_data_table, {
                 rows: row.snapshot.totals,
-                columns: {tax:'Tributo',component_key:'Componente declarado',revenue_code:'Receita',debito:'Débitos',credito:'Créditos',informativo:'Informativo',saldo_aritmetico:'Saldo aritmético'}
+                columns: {tax:'Tributo',component_key:'Componente declarado',revenue_code:'Receita',debito:'Débitos',credito:'Créditos',informativo:'Informativo',saldo_antes_ajustes:'Antes dos ajustes',ajustes_debito:'Ajustes débito',ajustes_credito:'Ajustes crédito',saldo_aritmetico:'Saldo aritmético'}
               }, null, 8, ["rows", "columns"]),
               _createElementVNode("button", {
                 onClick: $event => (validateAssessment(row)),
