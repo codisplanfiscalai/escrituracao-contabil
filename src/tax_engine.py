@@ -412,6 +412,8 @@ class TaxEngineMixin:
         return result
 
     def tax_configuration(self, company_id):
+        from .tax_sources import CATALOG_SOURCES
+        page = self.tax_code_page(company_id)
         structural = []
         for label, basis in [('Percentual sobre total declarado','total'),('Percentual sobre base ICMS declarada','icms_base'),('Percentual sobre base ISS declarada','iss_base')]:
             spec = {key:'' for key in SPEC_FIELDS}
@@ -426,6 +428,6 @@ class TaxEngineMixin:
             spec.update(tax=tax,item_treatment='',calculation={'scope':'item','method':method,'reduction_percent':'','base_rounding':'',**extra})
             structural.append({'label':label,'spec':spec,'state':'rascunho','requires_validation':True})
         return {'rules':self.tax_rules(company_id),'templates':self.tax_templates(company_id),
-                'catalog':self.tax_catalog(company_id),'structural_models':structural,
+                'catalog':page['items'],'catalog_page':{key:value for key,value in page.items() if key!='items'},'structural_models':structural,
                 'supported_taxes':list(TAXES)+sorted(SPECIAL_TAXES),'item_base_fields':sorted(ITEM_BASES),
-                'legal_defaults_loaded':False}
+                'catalog_sources':CATALOG_SOURCES,'legal_defaults_loaded':False}

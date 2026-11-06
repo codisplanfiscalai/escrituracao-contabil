@@ -86,7 +86,7 @@ class CompanyProfileTests(unittest.TestCase):
         self.store.db.execute('UPDATE schema_version SET version=10')
         self.store.db.commit()
         with AccountingStore(self.path) as reopened:
-            self.assertEqual(reopened.db.execute('SELECT version FROM schema_version').fetchone()[0], 13)
+            self.assertEqual(reopened.db.execute('SELECT version FROM schema_version').fetchone()[0], 14)
             self.assertEqual(reopened.list_companies(), companies)
             self.assertEqual(reopened.source_original(self.company, source['input_id']), original)
             self.assertEqual(reopened.user_organization()['version'], 0)

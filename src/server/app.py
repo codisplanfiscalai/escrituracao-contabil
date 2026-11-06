@@ -512,6 +512,7 @@ def create_app(
                 "import-original",
                 "work-export-file",
                 "source-original",
+                "tax-catalog-original",
             }
             and request.method == "GET"
         ):

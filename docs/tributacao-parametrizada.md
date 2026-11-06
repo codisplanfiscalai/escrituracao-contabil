@@ -2,6 +2,8 @@
 
 Atualização em branch dependente: [tributação por item e componentes declarados](tributacao-itens-componentes.md). As limitações de cálculo exclusivamente documental abaixo descrevem o perfil v1; o perfil v2 acrescenta operações por item com parâmetros explícitos e limites próprios.
 
+Evolução dos cadastros: [importação versionada com origem e jurisdição](importacao-cadastros-fiscais.md), com migração aditiva 13→14. As referências ao esquema 13 abaixo descrevem a base tributária anterior a esse incremento.
+
 ## Resultado e fronteira do motor
 
 Implementado um motor percentual configurável para ICMS, ISS, PIS e COFINS, com regras versionadas por empresa, modelos copiáveis, cadastros de CFOP/NCM/receita/serviço, memória de cálculo e apuração dos fatos escriturados. Não há alíquotas legais, enquadramentos, tabelas normativas ou direito a crédito presumidos. CBS/IBS continuam fora do cálculo, conforme o escopo do repositório.

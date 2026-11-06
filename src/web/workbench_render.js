@@ -900,66 +900,308 @@ var _Vue=Vue; var WorkRender=function render(_ctx, _cache) {
       _withDirectives(_createElementVNode("section", { class: "card" }, [
         _createElementVNode("h1", null, "Tributação e apuração"),
         _createElementVNode("p", null, "Parâmetros exclusivos da empresa selecionada. Nenhuma tabela legal ou alíquota foi carregada automaticamente. Códigos isolados não definem tributação. Revise origem, vigência, base, taxa, efeito e arredondamento com o responsável antes de aprovar."),
-        _createElementVNode("details", { open: "" }, [_createElementVNode("summary", null, "CFOP, NCM, códigos de receita e de serviço"), _createElementVNode("form", {
-          onSubmit: _withModifiers(saveTaxCode, ["prevent"]),
-          class: "grid"
-        }, [
-          _createElementVNode("label", null, [_createTextVNode("Tabela do código"), _withDirectives(_createElementVNode("select", {
-            "aria-label": "Tabela do código",
-            "onUpdate:modelValue": $event => ((codeForm.kind) = $event),
-            disabled: codeForm.expected_version>0
+        _createElementVNode("details", { open: "" }, [
+          _createElementVNode("summary", null, "CFOP, NCM, códigos de receita e de serviço"),
+          _createElementVNode("form", {
+            onSubmit: _withModifiers(saveTaxCode, ["prevent"]),
+            class: "grid"
           }, [
+            _createElementVNode("label", null, [_createTextVNode("Tabela do código"), _withDirectives(_createElementVNode("select", {
+              "aria-label": "Tabela do código",
+              "onUpdate:modelValue": $event => ((codeForm.kind) = $event),
+              disabled: codeForm.expected_version>0
+            }, [
+              _createElementVNode("option", { value: "cfop" }, "CFOP"),
+              _createElementVNode("option", { value: "ncm" }, "NCM"),
+              _createElementVNode("option", { value: "revenue" }, "Receita"),
+              _createElementVNode("option", { value: "service" }, "Serviço")
+            ], 8, ["onUpdate:modelValue", "disabled"]), [[_vModelSelect, codeForm.kind]])]),
+            _createElementVNode("label", null, [_createTextVNode("Código cadastrado"), _withDirectives(_createElementVNode("input", {
+              "onUpdate:modelValue": $event => ((codeForm.code) = $event),
+              disabled: codeForm.expected_version>0,
+              required: "",
+              maxlength: "30"
+            }, null, 8, ["onUpdate:modelValue", "disabled"]), [[_vModelText, codeForm.code]])]),
+            _createElementVNode("label", null, [_createTextVNode("Descrição do código"), _withDirectives(_createElementVNode("input", {
+              "onUpdate:modelValue": $event => ((codeForm.data.description) = $event),
+              required: "",
+              maxlength: "1000"
+            }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, codeForm.data.description]])]),
+            _createElementVNode("label", null, [_createTextVNode("Origem e versão da tabela"), _withDirectives(_createElementVNode("input", {
+              "onUpdate:modelValue": $event => ((codeForm.data.source_reference) = $event),
+              required: "",
+              maxlength: "1000"
+            }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, codeForm.data.source_reference]])]),
+            _createElementVNode("label", null, [_createTextVNode("Vigência inicial do código"), _withDirectives(_createElementVNode("input", {
+              type: "date",
+              "onUpdate:modelValue": $event => ((codeForm.data.valid_from) = $event),
+              required: ""
+            }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, codeForm.data.valid_from]])]),
+            _createElementVNode("label", null, [_createTextVNode("Vigência final do código"), _withDirectives(_createElementVNode("input", {
+              type: "date",
+              "onUpdate:modelValue": $event => ((codeForm.data.valid_to) = $event)
+            }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, codeForm.data.valid_to]])]),
+            _createElementVNode("label", null, [_createTextVNode("Estado do código"), _withDirectives(_createElementVNode("select", { "onUpdate:modelValue": $event => ((codeForm.state) = $event) }, [_createElementVNode("option", { value: "ativo" }, "Ativo"), _createElementVNode("option", { value: "inativo" }, "Inativo")], 8, ["onUpdate:modelValue"]), [[_vModelSelect, codeForm.state]])]),
+            _createElementVNode("label", null, [_createTextVNode("Motivo do cadastro do código"), _withDirectives(_createElementVNode("input", {
+              "onUpdate:modelValue": $event => ((codeForm.reason) = $event),
+              required: ""
+            }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, codeForm.reason]])]),
+            _createElementVNode("button", { disabled: busy||!company }, "Salvar versão do código", 8, ["disabled"]),
+            _createElementVNode("button", {
+              type: "button",
+              onClick: newTaxCode
+            }, "Novo código", 8, ["onClick"])
+          ], 40, ["onSubmit"]),
+          _createElementVNode("form", {
+            onSubmit: _withModifiers($event => (searchTaxCodes(0)), ["prevent"]),
+            class: "grid"
+          }, [_createElementVNode("label", null, [_createTextVNode("Filtrar tabela cadastrada"), _withDirectives(_createElementVNode("select", {
+            "onUpdate:modelValue": $event => ((codeSearch.kind) = $event),
+            "aria-label": "Filtrar tabela cadastrada"
+          }, [
+            _createElementVNode("option", { value: "" }, "Todas"),
             _createElementVNode("option", { value: "cfop" }, "CFOP"),
             _createElementVNode("option", { value: "ncm" }, "NCM"),
             _createElementVNode("option", { value: "revenue" }, "Receita"),
             _createElementVNode("option", { value: "service" }, "Serviço")
-          ], 8, ["onUpdate:modelValue", "disabled"]), [[_vModelSelect, codeForm.kind]])]),
-          _createElementVNode("label", null, [_createTextVNode("Código cadastrado"), _withDirectives(_createElementVNode("input", {
-            "onUpdate:modelValue": $event => ((codeForm.code) = $event),
-            disabled: codeForm.expected_version>0,
-            required: "",
-            maxlength: "30"
-          }, null, 8, ["onUpdate:modelValue", "disabled"]), [[_vModelText, codeForm.code]])]),
-          _createElementVNode("label", null, [_createTextVNode("Descrição do código"), _withDirectives(_createElementVNode("input", {
-            "onUpdate:modelValue": $event => ((codeForm.data.description) = $event),
-            required: "",
-            maxlength: "1000"
-          }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, codeForm.data.description]])]),
-          _createElementVNode("label", null, [_createTextVNode("Origem e versão da tabela"), _withDirectives(_createElementVNode("input", {
-            "onUpdate:modelValue": $event => ((codeForm.data.source_reference) = $event),
-            required: "",
-            maxlength: "1000"
-          }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, codeForm.data.source_reference]])]),
-          _createElementVNode("label", null, [_createTextVNode("Vigência inicial do código"), _withDirectives(_createElementVNode("input", {
-            type: "date",
-            "onUpdate:modelValue": $event => ((codeForm.data.valid_from) = $event),
-            required: ""
-          }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, codeForm.data.valid_from]])]),
-          _createElementVNode("label", null, [_createTextVNode("Vigência final do código"), _withDirectives(_createElementVNode("input", {
-            type: "date",
-            "onUpdate:modelValue": $event => ((codeForm.data.valid_to) = $event)
-          }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, codeForm.data.valid_to]])]),
-          _createElementVNode("label", null, [_createTextVNode("Estado do código"), _withDirectives(_createElementVNode("select", { "onUpdate:modelValue": $event => ((codeForm.state) = $event) }, [_createElementVNode("option", { value: "ativo" }, "Ativo"), _createElementVNode("option", { value: "inativo" }, "Inativo")], 8, ["onUpdate:modelValue"]), [[_vModelSelect, codeForm.state]])]),
-          _createElementVNode("label", null, [_createTextVNode("Motivo do cadastro do código"), _withDirectives(_createElementVNode("input", {
-            "onUpdate:modelValue": $event => ((codeForm.reason) = $event),
-            required: ""
-          }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, codeForm.reason]])]),
-          _createElementVNode("button", { disabled: busy||!company }, "Salvar versão do código", 8, ["disabled"]),
-          _createElementVNode("button", {
-            type: "button",
-            onClick: newTaxCode
-          }, "Novo código", 8, ["onClick"])
-        ], 40, ["onSubmit"]), (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(latestTaxCodes, (row) => {
-          return (_openBlock(), _createElementBlock("article", {
-            key: row.id,
-            class: "inset"
+          ], 8, ["onUpdate:modelValue"]), [[_vModelSelect, codeSearch.kind]])]), _createElementVNode("label", null, [_createTextVNode("Buscar código cadastrado"), _withDirectives(_createElementVNode("input", { "onUpdate:modelValue": $event => ((codeSearch.query) = $event) }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, codeSearch.query]])]), _createElementVNode("button", { disabled: busy }, "Buscar códigos cadastrados", 8, ["disabled"])], 40, ["onSubmit"]),
+          _createElementVNode("p", null, _toDisplayString(taxConfig.catalog_page?.total||0) + " códigos atuais · página de até 100 registros", 1),
+          _createElementVNode("div", { class: "toolbar" }, [_createElementVNode("button", {
+            onClick: $event => (searchTaxCodes(Math.max(0,(taxConfig.catalog_page?.offset||0)-100))),
+            disabled: busy||!taxConfig.catalog_page?.offset
+          }, "Códigos anteriores", 8, ["onClick", "disabled"]), _createElementVNode("button", {
+            onClick: $event => (searchTaxCodes((taxConfig.catalog_page?.offset||0)+100)),
+            disabled: busy||(taxConfig.catalog_page?.offset||0)+100>=(taxConfig.catalog_page?.total||0)
+          }, "Próximos códigos", 8, ["onClick", "disabled"])]),
+          (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(latestTaxCodes, (row) => {
+            return (_openBlock(), _createElementBlock("article", {
+              key: row.id,
+              class: "inset"
+            }, [
+              _createElementVNode("b", null, _toDisplayString(row.kind) + " · " + _toDisplayString(row.code) + " · v" + _toDisplayString(row.version) + " · " + _toDisplayString(row.state), 1),
+              _createElementVNode("p", null, _toDisplayString(row.data.description) + " · " + _toDisplayString(row.data.valid_from) + " a " + _toDisplayString(row.data.valid_to||'sem término informado'), 1),
+              _createElementVNode("p", null, "Origem: " + _toDisplayString(row.data.source_reference), 1),
+              _createElementVNode("button", { onClick: $event => (editTaxCode(row)) }, "Editar código", 8, ["onClick"]),
+              _createElementVNode("button", { onClick: $event => (showTaxCodeHistory(row)) }, "Histórico do código", 8, ["onClick"])
+            ]))
+          }), 128)),
+          codeHistory
+            ? (_openBlock(), _createElementBlock("details", {
+                key: 0,
+                open: ""
+              }, [
+                _createElementVNode("summary", null, "Histórico " + _toDisplayString(codeHistory.kind) + " · " + _toDisplayString(codeHistory.code) + " · " + _toDisplayString(codeHistory.total) + " versões", 1),
+                _createVNode(_component_data_table, {
+                  rows: codeHistory.items,
+                  columns: {version:'Versão',state:'Estado',data:'Dados e origem',actor:'Responsável',reason:'Motivo',created_at:'Data'}
+                }, null, 8, ["rows", "columns"]),
+                _createElementVNode("button", {
+                  onClick: $event => (showTaxCodeHistory(codeHistory,Math.max(0,codeHistory.offset-100))),
+                  disabled: busy||!codeHistory.offset
+                }, "Versões anteriores", 8, ["onClick", "disabled"]),
+                _createElementVNode("button", {
+                  onClick: $event => (showTaxCodeHistory(codeHistory,codeHistory.offset+100)),
+                  disabled: busy||codeHistory.offset+100>=codeHistory.total
+                }, "Próximas versões", 8, ["onClick", "disabled"])
+              ]))
+            : _createCommentVNode("", true)
+        ]),
+        _createElementVNode("details", { class: "catalog-import" }, [
+          _createElementVNode("summary", null, "Importar cadastros com origem, versão e jurisdição"),
+          _createElementVNode("p", null, "Receba CSV ou JSON no padrão documentado, até 8 MiB e 15000 registros. O recebimento preserva o arquivo sem ativar códigos. A ativação exige seleção, comparação e revisão. O formato nativo dos portais oficiais não é presumido."),
+          _createElementVNode("details", null, [_createElementVNode("summary", null, "Referências oficiais e limites verificados"), (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(taxConfig.catalog_sources, (source) => {
+            return (_openBlock(), _createElementBlock("article", {
+              key: source.id,
+              class: "inset"
+            }, [
+              _createElementVNode("b", null, _toDisplayString(source.publisher) + " · " + _toDisplayString(({cfop:'CFOP',ncm:'NCM',revenue:'Receitas',service:'Serviços'})[source.kind]), 1),
+              _createElementVNode("p", null, _toDisplayString(source.limits), 1),
+              _createElementVNode("a", {
+                href: source.url,
+                target: "_blank",
+                rel: "noopener noreferrer"
+              }, "Consultar referência", 8, ["href"]),
+              _createElementVNode("p", null, "Verificação documental: " + _toDisplayString(source.reviewed_on) + " · " + _toDisplayString(source.status_label), 1)
+            ]))
+          }), 128))]),
+          _createElementVNode("form", {
+            onSubmit: _withModifiers(receiveCatalog, ["prevent"]),
+            class: "grid"
           }, [
-            _createElementVNode("b", null, _toDisplayString(row.kind) + " · " + _toDisplayString(row.code) + " · v" + _toDisplayString(row.version) + " · " + _toDisplayString(row.state), 1),
-            _createElementVNode("p", null, _toDisplayString(row.data.description) + " · " + _toDisplayString(row.data.valid_from) + " a " + _toDisplayString(row.data.valid_to||'sem término informado'), 1),
-            _createElementVNode("p", null, "Origem: " + _toDisplayString(row.data.source_reference), 1),
-            _createElementVNode("button", { onClick: $event => (editTaxCode(row)) }, "Editar código", 8, ["onClick"])
-          ]))
-        }), 128))]),
+            _createElementVNode("label", null, [_createTextVNode("Arquivo do cadastro"), _createElementVNode("input", {
+              id: "catalog-import-file",
+              type: "file",
+              accept: ".csv,.json",
+              onChange: $event => {catalogFile=$event.target.files[0]||null;catalogReceiveAttempt=null},
+              required: ""
+            }, null, 40, ["onChange"])]),
+            _createElementVNode("label", null, [_createTextVNode("Tipo do cadastro importado"), _withDirectives(_createElementVNode("select", {
+              "aria-label": "Tipo do cadastro importado",
+              "onUpdate:modelValue": $event => ((catalogMeta.kind) = $event),
+              onChange: $event => {catalogMeta.system='';catalogMeta.jurisdiction=''}
+            }, [
+              _createElementVNode("option", { value: "cfop" }, "CFOP"),
+              _createElementVNode("option", { value: "ncm" }, "NCM"),
+              _createElementVNode("option", { value: "revenue" }, "Receitas"),
+              _createElementVNode("option", { value: "service" }, "Serviços")
+            ], 40, ["onUpdate:modelValue", "onChange"]), [[_vModelSelect, catalogMeta.kind]])]),
+            _createElementVNode("label", null, [_createTextVNode("Sistema de códigos"), _withDirectives(_createElementVNode("select", {
+              "aria-label": "Sistema de códigos",
+              "onUpdate:modelValue": $event => ((catalogMeta.system) = $event),
+              required: ""
+            }, [_createElementVNode("option", { value: "" }, "Selecione"), (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(catalogSystems, (system) => {
+              return (_openBlock(), _createElementBlock("option", null, _toDisplayString(system), 1))
+            }), 256))], 8, ["onUpdate:modelValue"]), [[_vModelSelect, catalogMeta.system]])]),
+            _createElementVNode("label", null, [_createTextVNode("Jurisdição declarada"), _withDirectives(_createElementVNode("input", {
+              "onUpdate:modelValue": $event => ((catalogMeta.jurisdiction) = $event),
+              placeholder: "BR, UF:XX ou MUN:0000000",
+              required: ""
+            }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, catalogMeta.jurisdiction]])]),
+            _createElementVNode("label", null, [_createTextVNode("Órgão ou publicador declarado"), _withDirectives(_createElementVNode("input", {
+              "onUpdate:modelValue": $event => ((catalogMeta.publisher) = $event),
+              required: ""
+            }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, catalogMeta.publisher]])]),
+            _createElementVNode("label", null, [_createTextVNode("URL da fonte declarada"), _withDirectives(_createElementVNode("input", {
+              type: "url",
+              "onUpdate:modelValue": $event => ((catalogMeta.source_url) = $event),
+              placeholder: "https://",
+              required: ""
+            }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, catalogMeta.source_url]])]),
+            _createElementVNode("label", null, [_createTextVNode("Edição ou versão da fonte"), _withDirectives(_createElementVNode("input", {
+              "onUpdate:modelValue": $event => ((catalogMeta.edition) = $event),
+              required: ""
+            }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, catalogMeta.edition]])]),
+            _createElementVNode("label", null, [_createTextVNode("Data de consulta da fonte"), _withDirectives(_createElementVNode("input", {
+              type: "date",
+              "onUpdate:modelValue": $event => ((catalogMeta.retrieved_on) = $event),
+              required: ""
+            }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, catalogMeta.retrieved_on]])]),
+            _createElementVNode("label", null, [_createTextVNode("Recorte do arquivo"), _withDirectives(_createElementVNode("select", {
+              "aria-label": "Recorte do arquivo",
+              "onUpdate:modelValue": $event => ((catalogMeta.coverage) = $event)
+            }, [_createElementVNode("option", { value: "parcial" }, "Parcial declarado"), _createElementVNode("option", { value: "snapshot_informado" }, "Snapshot informado, completude não certificada")], 8, ["onUpdate:modelValue"]), [[_vModelSelect, catalogMeta.coverage]])]),
+            _createElementVNode("label", null, [_createTextVNode("Conversão e conferência do arquivo"), _withDirectives(_createElementVNode("input", {
+              "onUpdate:modelValue": $event => ((catalogMeta.transformation_reference) = $event),
+              placeholder: "Registre conversão, fonte e revisão; não há conversão automática",
+              required: ""
+            }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, catalogMeta.transformation_reference]])]),
+            _createElementVNode("label", null, [_createTextVNode("Motivo da recepção do cadastro"), _withDirectives(_createElementVNode("input", {
+              "onUpdate:modelValue": $event => ((catalogReceiveReason) = $event),
+              required: ""
+            }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, catalogReceiveReason]])]),
+            _createElementVNode("button", { disabled: busy||!company }, "Preservar arquivo sem ativar", 8, ["disabled"])
+          ], 40, ["onSubmit"]),
+          _createElementVNode("p", null, "CSV UTF-8 com separador ponto e vírgula e cabeçalho code;description;valid_from;valid_to. Códigos textuais preservam zeros iniciais; datas AAAA-MM-DD são explícitas. JSON exige o perfil cadastro-fiscal-v1. URL e hash identificam a declaração e o arquivo recebido; não autenticam sua origem oficial."),
+          _createElementVNode("button", {
+            onClick: loadCatalogImports,
+            disabled: busy||!company
+          }, "Consultar arquivos recebidos", 8, ["onClick", "disabled"]),
+          (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(catalogImports, (row) => {
+            return (_openBlock(), _createElementBlock("article", {
+              key: row.id,
+              class: "inset"
+            }, [_createElementVNode("b", null, "#" + _toDisplayString(row.id) + " · " + _toDisplayString(row.filename) + " · " + _toDisplayString(row.metadata.system) + " · " + _toDisplayString(row.metadata.jurisdiction), 1), _createElementVNode("p", null, _toDisplayString(row.metadata.edition) + " · " + _toDisplayString(row.total_records) + " registros · " + _toDisplayString(row.metadata.coverage==='parcial'?'recorte parcial':'snapshot informado'), 1), _createElementVNode("button", {
+              onClick: $event => (openCatalogImport(row)),
+              disabled: busy
+            }, "Consultar importação", 8, ["onClick", "disabled"])]))
+          }), 128)),
+          catalogImport
+            ? (_openBlock(), _createElementBlock("section", {
+                key: 0,
+                class: "inset"
+              }, [
+                _createElementVNode("h3", null, "Arquivo preservado #" + _toDisplayString(catalogImport.id), 1),
+                _createElementVNode("p", null, _toDisplayString(catalogImport.metadata.publisher) + " · " + _toDisplayString(catalogImport.metadata.edition) + " · " + _toDisplayString(catalogImport.metadata.system) + " · " + _toDisplayString(catalogImport.metadata.jurisdiction), 1),
+                _createElementVNode("p", { class: "tax-fingerprint" }, "SHA-256 " + _toDisplayString(catalogImport.raw_sha256), 1),
+                (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(catalogImport.limits, (limit) => {
+                  return (_openBlock(), _createElementBlock("p", null, _toDisplayString(limit), 1))
+                }), 256)),
+                _createElementVNode("button", { onClick: $event => (downloadFile('tax-catalog-original',{import_id:catalogImport.id},'cadastro-'+catalogImport.id+(catalogImport.parser.includes('json')?'.json':'.csv'))) }, "Baixar arquivo recebido", 8, ["onClick"]),
+                _createElementVNode("form", {
+                  class: "grid",
+                  onSubmit: _withModifiers($event => (searchCatalogRecords(0)), ["prevent"])
+                }, [_createElementVNode("label", null, [_createTextVNode("Buscar código ou descrição no arquivo"), _withDirectives(_createElementVNode("input", { "onUpdate:modelValue": $event => ((catalogQuery) = $event) }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, catalogQuery]])]), _createElementVNode("button", { disabled: busy }, "Buscar no arquivo", 8, ["disabled"])], 40, ["onSubmit"]),
+                _createElementVNode("p", null, _toDisplayString(catalogImport.filtered_records) + " encontrados de " + _toDisplayString(catalogImport.total_records) + " · " + _toDisplayString(catalogSelected.length) + " selecionados", 1),
+                _createElementVNode("div", { class: "toolbar" }, [
+                  _createElementVNode("button", {
+                    onClick: selectCatalogPage,
+                    disabled: busy
+                  }, "Selecionar esta página", 8, ["onClick", "disabled"]),
+                  _createElementVNode("button", { onClick: $event => {catalogSelected=[];catalogPreview=null} }, "Limpar seleção", 8, ["onClick"]),
+                  _createElementVNode("button", {
+                    onClick: $event => (searchCatalogRecords(Math.max(0,catalogImport.offset-100))),
+                    disabled: busy||catalogImport.offset===0
+                  }, "Página anterior", 8, ["onClick", "disabled"]),
+                  _createElementVNode("button", {
+                    onClick: $event => (searchCatalogRecords(catalogImport.offset+100)),
+                    disabled: busy||catalogImport.offset+100>=catalogImport.filtered_records
+                  }, "Próxima página", 8, ["onClick", "disabled"])
+                ]),
+                _createElementVNode("div", { class: "table-scroll" }, [_createElementVNode("table", null, [_createElementVNode("thead", null, [_createElementVNode("tr", null, [
+                  _createElementVNode("th", null, "Selecionar"),
+                  _createElementVNode("th", null, "Código"),
+                  _createElementVNode("th", null, "Descrição"),
+                  _createElementVNode("th", null, "Vigência na fonte")
+                ])]), _createElementVNode("tbody", null, [(_openBlock(true), _createElementBlock(_Fragment, null, _renderList(catalogImport.records, (row) => {
+                  return (_openBlock(), _createElementBlock("tr", { key: row.code }, [
+                    _createElementVNode("td", null, [_withDirectives(_createElementVNode("input", {
+                      type: "checkbox",
+                      "aria-label": 'Selecionar código '+row.code,
+                      value: row.code,
+                      "onUpdate:modelValue": $event => ((catalogSelected) = $event),
+                      onChange: $event => (catalogPreview=null)
+                    }, null, 40, ["aria-label", "value", "onUpdate:modelValue", "onChange"]), [[_vModelCheckbox, catalogSelected]])]),
+                    _createElementVNode("td", null, _toDisplayString(row.code), 1),
+                    _createElementVNode("td", null, _toDisplayString(row.description), 1),
+                    _createElementVNode("td", null, _toDisplayString(row.valid_from) + " a " + _toDisplayString(row.valid_to||'fim não informado'), 1)
+                  ]))
+                }), 128))])])]),
+                _createElementVNode("label", null, [_createTextVNode("Aplicar a partir de"), _withDirectives(_createElementVNode("input", {
+                  type: "date",
+                  "onUpdate:modelValue": $event => ((catalogFrom) = $event),
+                  onChange: $event => (catalogPreview=null)
+                }, null, 40, ["onUpdate:modelValue", "onChange"]), [[_vModelText, catalogFrom]])]),
+                _createElementVNode("button", {
+                  onClick: previewCatalog,
+                  disabled: busy||!catalogSelected.length
+                }, "Conferir prévia dos códigos selecionados", 8, ["onClick", "disabled"]),
+                catalogPreview
+                  ? (_openBlock(), _createElementBlock("div", { key: 0 }, [
+                      (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(catalogPreview.snapshot.blockers, (blocker) => {
+                        return (_openBlock(), _createElementBlock("p", { class: "error" }, _toDisplayString(blocker), 1))
+                      }), 256)),
+                      _createElementVNode("p", null, "O início local será o maior entre a data declarada de aplicação e o início registrado no arquivo. A vigência original permanece na origem da versão. Códigos ausentes não serão inativados."),
+                      _createVNode(_component_data_table, {
+                        rows: catalogPreview.snapshot.changes.map(c=>({code:c.code,previous_version:c.expected_version,previous_state:c.previous?.state||'novo',proposed_state:c.state,previous_description:c.previous?.data.description||'',description:c.data.description,valid_from:c.data.valid_from,valid_to:c.data.valid_to})),
+                        columns: {code:'Código',previous_version:'Versão anterior',previous_state:'Estado anterior',proposed_state:'Estado proposto',previous_description:'Descrição anterior',description:'Descrição proposta',valid_from:'Início local',valid_to:'Fim informado'}
+                      }, null, 8, ["rows", "columns"]),
+                      _createElementVNode("label", null, [_createTextVNode("Referência da revisão do cadastro"), _withDirectives(_createElementVNode("input", { "onUpdate:modelValue": $event => ((catalogReviewReference) = $event) }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, catalogReviewReference]])]),
+                      _createElementVNode("label", null, [_createTextVNode("Motivo da aplicação do cadastro"), _withDirectives(_createElementVNode("input", { "onUpdate:modelValue": $event => ((catalogApplyReason) = $event) }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, catalogApplyReason]])]),
+                      _createElementVNode("label", null, [_withDirectives(_createElementVNode("input", {
+                        type: "checkbox",
+                        "onUpdate:modelValue": $event => ((catalogConfirmed) = $event)
+                      }, null, 8, ["onUpdate:modelValue"]), [[_vModelCheckbox, catalogConfirmed]]), _createTextVNode(" Conferi conteúdo, origem declarada, vigências, códigos selecionados e jurisdição")]),
+                      (catalogPreview.snapshot.legacy_count)
+                        ? (_openBlock(), _createElementBlock("label", { key: 0 }, [_withDirectives(_createElementVNode("input", {
+                            type: "checkbox",
+                            "onUpdate:modelValue": $event => ((catalogLegacyAcknowledged) = $event)
+                          }, null, 8, ["onUpdate:modelValue"]), [[_vModelCheckbox, catalogLegacyAcknowledged]]), _createTextVNode(" Conferi os códigos legados selecionados sem escopo vinculado; o vínculo novo não certifica esses registros anteriores")]))
+                        : _createCommentVNode("", true),
+                      _createElementVNode("button", {
+                        onClick: applyCatalog,
+                        disabled: busy||!catalogConfirmed||catalogPreview.snapshot.blockers.length
+                      }, "Ativar códigos conferidos nesta empresa", 8, ["onClick", "disabled"])
+                    ]))
+                  : _createCommentVNode("", true),
+                (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(catalogApplications, (row) => {
+                  return (_openBlock(), _createElementBlock("article", {
+                    key: row.id,
+                    class: "inset"
+                  }, [_createElementVNode("b", null, "Aplicação #" + _toDisplayString(row.id) + " · " + _toDisplayString(row.version_count) + " versões · " + _toDisplayString(row.created_at), 1), _createElementVNode("p", null, _toDisplayString(row.review_reference), 1), _createElementVNode("button", { onClick: $event => (downloadCatalogManifest(row)) }, "Baixar manifesto da aplicação", 8, ["onClick"])]))
+                }), 128))
+              ]))
+            : _createCommentVNode("", true)
+        ]),
         _createElementVNode("details", { open: "" }, [
           _createElementVNode("summary", null, "Regras por empresa"),
           _createElementVNode("div", { class: "toolbar" }, [_createElementVNode("button", { onClick: newTaxRule }, "Nova regra", 8, ["onClick"]), (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(taxConfig.structural_models, (model) => {
