@@ -1,6 +1,6 @@
 """Rotas contábeis compartilhadas pela aplicação local e pelo portal autenticado."""
 
-ACCOUNTING_GET = {'manual-journals','accounting-books','accounting-book-exports','accounting-book-file'}
+ACCOUNTING_GET = {'manual-journals','accounting-books','accounting-book-exports','accounting-book-file','accounting-report'}
 ACCOUNTING_WRITE = {'manual-journals','manual-reversal'}
 ACCOUNTING_REVIEW = {'manual-review','manual-close','accounting-book-exports'}
 ACCOUNTING_ROUTES = ACCOUNTING_GET | ACCOUNTING_WRITE | ACCOUNTING_REVIEW
@@ -11,6 +11,9 @@ def dispatch_accounting(store, method, route, data):
     from .accounting_store import identifier
     company = identifier(_required(data,'company_id'))
     if method == 'GET':
+        if route == 'accounting-report':
+            from .work_reports import report_from_request
+            return report_from_request(store, data)
         if route == 'manual-journals':
             return store.list_manual_journals(company,data.get('period_id') or None,data.get('journal_id') or None)
         if route == 'accounting-books':
