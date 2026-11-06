@@ -109,12 +109,13 @@ class AccountingAssessmentSchema15Tests(unittest.TestCase):
         calculations = [tuple(r) for r in self.s.db.execute('SELECT id,snapshot,snapshot_hash FROM tax_calculations ORDER BY id')]
         assessments = [tuple(r) for r in self.s.db.execute('SELECT id,snapshot,snapshot_hash FROM tax_assessment_versions ORDER BY id')]
         with self.s.db:
+            self.s.db.execute('DROP TABLE tax_calculation_batches')
             self.s.db.execute('DROP TABLE tax_assessment_adjustment_versions')
             self.s.db.execute('UPDATE schema_version SET version=14')
         self.s.close()
         self.s = AccountingStore(self.path,actor='operador-sintetico')
         self.addCleanup(self.s.close)
-        self.assertEqual(self.s.db.execute('SELECT version FROM schema_version').fetchone()[0],15)
+        self.assertEqual(self.s.db.execute('SELECT version FROM schema_version').fetchone()[0],16)
         self.assertEqual(self.report(),before)
         self.assertEqual([tuple(r) for r in self.s.db.execute('SELECT id,sha256,original FROM files ORDER BY id')],originals)
         self.assertEqual([tuple(r) for r in self.s.db.execute('SELECT id,snapshot,snapshot_hash FROM tax_calculations ORDER BY id')],calculations)

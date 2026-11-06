@@ -1,5 +1,7 @@
 # Validação do incremento contábil — 06/11/2026
 
+Validação posterior de esquema 16: consulte `frente-contabil-integracao-esquema16.md` e o relatório final por SHA. Os resultados abaixo são históricos.
+
 Estado posterior do esquema 15: consulte `frente-contabil-integracao-esquema15.md` e o relatório final da execução, preservando os resultados abaixo como históricos.
 
 Validação posterior do esquema 14: consulte `frente-contabil-integracao-esquema14.md`; este arquivo preserva o registro inicial, não o resultado da combinação com o PR #11.

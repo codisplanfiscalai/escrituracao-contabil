@@ -1,5 +1,7 @@
 # Integração contábil com ajustes de apuração e esquema 15
 
+Registro histórico do esquema 15 e PR #15. A composição com cálculo em lote e esquema 16 está em `frente-contabil-integracao-esquema16.md`; não atribuir os resultados abaixo a versões posteriores.
+
 ## Composição e isolamento
 
 Base fiscal: HEAD **`3673c5a1212c29aff0c600e11bfd329f5d96022a`** do [PR #14](https://github.com/codisplanfiscalai/escrituracao-contabil/pull/14), branch `feat/ajustes-saldos-apuracao`. O incremento contábil do PR #12 (`bd45a656497cd7537b2931311386c31eb7a11742`) foi reaplicado em `/workspace/escrituracao-contabil-compat15`, branch `feat/contabil-compat-esquema15`.
