@@ -133,6 +133,6 @@ class CatalogTests(unittest.TestCase):
                     s.db.execute('DROP TABLE import_items');s.db.execute('DROP TABLE import_batches')
                     s.db.execute('UPDATE schema_version SET version=6')
             with AccountingStore(path) as s:
-                self.assertEqual(s.db.execute('SELECT version FROM schema_version').fetchone()[0],17)
+                self.assertEqual(s.db.execute('SELECT version FROM schema_version').fetchone()[0],18)
                 self.assertEqual(bytes(s._owned('files',company,file['id'])['original']),fake_xml())
                 self.assertEqual(s.list_import_batches(company),[])

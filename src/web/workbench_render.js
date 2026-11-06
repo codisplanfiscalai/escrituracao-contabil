@@ -213,6 +213,133 @@ var _Vue=Vue; var WorkRender=function render(_ctx, _cache) {
       ], 512), [[_vShow, page==='chart']]),
       _withDirectives(_createElementVNode("section", { class: "card" }, [
         _createElementVNode("h1", null, "Recepção e caixa de entrada"),
+        _createElementVNode("details", { class: "inset nfe-events-panel" }, [
+          _createElementVNode("summary", null, "Eventos de cancelamento e Carta de Correção"),
+          _createElementVNode("p", null, "Receba XML procEventoNFe 1.00. Pedido e retorno são observações do arquivo; assinatura, autorização e efeito fiscal exigem conferência externa. Nenhum evento substitui dados, cancela títulos ou estorna lançamentos automaticamente."),
+          _createElementVNode("form", {
+            onSubmit: _withModifiers($event => (loadNFeEvents(0)), ["prevent"]),
+            class: "toolbar"
+          }, [_createElementVNode("label", null, [_createTextVNode("Buscar evento pela chave"), _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((eventQuery) = $event),
+            maxlength: "100"
+          }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, eventQuery]])]), _createElementVNode("button", { disabled: busy||!company }, "Consultar eventos recebidos", 8, ["disabled"])], 40, ["onSubmit"]),
+          _createElementVNode("p", null, _toDisplayString(eventQueue.total) + " identidades de eventos; cópias idênticas ficam agrupadas, com originais preservados.", 1),
+          _createElementVNode("div", { class: "table-scroll" }, [_createElementVNode("table", null, [_createElementVNode("thead", null, [_createElementVNode("tr", null, [
+            _createElementVNode("th", null, "Chave"),
+            _createElementVNode("th", null, "Evento / sequência"),
+            _createElementVNode("th", null, "Ambiente / retorno informado"),
+            _createElementVNode("th", null, "Conferência")
+          ])]), _createElementVNode("tbody", null, [(_openBlock(true), _createElementBlock(_Fragment, null, _renderList(eventQueue.items, (event) => {
+            return (_openBlock(), _createElementBlock("tr", { key: event.input_id }, [
+              _createElementVNode("td", null, [_createTextVNode(_toDisplayString(event.key), 1), _createElementVNode("small", null, _toDisplayString(event.copies) + " origem(ns) · documento " + _toDisplayString(event.document_id||'ainda não organizado'), 1)]),
+              _createElementVNode("td", null, _toDisplayString(event.event_type) + " / " + _toDisplayString(event.sequence), 1),
+              _createElementVNode("td", null, _toDisplayString(event.environment==='1'?'Produção informada':'Homologação informada') + " · cStat " + _toDisplayString(event.return_code), 1),
+              _createElementVNode("td", null, [_createTextVNode(_toDisplayString(event.decision) + " · " + _toDisplayString(event.blocking?'pendência para nova escrituração':'conferido operacionalmente'), 1), _createElementVNode("button", {
+                type: "button",
+                onClick: $event => (openNFeEvent(event)),
+                "aria-label": 'Conferir evento '+event.input_id,
+                disabled: busy
+              }, "Conferir evento", 8, ["onClick", "aria-label", "disabled"])])
+            ]))
+          }), 128))])])]),
+          _createElementVNode("button", {
+            type: "button",
+            onClick: $event => (loadNFeEvents(eventQueue.offset-20)),
+            disabled: busy||eventQueue.offset===0
+          }, "Eventos anteriores", 8, ["onClick", "disabled"]),
+          _createElementVNode("button", {
+            type: "button",
+            onClick: $event => (loadNFeEvents(eventQueue.offset+20)),
+            disabled: busy||eventQueue.offset+20>=eventQueue.total
+          }, "Próximos eventos", 8, ["onClick", "disabled"]),
+          eventPreview
+            ? (_openBlock(), _createElementBlock("article", {
+                key: 0,
+                class: "inset event-review"
+              }, [
+                _createElementVNode("h2", null, "Conferência do evento " + _toDisplayString(eventPreview.snapshot.event.event_type) + " / " + _toDisplayString(eventPreview.snapshot.event.sequence), 1),
+                _createElementVNode("p", null, "Chave " + _toDisplayString(eventPreview.snapshot.event.key) + " · ambiente " + _toDisplayString(eventPreview.snapshot.event.environment) + " · retorno informado " + _toDisplayString(eventPreview.snapshot.event.return_code) + ": " + _toDisplayString(eventPreview.snapshot.event.return_reason), 1),
+                _createElementVNode("p", null, "Autorização não verificada. Protocolo de evento informado: " + _toDisplayString(eventPreview.snapshot.event.event_protocol||'ausente') + ". Estado operacional: " + _toDisplayString(eventPreview.snapshot.decision) + ".", 1),
+                _createElementVNode("p", { class: "event-text" }, _toDisplayString(eventPreview.snapshot.event.text), 1),
+                _createElementVNode("p", null, "As sequências de CC-e são preservadas e conferidas individualmente; não se escolhe ou aplica automaticamente o texto mais recente."),
+                (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(eventPreview.snapshot.blockers, (blocker) => {
+                  return (_openBlock(), _createElementBlock("p", { class: "error" }, _toDisplayString(blocker), 1))
+                }), 256)),
+                (eventPreview.snapshot.document)
+                  ? (_openBlock(), _createElementBlock("p", { key: 0 }, "Documento #" + _toDisplayString(eventPreview.snapshot.document.id) + " · " + _toDisplayString(eventPreview.snapshot.document.competence) + " · operação " + _toDisplayString(eventPreview.snapshot.document.operation?.state||'ainda não criada') + ". A anotação pode ser registrada com o período fechado; alterações dos movimentos continuam bloqueadas.", 1))
+                  : _createCommentVNode("", true),
+                _createElementVNode("details", null, [_createElementVNode("summary", null, "Campos e caminhos observados do evento"), _createVNode(_component_data_table, {
+                  rows: Object.values(eventPreview.snapshot.event.fields),
+                  columns: {path:'Caminho XML',raw:'Texto observado',value:'Texto normalizado'}
+                }, null, 8, ["rows", "columns"])]),
+                _createElementVNode("p", null, "Origens preservadas:"),
+                _createElementVNode("ul", null, [(_openBlock(true), _createElementBlock(_Fragment, null, _renderList(eventPreview.snapshot.observations, (origin) => {
+                  return (_openBlock(), _createElementBlock("li", { key: origin.input_id }, [_createTextVNode(_toDisplayString(origin.filename) + " · SHA-256 " + _toDisplayString(origin.original_hash) + " · " + _toDisplayString(origin.source_state) + " ", 1), _createElementVNode("button", {
+                    type: "button",
+                    onClick: $event => (downloadFile('source-original',{input_id:origin.input_id},origin.filename)),
+                    disabled: busy
+                  }, "Baixar original do evento " + _toDisplayString(origin.input_id), 9, ["onClick", "disabled"])]))
+                }), 128))]),
+                _createElementVNode("form", { onSubmit: _withModifiers(reviewNFeEvent, ["prevent"]) }, [
+                  _createElementVNode("label", null, [_createTextVNode("Decisão sobre o evento"), _withDirectives(_createElementVNode("select", {
+                    "aria-label": "Decisão sobre o evento",
+                    "onUpdate:modelValue": $event => ((eventDecision) = $event),
+                    onChange: $event => (eventConfirmed=false),
+                    required: ""
+                  }, [
+                    _createElementVNode("option", { value: "" }, "Selecione após conferir"),
+                    _createElementVNode("option", { value: "pendente" }, "Manter pendente para análise"),
+                    _createElementVNode("option", { value: "suspender" }, "Suspender nova escrituração do documento"),
+                    _createElementVNode("option", {
+                      value: "manter_fluxo",
+                      disabled: eventPreview.snapshot.blockers.length>0
+                    }, "Conferido: manter fluxo sem alterar dados", 8, ["disabled"])
+                  ], 40, ["onUpdate:modelValue", "onChange"]), [[_vModelSelect, eventDecision]])]),
+                  _createElementVNode("label", null, [_createTextVNode("Motivo da decisão do evento"), _withDirectives(_createElementVNode("input", {
+                    "onUpdate:modelValue": $event => ((eventReason) = $event),
+                    maxlength: "2000",
+                    required: ""
+                  }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, eventReason]])]),
+                  _createElementVNode("label", null, [_createTextVNode("Referência da conferência externa do evento"), _withDirectives(_createElementVNode("input", {
+                    "onUpdate:modelValue": $event => ((eventReference) = $event),
+                    maxlength: "1000",
+                    required: ""
+                  }, null, 8, ["onUpdate:modelValue"]), [[_vModelText, eventReference]])]),
+                  _createElementVNode("label", null, [_withDirectives(_createElementVNode("input", {
+                    type: "checkbox",
+                    "onUpdate:modelValue": $event => ((eventConfirmed) = $event)
+                  }, null, 8, ["onUpdate:modelValue"]), [[_vModelCheckbox, eventConfirmed]]), _createTextVNode(" Conferi origens, retorno, ambiente e consequências; esta anotação não aplica efeito fiscal")]),
+                  _createElementVNode("button", { disabled: busy||!eventConfirmed||!eventDecision }, "Registrar decisão do evento", 8, ["disabled"])
+                ], 40, ["onSubmit"]),
+                eventReceipt
+                  ? (_openBlock(), _createElementBlock("p", {
+                      key: 1,
+                      role: "status"
+                    }, "Decisão #" + _toDisplayString(eventReceipt.id) + " preservada, versão " + _toDisplayString(eventReceipt.version) + ". Nenhum lançamento foi efetivado por esta ação.", 1))
+                  : _createCommentVNode("", true),
+                (eventHistory.length)
+                  ? (_openBlock(), _createElementBlock("details", { key: 2 }, [_createElementVNode("summary", null, "Histórico das decisões do evento"), (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(eventHistory, (review) => {
+                      return (_openBlock(), _createElementBlock("article", { key: review.id }, [_createElementVNode("b", null, "Versão " + _toDisplayString(review.version) + " · " + _toDisplayString(review.snapshot.decision), 1), _createElementVNode("p", null, _toDisplayString(review.snapshot.actor) + " · " + _toDisplayString(review.snapshot.created_at) + " · " + _toDisplayString(review.snapshot.reason) + " · " + _toDisplayString(review.snapshot.review_reference), 1), _createElementVNode("small", null, _toDisplayString(review.snapshot_hash), 1)]))
+                    }), 128))]))
+                  : _createCommentVNode("", true),
+                (eventPreview.snapshot.document?.operation)
+                  ? (_openBlock(), _createElementBlock("button", {
+                      key: 3,
+                      type: "button",
+                      onClick: loadEventPostingProof,
+                      disabled: busy
+                    }, "Consultar evidência de eventos na escrituração", 8, ["onClick", "disabled"]))
+                  : _createCommentVNode("", true),
+                eventPostingProof
+                  ? (_openBlock(), _createElementBlock("details", { key: 4 }, [_createElementVNode("summary", null, "Evidência histórica da escrituração"), _createElementVNode("pre", null, _toDisplayString(JSON.stringify(eventPostingProof,null,2)), 1)]))
+                  : _createCommentVNode("", true),
+                _createElementVNode("button", {
+                  type: "button",
+                  onClick: downloadNFeEvent
+                }, "Baixar conferência e histórico do evento", 8, ["onClick"])
+              ]))
+            : _createCommentVNode("", true)
+        ]),
         _createElementVNode("form", {
           onSubmit: _withModifiers(searchSources, ["prevent"]),
           class: "toolbar source-search"
@@ -269,30 +396,40 @@ var _Vue=Vue; var WorkRender=function render(_ctx, _cache) {
             }, "Original", 8, ["href", "onClick"])]),
             _createElementVNode("td", null, [(s.evidence.number)
               ? (_openBlock(), _createElementBlock(_Fragment, { key: 0 }, [_createTextVNode(_toDisplayString(s.evidence.model) + " / " + _toDisplayString(s.evidence.number) + " · " + _toDisplayString(s.evidence.total), 1), _createElementVNode("small", null, "Emissão " + _toDisplayString(s.evidence.issued_date) + " · competência sugerida " + _toDisplayString(s.evidence.suggested_competence), 1), _createElementVNode("small", null, "Emitente " + _toDisplayString(s.evidence.issuer) + " · destinatário " + _toDisplayString(s.evidence.buyer||'não informado'), 1)], 64))
-              : (_openBlock(), _createElementBlock("span", { key: 1 }, _toDisplayString(s.evidence.records?(s.evidence.records+' registros estruturais'):'Original preservado'), 1))]),
-            _createElementVNode("td", null, [_createTextVNode(_toDisplayString(s.evidence.state), 1), _createElementVNode("small", null, _toDisplayString((s.evidence.issues||[]).join('; ')), 1)]),
+              : (s.evidence.nfe_event)
+                ? (_openBlock(), _createElementBlock(_Fragment, { key: 1 }, [_createTextVNode("Evento " + _toDisplayString(s.evidence.nfe_event.event_type) + " / " + _toDisplayString(s.evidence.nfe_event.sequence), 1), _createElementVNode("small", null, _toDisplayString(s.evidence.nfe_event.key), 1), _createElementVNode("small", null, "cStat " + _toDisplayString(s.evidence.nfe_event.return_code) + " informado; autorização não verificada", 1)], 64))
+                : (_openBlock(), _createElementBlock("span", { key: 2 }, _toDisplayString(s.evidence.records?(s.evidence.records+' registros estruturais'):'Original preservado'), 1))]),
+            _createElementVNode("td", null, [_createTextVNode(_toDisplayString(s.evidence.nfe_event?'Evento identificado; decisão na conferência':s.evidence.state), 1), _createElementVNode("small", null, _toDisplayString((s.evidence.issues||[]).join('; ')), 1)]),
             _createElementVNode("td", null, [
+              (s.evidence.nfe_event)
+                ? (_openBlock(), _createElementBlock("button", {
+                    key: 0,
+                    onClick: $event => (openNFeEvent(s)),
+                    disabled: busy,
+                    "aria-label": 'Conferir evento '+s.input_id
+                  }, "Conferir evento", 8, ["onClick", "disabled", "aria-label"]))
+                : _createCommentVNode("", true),
               _createElementVNode("button", {
                 onClick: $event => (showSourceHistory(s)),
                 disabled: busy
               }, "Decisões e versões", 8, ["onClick", "disabled"]),
-              ((!s.file_id || s.evidence.state==='pendente') && !['pacote','descartado'].includes(s.evidence.state))
+              (!s.evidence.nfe_event && (!s.file_id || s.evidence.state==='pendente') && !['pacote','descartado'].includes(s.evidence.state))
                 ? (_openBlock(), _createElementBlock("button", {
-                    key: 0,
+                    key: 1,
                     onClick: $event => (organize(s)),
                     disabled: busy||!cycle
                   }, "Organizar em " + _toDisplayString(cycle?.competence||'competência'), 9, ["onClick", "disabled"]))
                 : _createCommentVNode("", true),
               (!s.file_id && s.evidence.state!=='descartado')
                 ? (_openBlock(), _createElementBlock("button", {
-                    key: 1,
+                    key: 2,
                     onClick: $event => (discard(s)),
                     disabled: busy
                   }, "Retirar da fila", 8, ["onClick", "disabled"]))
                 : _createCommentVNode("", true),
               (s.file_id)
                 ? (_openBlock(), _createElementBlock("button", {
-                    key: 2,
+                    key: 3,
                     onClick: $event => (showImpact(s)),
                     disabled: busy
                   }, "Dependências / retirada", 8, ["onClick", "disabled"]))

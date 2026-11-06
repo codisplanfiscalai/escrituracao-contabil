@@ -236,7 +236,7 @@ class TaxCatalogImportTests(unittest.TestCase):
         for table in ('tax_catalog_import_applications','tax_catalog_scopes','tax_catalog_imports'):self.s.db.execute('DROP TABLE '+table)
         self.s.db.execute('UPDATE schema_version SET version=13');self.s.db.commit()
         with AccountingStore(self.path) as reopened:
-            self.assertEqual(reopened.db.execute('SELECT version FROM schema_version').fetchone()[0],17)
+            self.assertEqual(reopened.db.execute('SELECT version FROM schema_version').fetchone()[0],18)
             self.assertEqual(reopened.tax_catalog(self.c),before)
             self.assertEqual(reopened.module_period_state(self.c,'2026-09','fiscal')['state'],'encerrada')
             self.assertEqual(reopened.catalog_imports(self.c),[])

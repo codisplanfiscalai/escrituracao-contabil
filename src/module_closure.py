@@ -68,6 +68,8 @@ class ModuleClosureMixin:
             if module in operation_modules(json.loads(row['data']).get('payload') or {}):
                 forms.append((row['id'], row['version']))
         blockers = []
+        if module=='fiscal' and overview['fiscal_events']['blocking']:
+            blockers.append('Confira os eventos de NF-e/NFC-e pendentes; nenhum efeito é aplicado automaticamente')
         if any(o['state'] not in {'escriturado', 'dispensado'} for o in operations):
             blockers.append('Resolva ou dispense as operações pendentes deste módulo')
         if forms:
@@ -85,6 +87,7 @@ class ModuleClosureMixin:
                     'operations': [(o['operation_id'], o['version'], o['state'], o['snapshot_hash']) for o in operations],
                     'documents': [(d['id'], d['state'], d['source']['source_hash']) for d in documents], 'forms': forms,
                     'tax_assessment':assessment}
+        if module=='fiscal':snapshot['fiscal_events']=overview['fiscal_events']
         return {'state': state, 'snapshot_hash': digest(snapshot), 'snapshot': snapshot, 'blockers': blockers,
                 'required_checks': CHECKS[module], 'global_state': cycle['state']}
 

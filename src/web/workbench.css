@@ -3,3 +3,7 @@
 .resource-tabs,.source-tabs{display:flex;gap:6px;overflow:auto;margin:12px 0;padding-bottom:4px}.resource-tabs>div,.source-tabs>div{display:flex;flex-shrink:0;border:1px solid #b8cbd0;border-radius:6px;overflow:hidden}.resource-tabs button,.source-tabs button{border-radius:0;background:#eef4f5;color:#28535e}.resource-tabs .active button,.source-tabs .active button,.book-tabs .active{background:#064d5d;color:white}.book-tabs button{background:#eef4f5;color:#28535e}.book-tabs [aria-selected=true]{background:#064d5d;color:white}
 
 .tax-fingerprint{overflow-wrap:anywhere}.grid>label{min-width:0}.grid input,.grid select{min-width:0}
+.nfe-events-panel{min-width:0;overflow-wrap:anywhere}
+.nfe-events-panel .event-review form{display:grid;gap:.75rem;min-width:0}
+.nfe-events-panel select{max-width:100%;min-width:0}
+.nfe-events-panel>.table-scroll table{min-width:680px}

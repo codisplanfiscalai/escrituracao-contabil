@@ -39,6 +39,13 @@ def identify_source(content, kind):
     }
     try:
         if kind == "XML":
+            from .nfe_events import is_event_xml,parse_nfe_event
+            if is_event_xml(content):
+                event=parse_nfe_event(content)
+                result.update(profile='source-evidence/event-1',state='evento_pendente',key=event['key'],
+                              issued_date=event['occurred_at'][:10],author=event['author'],nfe_event=event,
+                              issues=['Evento recebido exige conferência; nenhum efeito fiscal aplicado']+event['issues'])
+                return result
             doc = parse_nfe(content)
             result.update(
                 key=doc["key"],
@@ -264,6 +271,8 @@ class SourceEvidenceMixin:
                     evidence,
                     "Recebimento e identificação da origem.",
                 )
+                if evidence.get('nfe_event'):
+                    self._index_nfe_event(company_id,ident,evidence['nfe_event'])
                 return ident
 
             for item in inputs:
@@ -398,6 +407,8 @@ class SourceEvidenceMixin:
                 raise ValueError(
                     "Fonte retirada: não restaurar silenciosamente uma decisão anterior."
                 )
+            if source['evidence'].get('nfe_event'):
+                raise ValueError('Evento não é documento de escrituração; use a conferência de eventos na Recepção')
             if source["kind"] not in {"XML", "SPED"}:
                 raise ValueError(
                     "Organize os arquivos documentais, não o pacote ou formato desconhecido."

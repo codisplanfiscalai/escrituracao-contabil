@@ -3,6 +3,7 @@
 from .accounting_store import identifier
 
 WORK_GET = {
+    "nfe-events", "nfe-event-preview", "nfe-event-history", "nfe-document-events", "nfe-event-posting-proof",
     "work-module-state",
     "source-search",
     "work-archived-tabs",
@@ -37,6 +38,7 @@ WORK_WRITE = {
     "work-resume",
 }
 WORK_REVIEW = {
+    "nfe-event-review",
     "work-module-state",
     "work-policies",
     "work-review",
@@ -80,6 +82,14 @@ def dispatch_work(store, method, route, data):
 
     company = identifier(req("company_id"))
     if method == "GET":
+        if route == 'nfe-events':
+            try:offset=int(data.get('offset',0))
+            except (ValueError,TypeError):raise ValueError('Deslocamento inválido') from None
+            return store.nfe_event_queue(company,data.get('query',''),offset)
+        if route == 'nfe-event-preview':return store.nfe_event_preview(company,req('input_id'))
+        if route == 'nfe-event-history':return store.nfe_event_history(company,req('input_id'))
+        if route == 'nfe-document-events':return store.nfe_document_events(company,req('document_id'))
+        if route == 'nfe-event-posting-proof':return store.nfe_event_posting_proof(company,req('operation_id'))
         if route == "work-module-state":
             return [store.module_period_overview(company, req("cycle_id"), module) for module in ("fiscal", "contabil")]
         if route == "source-search":
@@ -151,6 +161,8 @@ def dispatch_work(store, method, route, data):
                 )
             ]
     if method == "POST":
+        if route == 'nfe-event-review':
+            return store.review_nfe_event(company,req('input_id'),req('snapshot_hash'),req('decision'),req('reason'),req('review_reference'),req('request_key'),data.get('confirmed'))
         if route == "work-module-state":
             return store.transition_module_period(company, req("cycle_id"), req("module"), req("target"), req("snapshot_hash"), req("reason"), data.get("checks"), data.get("evidence_reference", ""))
         if route == "source-remove":

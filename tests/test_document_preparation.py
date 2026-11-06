@@ -249,7 +249,7 @@ class DocumentPreparationTests(unittest.TestCase):
         fiscal=result['operations'][0]['payload']['fiscal']
         self.assertEqual((fiscal['operation'],fiscal['model'],fiscal['buyer']),('saida','65',''))
 
-    def test_genuine_migration_16_to_17_preserves_originals_calculation_batches_and_locks(self):
+    def test_genuine_migration_16_to_current_preserves_originals_calculation_batches_and_locks(self):
         from src.module_closure import CHECKS
         doc=self.document()['document_id']
         payload=self.s.prepare_work_operation(self.c,self.cycle['id'],doc,policy_id=self.policy['id'])
@@ -265,7 +265,7 @@ class DocumentPreparationTests(unittest.TestCase):
         revisions=[tuple(r) for r in self.s.db.execute('SELECT * FROM work_revisions')]
         self.s.db.execute('DROP TABLE document_preparation_batches');self.s.db.execute('UPDATE schema_version SET version=16');self.s.db.commit()
         with AccountingStore(self.path) as reopened:
-            self.assertEqual(reopened.db.execute('SELECT version FROM schema_version').fetchone()[0],17)
+            self.assertEqual(reopened.db.execute('SELECT version FROM schema_version').fetchone()[0],18)
             self.assertEqual([tuple(r) for r in reopened.db.execute('SELECT id,original,sha256 FROM files')],before)
             self.assertEqual([tuple(r) for r in reopened.db.execute('SELECT * FROM work_revisions')],revisions)
             self.assertEqual(reopened.document_preparations(self.c,self.cycle['id']),[])
