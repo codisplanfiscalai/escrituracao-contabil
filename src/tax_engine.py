@@ -300,12 +300,14 @@ class TaxEngineMixin:
             raise ValueError('Memória de cálculo alterada')
         return result
 
-    def apply_operation_tax(self, company_id, operation_id, expected_hash, request_key, reason):
+    def apply_operation_tax(self, company_id, operation_id, expected_hash, request_key, reason, *, _in_transaction=False):
         from .persistence import _text
         reason, request_key = _text(reason,'Motivo do cálculo',2000), _text(request_key,'Tentativa',80)
         request_hash = digest([identifier(operation_id),expected_hash,reason])
-        with self.db:
-            self.db.execute('BEGIN IMMEDIATE')
+        if _in_transaction and not self.db.in_transaction:
+            raise ValueError('Aplicação tributária interna exige transação ativa')
+        with self._import_transaction(_in_transaction):
+            if not _in_transaction:self.db.execute('BEGIN IMMEDIATE')
             previous = self.db.execute('SELECT id,request_hash FROM tax_calculations WHERE company_id=? AND request_key=?',(company_id,request_key)).fetchone()
             if previous:
                 if previous['request_hash'] != request_hash:

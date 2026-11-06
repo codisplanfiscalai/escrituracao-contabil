@@ -2,8 +2,9 @@
 from .accounting_store import identifier
 
 TAX_GET = {'tax-config','tax-preview','tax-assessment-preview','tax-assessments','tax-assessment-adjustments','tax-balance-sources','tax-catalog-imports','tax-catalog-import','tax-catalog-original','tax-catalog-applications','tax-catalog-application','tax-catalog-codes','tax-code-history'}
-TAX_WRITE = {'tax-calculate'}
+TAX_WRITE = {'tax-calculate','tax-batch-preview','tax-batch-apply'}
 TAX_REVIEW = {'tax-rules','tax-codes','tax-templates','tax-template-copy','tax-assessments','tax-assessment-review','tax-assessment-adjustment-preview','tax-assessment-adjustment-apply','tax-assessment-adjustment-cancel','tax-catalog-imports','tax-catalog-preview','tax-catalog-apply'}
+TAX_GET |= {'tax-batches','tax-batch'}
 TAX_ROUTES = TAX_GET | TAX_WRITE | TAX_REVIEW
 
 
@@ -12,6 +13,10 @@ def dispatch_tax(store, method, route, data):
     req = lambda key: _required(data,key)
     company = identifier(req('company_id'))
     if method=='GET':
+        if route=='tax-batches':
+            return store.tax_batches(company,req('cycle_id'),data.get('offset',0))
+        if route=='tax-batch':
+            return store.tax_batch_detail(company,req('batch_id'))
         if route=='tax-config':
             return store.tax_configuration(company)
         if route=='tax-catalog-imports':
@@ -38,6 +43,10 @@ def dispatch_tax(store, method, route, data):
         if route=='tax-balance-sources':
             return store.tax_balance_sources(company,req('cycle_id'))
     if method=='POST':
+        if route=='tax-batch-preview':
+            return store.preview_tax_batch(company,req('cycle_id'),req('operation_ids'))
+        if route=='tax-batch-apply':
+            return store.apply_tax_batch(company,req('cycle_id'),req('operation_ids'),req('snapshot_hash'),req('request_key'),req('reason'),data.get('confirmed'))
         if route=='tax-assessment-adjustment-preview':
             return store.preview_assessment_adjustment(company,req('cycle_id'),req('spec'))
         if route=='tax-assessment-adjustment-apply':

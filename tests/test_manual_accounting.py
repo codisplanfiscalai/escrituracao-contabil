@@ -212,7 +212,7 @@ class ManualAccountingTests(unittest.TestCase):
             with self.assertRaises(sqlite3.Error):AccountingStore(self.path)
         self.assertEqual(self.s.db.execute('SELECT version FROM schema_version').fetchone()[0],6)
         with AccountingStore(self.path) as reopened:
-            self.assertEqual(reopened.db.execute('SELECT version FROM schema_version').fetchone()[0],15)
+            self.assertEqual(reopened.db.execute('SELECT version FROM schema_version').fetchone()[0],16)
             self.assertEqual(reopened.list_manual_journals(self.c)[0],first)
 
 

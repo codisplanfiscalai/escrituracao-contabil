@@ -1,5 +1,7 @@
 # Decisões e pendências
 
+Registro histórico do escopo inicial de integração. Para o estado atual da aplicação integrada, cobertura dos PRs e plano restante, consulte [Estado da estrutura fiscal](estado-estrutura-fiscal.md).
+
 ## Decisões registradas
 
 - **D-001 — Repositório isolado:** projeto separado dos demais no repositório privado escolhido pelo usuário; publicar somente estrutura sintética.

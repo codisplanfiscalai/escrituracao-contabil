@@ -1,5 +1,7 @@
 # Handoff — Escritura, incremento fiscal de 04/11/2026
 
+Handoff histórico da etapa de 04/11. O levantamento atualizado da estrutura e das dependências está em [Estado da estrutura fiscal](estado-estrutura-fiscal.md).
+
 ## Identificação e objetivo
 
 - Repositório: https://github.com/codisplanfiscalai/escrituracao-contabil
