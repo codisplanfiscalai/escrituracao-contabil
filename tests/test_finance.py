@@ -197,7 +197,7 @@ class FinanceTests(unittest.TestCase):
         with AccountingStore(self.path) as upgraded:
             self.assertEqual(
                 upgraded.db.execute("SELECT version FROM schema_version").fetchone()[0],
-                15,
+                16,
             )
             self.assertEqual(upgraded.list_periods(self.c)[0]["id"], self.p)
             self.assertEqual(upgraded.list_finance_titles(self.c), [])

@@ -1523,6 +1523,140 @@ var _Vue=Vue; var WorkRender=function render(_ctx, _cache) {
           ], 40, ["onSubmit"])
         ]),
         _createElementVNode("details", { class: "inset" }, [
+          _createElementVNode("summary", null, "Tributação em lote com prévia e conferência"),
+          _createElementVNode("p", null, "Selecione até 100 operações salvas desta competência. A aplicação só ocorre quando todas puderem ser calculadas pelas regras aprovadas. O lote cria rascunhos; conferência e escrituração continuam por operação."),
+          _createElementVNode("label", null, [_createTextVNode("Buscar operação para o lote"), _withDirectives(_createElementVNode("input", {
+            "onUpdate:modelValue": $event => ((taxBatchQuery) = $event),
+            disabled: busy,
+            placeholder: "Número interno ou referência"
+          }, null, 8, ["onUpdate:modelValue", "disabled"]), [[_vModelText, taxBatchQuery]])]),
+          _createElementVNode("label", null, [_withDirectives(_createElementVNode("input", {
+            type: "checkbox",
+            "onUpdate:modelValue": $event => ((taxBatchOnlyPending) = $event),
+            disabled: busy
+          }, null, 8, ["onUpdate:modelValue", "disabled"]), [[_vModelCheckbox, taxBatchOnlyPending]]), _createTextVNode(" Exibir somente operações sem memória")]),
+          _createElementVNode("p", null, "Até 100 fichas visíveis; refine a busca. Selecionadas: " + _toDisplayString(taxBatchSelected.length) + ". A prévia considera também seleções fora do filtro atual.", 1),
+          _createElementVNode("div", { class: "toolbar" }, [_createElementVNode("button", {
+            type: "button",
+            onClick: selectTaxBatchVisible,
+            disabled: busy||!taxBatchCandidates.length
+          }, "Selecionar visíveis sem memória", 8, ["onClick", "disabled"]), _createElementVNode("button", {
+            type: "button",
+            onClick: clearTaxBatchSelection,
+            disabled: busy||!taxBatchSelected.length
+          }, "Limpar seleção do lote", 8, ["onClick", "disabled"])]),
+          _createElementVNode("div", { class: "table-scroll" }, [_createElementVNode("table", null, [_createElementVNode("thead", null, [_createElementVNode("tr", null, [
+            _createElementVNode("th", null, "Selecionar"),
+            _createElementVNode("th", null, "Operação"),
+            _createElementVNode("th", null, "Referência"),
+            _createElementVNode("th", null, "Estado"),
+            _createElementVNode("th", null, "Memória atual")
+          ])]), _createElementVNode("tbody", null, [(_openBlock(true), _createElementBlock(_Fragment, null, _renderList(taxBatchCandidates, (row) => {
+            return (_openBlock(), _createElementBlock("tr", { key: row.operation_id }, [
+              _createElementVNode("td", null, [_createElementVNode("label", null, [_withDirectives(_createElementVNode("input", {
+                type: "checkbox",
+                "aria-label": 'Selecionar operação '+row.operation_id+' para tributação',
+                disabled: busy,
+                value: row.operation_id,
+                "onUpdate:modelValue": $event => ((taxBatchSelected) = $event),
+                onChange: $event => {taxBatchPreview=null;taxBatchConfirmed=false;taxBatchInspect=null}
+              }, null, 40, ["aria-label", "disabled", "value", "onUpdate:modelValue", "onChange"]), [[_vModelCheckbox, taxBatchSelected]]), _createTextVNode(" Incluir")])]),
+              _createElementVNode("td", null, _toDisplayString(row.operation_id), 1),
+              _createElementVNode("td", null, _toDisplayString(row.payload.reference), 1),
+              _createElementVNode("td", null, _toDisplayString(row.state), 1),
+              _createElementVNode("td", null, _toDisplayString(row.payload.tax_calculation?.id||'sem memória'), 1)
+            ]))
+          }), 128))])])]),
+          _createElementVNode("button", {
+            type: "button",
+            onClick: previewTaxBatch,
+            disabled: busy||!taxBatchSelected.length||taxBatchSelected.length>100
+          }, "Gerar prévia tributária do lote", 8, ["onClick", "disabled"]),
+          taxBatchPreview
+            ? (_openBlock(), _createElementBlock("div", {
+                key: 0,
+                class: "inset"
+              }, [
+                _createElementVNode("h3", null, "Prévia da tributação em lote"),
+                _createElementVNode("p", null, _toDisplayString(taxBatchPreview.snapshot.ready?'Todas as operações calculáveis; confira a memória de cada ficha.':'Existem pendências; nenhuma operação pode ser aplicada neste lote.'), 1),
+                (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(taxBatchPreview.snapshot.items, (row) => {
+                  return (_openBlock(), _createElementBlock("article", {
+                    key: row.operation_id,
+                    "data-tax-batch-preview": row.operation_id
+                  }, [_createElementVNode("b", null, "#" + _toDisplayString(row.operation_id) + " · " + _toDisplayString(row.reference||'operação indisponível') + " · v" + _toDisplayString(row.input_version||'—'), 1), (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(row.blockers, (blocker) => {
+                    return (_openBlock(), _createElementBlock("p", { class: "error" }, _toDisplayString(blocker), 1))
+                  }), 256)), (row.memory)
+                    ? (_openBlock(), _createElementBlock(_Fragment, { key: 0 }, [_createElementVNode("p", null, _toDisplayString(row.memory.profile) + " · " + _toDisplayString(row.memory.lines.length) + " linhas de cálculo. Totais por componente somam itens; efeitos mistos devem ser conferidos na memória, sem deduzir saldo líquido.", 1), _createVNode(_component_data_table, {
+                        rows: row.components,
+                        columns: {tax:'Tributo',component_key:'Componente',base:'Base proposta',rate:'Taxa (%)',amount:'Valor calculado',effect:'Efeito declarado'}
+                      }, null, 8, ["rows", "columns"]), _createElementVNode("button", {
+                        type: "button",
+                        onClick: $event => (taxBatchInspect=row)
+                      }, "Inspecionar memória da operação " + _toDisplayString(row.operation_id), 9, ["onClick"])], 64))
+                    : _createCommentVNode("", true)], 8, ["data-tax-batch-preview"]))
+                }), 128)),
+                taxBatchInspect
+                  ? (_openBlock(), _createElementBlock("div", { key: 0 }, [_createElementVNode("h4", null, "Memória da operação " + _toDisplayString(taxBatchInspect.operation_id), 1), _createElementVNode("pre", null, _toDisplayString(JSON.stringify(taxBatchInspect.memory,null,2)), 1)]))
+                  : _createCommentVNode("", true),
+                _createElementVNode("label", null, [_createTextVNode("Motivo da tributação em lote"), _withDirectives(_createElementVNode("input", {
+                  "onUpdate:modelValue": $event => ((taxBatchReason) = $event),
+                  disabled: busy,
+                  required: ""
+                }, null, 8, ["onUpdate:modelValue", "disabled"]), [[_vModelText, taxBatchReason]])]),
+                _createElementVNode("label", null, [_withDirectives(_createElementVNode("input", {
+                  type: "checkbox",
+                  "onUpdate:modelValue": $event => ((taxBatchConfirmed) = $event),
+                  disabled: busy
+                }, null, 8, ["onUpdate:modelValue", "disabled"]), [[_vModelCheckbox, taxBatchConfirmed]]), _createTextVNode(" Conferi todas as operações selecionadas, regras, bases, taxas, efeitos e valores da prévia do lote")]),
+                _createElementVNode("button", {
+                  type: "button",
+                  onClick: applyTaxBatch,
+                  disabled: busy||!taxBatchPreview.snapshot.ready||!taxBatchConfirmed
+                }, "Aplicar lote em novas versões de rascunho", 8, ["onClick", "disabled"])
+              ]))
+            : _createCommentVNode("", true),
+          _createElementVNode("div", { class: "toolbar" }, [_createElementVNode("button", {
+            type: "button",
+            onClick: $event => (loadTaxBatches(0)),
+            disabled: busy||!cycle
+          }, "Consultar histórico de lotes tributários", 8, ["onClick", "disabled"]), _createElementVNode("button", {
+            type: "button",
+            onClick: $event => (loadTaxBatches(Math.max(0,taxBatchHistory.offset-taxBatchHistory.limit))),
+            disabled: busy||!taxBatchHistory.offset
+          }, "Lotes anteriores na lista", 8, ["onClick", "disabled"]), _createElementVNode("button", {
+            type: "button",
+            onClick: $event => (loadTaxBatches(taxBatchHistory.offset+taxBatchHistory.limit)),
+            disabled: busy||taxBatchHistory.offset+taxBatchHistory.limit>=taxBatchHistory.total
+          }, "Próxima página de lotes", 8, ["onClick", "disabled"])]),
+          _createElementVNode("p", null, _toDisplayString(taxBatchHistory.total) + " lotes preservados nesta competência", 1),
+          (_openBlock(true), _createElementBlock(_Fragment, null, _renderList(taxBatchHistory.items, (row) => {
+            return (_openBlock(), _createElementBlock("article", {
+              class: "inset",
+              key: row.id
+            }, [_createElementVNode("b", null, "Lote #" + _toDisplayString(row.id) + " · " + _toDisplayString(row.count) + " operações", 1), _createElementVNode("p", null, _toDisplayString(row.reason) + " · " + _toDisplayString(row.actor) + " · " + _toDisplayString(row.created_at), 1), _createElementVNode("button", {
+              type: "button",
+              onClick: $event => (openTaxBatch(row))
+            }, "Abrir manifesto do lote " + _toDisplayString(row.id), 9, ["onClick"])]))
+          }), 128)),
+          taxBatchReceipt
+            ? (_openBlock(), _createElementBlock("article", {
+                key: 1,
+                class: "inset"
+              }, [
+                _createElementVNode("h3", null, "Manifesto do lote #" + _toDisplayString(taxBatchReceipt.id), 1),
+                _createElementVNode("p", null, "Preserva as versões produzidas; operações podem ter sido alteradas ou escrituradas posteriormente."),
+                _createVNode(_component_data_table, {
+                  rows: taxBatchReceipt.snapshot.items,
+                  columns: {operation_id:'Operação',reference:'Referência',input_version:'Versão de entrada',output_version:'Versão produzida',calculation_id:'Cálculo',memory_hash:'Hash da memória'}
+                }, null, 8, ["rows", "columns"]),
+                _createElementVNode("button", {
+                  type: "button",
+                  onClick: downloadTaxBatch
+                }, "Baixar manifesto e memórias do lote", 8, ["onClick"])
+              ]))
+            : _createCommentVNode("", true)
+        ]),
+        _createElementVNode("details", { class: "inset" }, [
           _createElementVNode("summary", null, "Ajustes de apuração e saldos entre competências"),
           _createElementVNode("p", null, "Ajustes exigem referência e conferência explícitas. Transporte preserva componente, receita e natureza do saldo de uma apuração validada com fiscal encerrado. Não reconhece direito a crédito, pagamento ou compensação entre tributos."),
           _createElementVNode("div", { class: "toolbar" }, [_createElementVNode("button", {
