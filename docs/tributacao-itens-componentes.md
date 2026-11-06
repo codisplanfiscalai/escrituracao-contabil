@@ -1,5 +1,7 @@
 # Tributação por item e componentes declarados
 
+Este documento registra o incremento v2 do PR #10. A evolução posterior de FCP e grupos por dentro, com limites próprios e memória v3, está em [FCP e cálculo por dentro](fcp-calculo-por-dentro.md). As exclusões desses dois perfis abaixo descrevem somente o escopo original v2.
+
 ## Escopo e dependência
 
 Incremento fiscal separado, dependente do PR #8 e do esquema 13. A branch de integração anterior não foi alterada. A base de código deste incremento é `64378f695919c3816840b9eb29c669c762fc6ca1`; a develop conferida ao iniciar era `22ebdb14d812980dac532cd7c0403c2f811f559e`. O PR deste incremento destina-se a develop e fica em rascunho enquanto sua dependência e a integração contábil forem reconciliadas.

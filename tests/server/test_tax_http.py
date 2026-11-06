@@ -8,6 +8,23 @@ class TaxHTTPTests(unittest.TestCase):
     setUp = fixtures.RegistrationHTTPTests.setUp
     post = fixtures.RegistrationHTTPTests.post
 
+    def test_fcp_and_grossup_parameters_roundtrip_without_accepting_zero_denominator(self):
+        company=self.post('/api/companies',{'name':'FCP sintético'})['id']
+        spec={'tax':'FCP','rate':'2','base_field':'net_base','effect':'informativo','operation':'entrada',
+              'valid_from':'2026-09-01','rounding':'meio_para_cima','validation_reference':'Teste sem validade legal',
+              'calculation':{'scope':'item','method':'fcp','component_code':'TESTE','base_mode':'por_dentro','reduction_percent':'0',
+                  'base_rounding':'centavos_antes_da_taxa','input_basis':'liquido_sem_componentes_do_grupo','residual_policy':'bloquear',
+                  'denominator_components':[{'component':'FCP:TESTE','rate':'2'}]}}
+        request={'company_id':company,'rule_key':'fcp','label':'FCP declarado','state':'aprovada','expected_version':0,'reason':'Teste','spec':spec}
+        saved=self.post('/api/tax-rules',request)
+        self.assertEqual(saved['spec']['calculation'],spec['calculation'])
+        request['expected_version']=1;spec['rate']='100';spec['calculation']['denominator_components'][0]['rate']='100'
+        self.assertEqual(self.client.post('/api/tax-rules',json=request,headers=self.headers).status_code,400)
+        config=self.client.get('/api/tax-config',params={'company_id':company}).json()['data']
+        self.assertIn('FCP',config['supported_taxes'])
+        self.assertEqual(len(config['rules']),1)
+        self.assertFalse(config['legal_defaults_loaded'])
+
     def test_item_profiles_roundtrip_and_invalid_formula_is_rejected_by_http(self):
         company=self.post('/api/companies',{'name':'Itens sintéticos'})['id']
         spec={'tax':'ICMS_ST','rate':'10','base_field':'total','effect':'debito','operation':'entrada',
