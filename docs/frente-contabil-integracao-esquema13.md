@@ -1,5 +1,7 @@
 # Integração contábil com a base fiscal de esquema 13
 
+Registro histórico do incremento 13. Para a combinação posterior com o esquema 14 e importação de cadastros do PR #11, consulte `frente-contabil-integracao-esquema14.md`. Os SHAs e resultados abaixo continuam vinculados à base fiscal 13, sem alegar validação de versões posteriores.
+
 ## Base e resultado
 
 Foi conferido o PR fiscal [#8](https://github.com/codisplanfiscalai/escrituracao-contabil/pull/8), aberto em rascunho para `develop`, e obtido o HEAD exato **`64378f695919c3816840b9eb29c669c762fc6ca1`**. A integração foi preparada na branch local `feat/contabil-compat-esquema13`, árvore `/workspace/escrituracao-contabil-compat13`, criada diretamente nesse commit. A branch fiscal foi preservada; não houve merge de PR, release ou implantação.
